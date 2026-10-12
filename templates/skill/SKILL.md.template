@@ -1,0 +1,27 @@
+---
+name: {{name}}
+description: {{description}}
+license: MIT
+metadata:
+  copyright: Microsoft Corporation. All rights reserved.
+  status: draft
+---
+
+# {{title}}
+
+> Draft scaffold. This skill is not implemented and must not be used to make
+> customer code changes. Do not claim that migration or validation succeeded.
+
+## Instructions
+
+TODO: Describe the task-specific procedure. Include only relevant prerequisites,
+decision points, constraints, and stopping conditions. Link bundled references
+where needed and explain when to read them.
+
+## Example
+
+TODO: Give a representative request and expected behavior or output, if useful.
+
+## Verification
+
+TODO: Describe how to check the result and report failures or unverified outcomes.

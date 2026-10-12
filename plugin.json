@@ -1,0 +1,18 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "eeid-toolkit",
+  "version": "0.1.0",
+  "description": "Microsoft Entra External ID implementation and migration guidance for AI coding assistants.",
+  "author": {
+    "name": "Microsoft Corporation"
+  },
+  "homepage": "https://github.com/AzureAD/ms-eeid-agent-toolkit",
+  "repository": "https://github.com/AzureAD/ms-eeid-agent-toolkit",
+  "license": "MIT",
+  "keywords": [
+    "entra",
+    "external-id",
+    "authentication",
+    "agent-skills"
+  ]
+}

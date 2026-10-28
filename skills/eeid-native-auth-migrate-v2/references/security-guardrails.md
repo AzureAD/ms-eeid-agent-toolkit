@@ -210,8 +210,8 @@ Sources: RFC 9700 §2.3 (privilege restriction).
 
 1. Re-read the plan, this file, and the approach's security reference.
 2. List the migration's changes: `git diff <baseline commit>` and new files
-   (`git status --porcelain`). Files in `dirty-files` were never edited by
-   the migration; they aren't part of the introduced scope.
+   (`git status --porcelain`). Files in `dirty-files` and the
+   `.native-auth-v2-migration/` folder aren't part of the introduced scope.
 3. Review each changed hunk against every rule. Then trace each migrated flow
    end to end (UI → client → token storage) for SEC-03, SEC-07, and SEC-08,
    which a line-by-line review misses.

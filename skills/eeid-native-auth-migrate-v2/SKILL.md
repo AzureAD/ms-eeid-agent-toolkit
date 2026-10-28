@@ -68,18 +68,18 @@ If the workspace holds several native auth apps, ask which one to migrate.
 Each app gets its own plan and its own working folder.
 
 **The customer decides what happens to this folder in Git; there is no
-default.** The first plan asks it under "Decisions needed" and records the
-answer in `migration-folder`:
+default.** It isn't a migration decision, so it's not part of the plan.
+Ask once, after the report is written (Step 9), and record the answer in
+the report's "Migration folder" row:
 
 | Answer | What you do |
 | --- | --- |
 | `commit` | Nothing. The customer commits the folder; you never commit. |
-| `ignore` | Add `.native-auth-v2-migration/` to the app's `.gitignore` as a plan step. |
+| `ignore` | Add `.native-auth-v2-migration/` to the app's `.gitignore`. |
 | `manual` | Nothing. The customer handles it. |
 
-Later phases reuse the recorded answer from the previous phase's plan and
-show it in "At a glance"; the customer can change it like any other plan
-item. A restart asks again.
+Later phases reuse the answer from the previous phase's report and don't
+ask again. The folder is never part of the migration's code changes.
 
 ## Where am I? (run first, every time)
 
@@ -223,9 +223,8 @@ finishing it in the plan (it can't be deferred, because it breaks the
    with `status: draft`, `revision: 1`, `phase: 1` (or the next phase
    number), `approach`, and `skill-version`. Put every open question for
    the customer under "Decisions needed" (for example accepting a gap-list
-   limitation, choosing a test framework, uncommitted changes in files the
-   plan changes, and what to do with the migration folder; see the
-   template).
+   limitation, choosing a test framework, or uncommitted changes in files
+   the plan changes).
 8. **STOP.** Show the plan's "At a glance" summary and any decisions needed.
    Call out validation explicitly, for example: *"Approving this plan also
    runs `npm run typecheck` and `npm test -- --watchAll=false` twice: once
@@ -364,6 +363,13 @@ In chat, summarize in a few lines: lead with the outcome and anything the
 customer must act on (failed checks, unresolved security findings,
 manual follow-up), point to the report and to the uncommitted changes
 (`git status`).
+
+Then, unless an earlier phase's report already records the answer, ask
+what should happen to the `.native-auth-v2-migration/` folder in Git
+(**commit**, **ignore**, or **manual**; see **Working folder**). Record the
+answer in the report's "Migration folder" row, and for `ignore` add the
+`.gitignore` entry. The
+migration is complete whether or not the customer answers.
 
 ## Next phase
 

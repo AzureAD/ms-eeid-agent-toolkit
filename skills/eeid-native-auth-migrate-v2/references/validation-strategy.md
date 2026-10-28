@@ -99,7 +99,7 @@ Run the groups in this order. Group A needs no tools beyond search and git.
 
 | ID | Check | How |
 | --- | --- | --- |
-| A1 | Only planned files changed | `git status --porcelain` and `git diff --name-only <baseline commit>`. Every changed or new file, including new tests, must appear in the plan. Files listed in the plan's `dirty-files` are excluded. |
+| A1 | Only planned files changed | `git status --porcelain` and `git diff --name-only <baseline commit>`. Every changed or new file, including new tests, must appear in the plan. Excluded: files listed in the plan's `dirty-files`, and the `.native-auth-v2-migration/` folder itself. |
 | A2 | Deferred flows unchanged | Files used only by deferred flows: no diff. Shared files: the diff contains only changes the plan lists, and V1 code paths the deferred flows call are still present and unchanged. |
 | A3 | No V1 left in migrated flows | Search the migrated flows' files and call chains with [v1-detection-patterns.md](v1-detection-patterns.md), as the approach's validation reference describes. V1 usage reached from a migrated flow is a failure; V1 usage only deferred flows reach is expected. |
 | A4 | No version mixing inside a flow | Trace each migrated flow from its UI entry point to token handling. Every call must go through the V2 client, including MFA. No V1 continuation token or V1 response object may reach V2 code, and no V2 state may reach V1 code. |

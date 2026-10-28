@@ -11,7 +11,7 @@
 | Skill version (and V2 gap list) | <skill-version> |
 | Validation settings | max <N> fix attempts, <N> min per command |
 | Changes committed | **No** — review with `git status` / `git diff` |
-| Migration folder | `.native-auth-v2-migration/` — <commit: commit it with your changes / ignore: added to `.gitignore` / manual: you chose to handle it> |
+| Migration folder | `.native-auth-v2-migration/` — <commit: commit it with your changes / ignore: added to `.gitignore` / manual: you handle it / not decided yet> |
 
 This report contains no tokens, codes, passwords, or OTPs.
 

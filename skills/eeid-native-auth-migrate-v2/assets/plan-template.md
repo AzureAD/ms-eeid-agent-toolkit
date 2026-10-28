@@ -13,7 +13,6 @@ baseline:
   commit: <git rev-parse HEAD or "none">
   files:
     <path>: <git hash-object>
-migration-folder: null   # commit | ignore | manual — the customer's choice; no default
 dirty-files: []          # files with uncommitted changes when planned; the migration never edits them (excluded from check A1)
 validation-settings:     # you may edit these before approving
   max-fix-attempts: 3            # per failing check
@@ -36,7 +35,6 @@ validation-baseline: null  # set in the pre-apply check: { <check ID>: passed | 
 | Files to change / add | <N changed, M new (including K test files)> |
 | Commands run on approval | <`npm run typecheck`, `npm test -- --watchAll=false` — twice (baseline and after)> |
 | You must do manually | <N items — section 10> |
-| Migration folder in Git | <commit / ignore / manual — or "decision needed"> |
 | Decisions needed | <N — see below, or "none"> |
 
 ## Decisions needed
@@ -44,10 +42,6 @@ validation-baseline: null  # set in the pre-apply check: { <check ID>: passed | 
 <Remove this section's items as the customer answers them; record each
 answer under "Decisions and revisions". Write "None." when empty.>
 
-- [ ] <Phase 1 always: What should happen to the `.native-auth-v2-migration/`
-  folder in Git? **commit** (you commit it; it records what was migrated and
-  why), **ignore** (I add it to `.gitignore`), or **manual** (you handle
-  it).>
 - [ ] <e.g. Tests: this project has no test framework. Introduce <framework>
   (adds <dependencies> and `<test command>`) or skip tests?>
 - [ ] <e.g. sign-in: users without an MFA method will get an error (V2 gap).

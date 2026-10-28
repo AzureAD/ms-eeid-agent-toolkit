@@ -74,6 +74,11 @@ Some installers can still discover drafts; do not publish an unfinished revision
   the name is quoted. Use `eeid-example`, not `"eeid example"`.
 - Write a specific description explaining the task and activation conditions.
   Retain `license: MIT` and the predefined copyright metadata.
+- Give each skill its own semantic version in `metadata.version` (quoted, for
+  example `version: "0.1.0"`), separate from the plugin version, and increase
+  it in every PR that changes the skill. See
+  [docs/toolkit/skill-versioning-plan.md](docs/toolkit/skill-versioning-plan.md);
+  validator and helper support is planned there.
 - The template's title, draft notice, headings, and TODO text are authoring
   suggestions, not validated requirements. Organize the body for the capability;
   required metadata applies even when creating a skill manually.

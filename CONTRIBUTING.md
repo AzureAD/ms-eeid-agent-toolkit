@@ -48,7 +48,6 @@ npm install --package-lock=false
 │       ├── scripts/                # Skill execution helpers, if needed
 │       └── assets/                 # Customer output templates and static resources
 ├── docs/                           # Human-oriented knowledge and documentation
-│   ├── toolkit/                    # Designs and contributor documentation
 │   └── domains/                    # Team-owned domain knowledge areas
 ├── templates/                      # Templates used by repository tooling
 │   ├── skill/                      # New-skill scaffolding templates
@@ -110,10 +109,16 @@ npm install --package-lock=false
    readiness criteria (eval pass thresholds per agent, a manual run against a
    real environment where the skill needs one, owner review).
 
-`ready` is a repository status convention, not a client-enforced publishing
-gate. Some installers can still discover drafts; do not publish an unfinished
-revision.
+Agents and installers don't read `metadata.status`, so a draft skill in this
+repository can still be installed and used. Don't point customers at a draft.
 
+### Skill rules
+
+- Create every new skill with `npm run skill:create`, not by hand. It sets up
+  what validation requires and what's easy to miss: a valid name, the
+  license and copyright metadata, `metadata.status: draft` and `version:
+  "0.1.0"`, the standard `## Version` section, and the skill's eval folders
+  under `tests/evals/<name>/`.
 - Use a flat `skills/<name>/SKILL.md` layout and stable `eeid-` capability names.
   Names must match the folder, be at most 64 characters, and contain lowercase
   ASCII letters, digits, and single hyphens. Spaces are not allowed, even when
@@ -121,17 +126,30 @@ revision.
 - Write a specific description explaining the task and activation conditions.
   Retain `license: MIT` and the predefined copyright metadata.
 - Give each skill its own semantic version in `metadata.version` (quoted, for
-  example `version: "0.1.0"`), separate from the plugin version. Draft skills
-  stay at `0.1.0`; a skill moves to `1.0.0` or higher when it becomes `ready`,
-  and from then on every PR that changes it increases the version. See
-  [docs/toolkit/skill-versioning-plan.md](docs/toolkit/skill-versioning-plan.md).
-  **TBD:** `npm run skill:bump` to raise a skill's version, and a validator
-  check that a changed `ready` skill's version went up.
+  example `version: "0.1.0"`), separate from the plugin version. Skills are
+  installed on their own (without the plugin), and a skill records its version
+  in what it produces, so the plugin version can't identify a skill's content.
+  Draft skills stay at `0.1.0`; a skill moves to `1.0.0` or higher when it
+  becomes `ready`, and from then on every PR that changes it increases the
+  version:
+
+  | Change to a `ready` skill | Bump |
+  | --- | --- |
+  | Wording fixes, reference corrections, no behavior change | patch |
+  | New behavior, a new flow or platform, a new reference, an updated product contract | minor |
+  | Breaking changes, for example to a file format the skill produces or to code an earlier version already changed | major |
+
+  Release notes must say when a new version requires changes to work an
+  earlier version already produced. **TBD:** `npm run skill:bump` to raise a
+  skill's version, and a validator check that a changed `ready` skill's
+  version went up.
 - Every `SKILL.md` has a `## Version` section that tells the agent where to
-  find the skill's version. Copy its standard text from the template, then add
-  anything skill-specific (for example where the skill records the version)
-  after it. Skills are installed on their own, so this text lives in each
-  skill rather than in a shared file.
+  find the skill's version. `npm run skill:create` adds it. If you create a
+  skill by hand, copy the section's standard text from
+  [templates/skill/SKILL.md.template](templates/skill/SKILL.md.template).
+  Add anything skill-specific (for example where the skill records the
+  version) after the standard text. Skills are installed on their own, so
+  this text lives in each skill rather than in a shared file.
 - Apart from the `## Version` section, the template's title, draft notice,
   headings, and TODO text are authoring suggestions, not validated
   requirements. Organize the body for the capability; required metadata and
@@ -172,8 +190,8 @@ replace it when the skill is implemented and reviewed.
   and state their trigger, rather than requiring every reference on every run.
 - Match specificity to risk. Allow discretion where approaches legitimately
   vary; define exact ordering, approvals, and stopping conditions for fragile or
-  security-sensitive actions. Do not prescribe migration stages for unrelated
-  skills.
+  security-sensitive actions. Don't copy another skill's workflow stages into
+  a skill that doesn't need them.
 - Include a realistic example when it clarifies expected behavior. Use an output
   template in `assets/` only when a consistent artifact format matters.
 - Explain observable success checks, important failures, and what to report when
@@ -192,7 +210,7 @@ should not be treated as universal requirements.
 
 Domains are knowledge areas, not one-to-one skill folders. Create domain docs
 under `docs/domains/<domain>/` with a README identifying maintainers and related
-skills (**TBD:** `docs/domains/native-auth/README.md`). Keep docs, learning material, examples, and proposals there. Runtime
+skills. Keep docs, learning material, examples, and proposals there. Runtime
 guidance still belongs in the consuming skill. Shared-reference synchronization
 is deferred.
 
@@ -200,12 +218,6 @@ Add ownership patterns to `.github/CODEOWNERS` for skills and their directly
 related documentation, tests, and adapters when applicable. CODEOWNERS can cover
 any repository path, not only skills. Later matching rules take precedence;
 list multiple reviewers on one rule when both are intended.
-
-The migration skill is initially assigned to `@shenj`. Other paths have no
-default owner until maintainers are agreed (**TBD:** owners for shared tooling,
-`scripts/`, `templates/`, `tests/tooling/`, and `tests/skills/`). CODEOWNERS only requests
-eligible reviewers; repository rules must separately require reviews. Owners
-must have appropriate repository access.
 
 ## Validation and evaluations
 
@@ -234,57 +246,36 @@ in CI.
 **TBD:** a security scan of skill content (for example for prompt-injection or
 unsafe instructions); the tool and how it runs are being investigated.
 
-These checks are not a full runtime-conformance or behavioral test suite.
-External URLs, prose references, tool permissions, MCP endpoint connectivity,
-and API correctness are not verified. Add client-specific validation when those
-packages exist; Claude validation is supplemental, not the portable validator.
+`npm run validate` and `npm test` check structure, not behavior: they don't
+verify external URLs, product or API claims, tool permissions, or MCP endpoint
+connectivity. Evals and review cover what a skill does.
 
-Before publishing migration support, evaluate plan-only no-edit behavior,
-approved-scope preservation, raw API/SDK selection, deferred-flow preservation,
-missing prerequisites, security guardrails, truthful validation reporting,
-natural-language activation, and isolated single-skill installation.
-Use synthetic fixtures and approved test accounts/endpoints. Keep credentials
-out of source and do not expose privileged CI secrets to untrusted PR code.
+Evals use synthetic fixtures and test accounts or endpoints only. Keep
+credentials out of the repository, and never expose secrets to pull request
+code you haven't reviewed.
 
 ## Packaging and releases
 
-One plugin includes all ready skills, with one global version in `plugin.json`.
-Keep `package.json.version` aligned. Start at `0.1.0` for development; it is not a
-claim of public preview readiness.
+All `ready` skills ship in one plugin. Its version is in `plugin.json` (keep
+`package.json` at the same version); each skill also has its own version (see
+[Skill rules](#skill-rules)). During development the plugin stays at `0.1.0`.
 
-For now, packaging adapters and output discovery folders are empty.
-**TBD:** a manifest for each supported client (Claude Code's
-`.claude-plugin/plugin.json`, Cursor, Codex, Gemini, and the `.agents`
-marketplace), and a check that the Skills CLI (`npx skills add`) installs
-from this layout. Claude Code doesn't read the root `plugin.json`: it names
-the plugin after its folder until `.claude-plugin/plugin.json` exists. Do not
-create placeholder marketplace listings for unfinished capabilities. Once
-implemented, templates under `packaging/adapters/` will generate committed
-compatibility manifests and catalogs at `.claude-plugin/` and `.github/plugin/`.
-PR validation must check drift. The root portable `plugin.json` is used by
-Copilot; there is no need for `.github/plugin/plugin.json`.
+Packaging and releases aren't set up yet. **TBD**, to be added later:
 
-Defer `build-plugin.mjs` until package selection, supported adapter formats, and
-release checks are implemented. It should then validate inputs, stage only
-customer files into `dist/`, and validate outputs. Local builds and CI must use
-the same command. Skills CLI installation and full-plugin installation must be
-tested separately. Exact wrapper namespaces and flags are client-dependent.
-
-Use a reviewed release PR, immutable Git tag, and clean packages from that
-revision. **TBD:** `npm run version:set` to update the plugin version in
-every manifest, release notes listing each skill and its version, a
-`CHANGELOG.md`, and release automation that creates the GitHub release when a
-release PR merges. Publishing Git-backed catalogs makes a marketplace available; it does
-not submit the plugin to external curated directories. Their publishing paths
-and approval policies must be confirmed separately.
+- A plugin manifest for each supported client, generated from `plugin.json`,
+  and a check that they stay in sync.
+- A build command that stages release packages into `dist/` (ignored by git).
+- Release tooling: a command to set the plugin version, release notes listing
+  each skill and its version, a `CHANGELOG.md`, and a tagged GitHub release
+  for each reviewed release pull request.
+- Marketplace listings, once skills are ready.
 
 ## Dependency lockfile
 
-No `package-lock.json` is included in this initial skeleton at the user's request.
-It is normally created by dependency installation, not by the build. Once
-dependencies are reviewed, generate and commit it using `npm install`, then use
-`npm ci` in pipelines. Committing the lockfile pins transitive dependencies and
-is recommended for this repository's development tooling.
+No `package-lock.json` is committed yet, so install with
+`npm install --package-lock=false`. **TBD:** once the development dependencies
+are reviewed, commit a lockfile generated by `npm install`, and use `npm ci`
+in CI.
 
 ## Pull requests
 
@@ -299,11 +290,6 @@ is recommended for this repository's development tooling.
 
 **TBD:** commit message and pull request title conventions, and a pull
 request template.
-
-## Agent instructions
-
-**TBD:** an `AGENTS.md` (with `CLAUDE.md` pointing to it) so AI coding agents
-working on this repository follow these conventions.
 
 ## Code of conduct and security
 

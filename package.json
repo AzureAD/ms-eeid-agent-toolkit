@@ -16,7 +16,8 @@
     "skill:create": "node scripts/create-skill.mjs",
     "validate": "node scripts/validate.mjs",
     "validate:release": "node scripts/validate.mjs --release",
-    "test": "node --test \"tests/tooling/*.test.mjs\" \"tests/skills/*.test.mjs\""
+    "test": "node --test \"tests/tooling/*.test.mjs\" \"tests/skills/*.test.mjs\"",
+    "eval:agent": "node scripts/evals/run.mjs"
   },
   "devDependencies": {
     "ajv": "8.17.1",

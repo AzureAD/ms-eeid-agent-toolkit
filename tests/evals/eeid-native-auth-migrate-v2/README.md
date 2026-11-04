@@ -1,12 +1,10 @@
 # Evals: eeid-native-auth-migrate-v2
 
 Cases and fixtures for `skills/eeid-native-auth-migrate-v2`. How evals work,
-how to run them, and how to write graders: [../README.md](../README.md).
-
-```bash
-claude plugin eval . --eval-dir tests/evals/eeid-native-auth-migrate-v2 \
-  --scaffold --allow-tools Bash Write Edit --tag smoke
-```
+how to run them on each supported agent, and how to write graders:
+[../README.md](../README.md). Use `eeid-native-auth-migrate-v2` as `<skill>`
+in its commands; the `smoke` tag selects one should-trigger, one
+should-not-trigger, and one plan case.
 
 ## Triggering (`triggering/`)
 

@@ -80,7 +80,14 @@ First slice added 2026-11-03: the
 flows), five should-trigger and six should-not-trigger triggering cases.
 First full run 2026-11-04 (one run per case, no baseline arm, Claude Code
 2.1.309): 16 of 16 passed, about 12.5 minutes and $12.60. Next: three runs per
-case to measure variance. Still needed before the skill can be marked
+case to measure variance.
+
+Other agents: `npm run eval:agent` runs the same cases through an adapter
+(`scripts/evals/`). The Copilot CLI adapter is built and unit-tested but has
+not run against Copilot yet; its first run must confirm prompt-mode tool
+permissions, the `$COPILOT_HOME/skills` location, and the JSON event format
+(see `tests/evals/README.md`). Codex and other agents need their own
+adapters. Still needed before the skill can be marked
 `ready`:
 
 1. Synthetic fixture apps: React + TypeScript SPA with a dev proxy, iOS

@@ -13,6 +13,15 @@ metadata:
 > Draft scaffold. This skill is not implemented and must not be used to make
 > customer code changes. Do not claim that migration or validation succeeded.
 
+## Version
+
+This skill's version is `metadata.version` in the front matter of this
+`SKILL.md`. It is the skill's own version, not the plugin's. If the front
+matter isn't visible to you, read this file from the skill folder; if you
+still can't, use `unknown`. Use this value whenever you record or report
+which version of the skill you used. The files bundled with this skill
+belong to the same version.
+
 ## Instructions
 
 TODO: Describe the task-specific procedure. Include only relevant prerequisites,

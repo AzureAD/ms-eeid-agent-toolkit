@@ -1,8 +1,10 @@
 # Skill versioning plan
 
-Status: agreed design. The migration skill already uses `metadata.version`
-and restarts on a version change (section 5); the tooling in section 6 is
-not implemented. Prepared 2026-10-27 for a follow-up implementation session.
+Status: agreed design, partly implemented. The migration skill uses
+`metadata.version` and restarts on a version change; the template and the
+validator cover the required version, the `## Version` section, and the
+`ready` minimum (section 5). The bump check and the helpers in section 6
+are not implemented. Prepared 2026-10-27; updated 2026-11-03.
 
 ## 1. Problem
 
@@ -17,7 +19,7 @@ Customers can get a skill in three ways:
 A skill needs to know its own version at runtime. The migration skill
 records it in the customer's plan and report and uses it to detect that it
 changed under an in-progress plan. Support uses it to tell which
-instructions and gap list a customer used.
+instructions and references a customer used.
 
 The plugin version can't serve this purpose:
 
@@ -57,14 +59,21 @@ such data to `metadata`, so `metadata.version` keeps skills portable.
 - Semantic version string, quoted in YAML: `version: "0.1.0"`. The validator
   requires metadata values to be strings.
 - New skills start at `0.1.0` while `metadata.status: draft`.
-- A skill moves to `1.0.0` when it first becomes `ready`.
+- A skill moves to `1.0.0` or higher when it first becomes `ready`. The
+  validator rejects a `ready` skill below `1.0.0`.
 
 ### Bump in the same PR
 
-Any PR that changes a file under `skills/<name>/` must increase that
-skill's `metadata.version` compared with the base branch. This keeps
-`main` labeled accurately, so repository and Skills CLI installs from
-`main` always carry a version that matches their content.
+**Draft skills don't bump.** While `metadata.status` is `draft`, a skill
+stays at its starting version (`0.1.0`) however often it changes. Drafts
+aren't working customer capabilities, so no customer relies on their
+version.
+
+From the first `ready` release on, any PR that changes a file under
+`skills/<name>/` must increase that skill's `metadata.version` compared with
+the base branch. This keeps `main` labeled accurately, so repository and
+Skills CLI installs from `main` always carry a version that matches their
+content.
 
 The bump size tells people how big the change is. It doesn't change how the
 migration skill behaves: any version difference restarts an unfinished
@@ -73,8 +82,8 @@ migration (section 4).
 | Change | Bump |
 | --- | --- |
 | Wording fixes, reference corrections, no behavior change | patch |
-| New behavior, updated gap list, new flow or platform, new reference | minor |
-| Breaking changes, for example to the plan format or to code migrated by earlier versions (from `1.0.0` on; before that, minor) | major |
+| New behavior, updated V2 contract, new flow or platform, new reference | minor |
+| Breaking changes, for example to the plan format or to code migrated by earlier versions | major |
 
 Release notes must say when a version requires changes to code that an
 earlier version already migrated.
@@ -91,7 +100,7 @@ earlier version already migrated.
 Implemented in `skills/eeid-native-auth-migrate-v2/SKILL.md` ("Version
 change → restart"). A version change should be rare, so the rule favors
 safety over convenience: a new version may change the V2 mapping, SDK
-interfaces, gap list, or rules, so a plan or code made with another
+interfaces, or rules, so a plan or code made with another
 version can't be trusted.
 
 - The skill writes its version to the plan and report as `skill-version`.
@@ -120,34 +129,39 @@ Done in the migration skill (no further change needed):
 - `SKILL.md`: `metadata.version: "0.1.0"`; "Version" section reads
   `metadata.version`; "Version change → restart" section; hard stop.
 - `assets/plan-template.md` and `assets/report-template.md`: `skill-version`.
-- `references/flows-and-scope.md`: gap list tied to the skill version.
 - `CONTRIBUTING.md`: short note pointing to this plan; expand it in 6.6.
-- `templates/skill/SKILL.md.template`: `version: "0.1.0"` in metadata, so
-  `npm run skill:create` stamps it on every new skill (task 6.2).
-
-The temporary `plugin-version` check was removed from `scripts/validate.mjs`;
-the validator doesn't check `metadata.version` yet.
+- `templates/skill/SKILL.md.template`: `version: "0.1.0"` in metadata and a
+  standard `## Version` section, so `npm run skill:create` stamps both on
+  every new skill (task 6.2). Each skill keeps its own copy of the section,
+  because skills are installed on their own and can't link to a shared file.
+- `scripts/validate.mjs`: requires a semantic `metadata.version` and a
+  `## Version` section in every `SKILL.md`, and rejects a `ready` skill
+  below `1.0.0` (task 6.1, first two items).
 
 ## 6. Implementation tasks
 
 ### 6.1 Validator (`scripts/validate.mjs`)
 
-- Require `metadata.version` on every skill; it must be a valid semantic
-  version (reuse the existing semver regular expression).
-- Add `--base <ref>` (for example `npm run validate -- --base origin/main`):
-  - For each skill with changed files between `<ref>` and the working tree
-    (`git diff --name-only <ref>` plus untracked files under `skills/`),
-    require `metadata.version` to be greater than the version at `<ref>`.
+- Done: require `metadata.version` on every skill as a valid semantic
+  version, and a `## Version` section in every `SKILL.md`.
+- Done: a skill with `status: ready` must be at `1.0.0` or higher (checked
+  on every run; no base needed).
+- Add `--base <ref>` (for example `npm run validate -- --base origin/main`).
+  Not needed until the first skill is close to `ready`:
+  - For each `ready` skill with changed files between `<ref>` and the
+    working tree (`git diff --name-only <ref>` plus untracked files under
+    `skills/`), require `metadata.version` to be greater than the version at
+    `<ref>`.
+  - Skip `draft` skills; they don't bump.
   - A skill that doesn't exist at `<ref>` is new: no comparison.
-  - A skill whose `status` changes from `draft` to `ready` must be at
-    `1.0.0` or higher.
   - Without `--base`, skip the bump check and say so in the output.
 - Keep `--release` behavior; it can combine with `--base`.
 
 ### 6.2 Skill creation (`scripts/create-skill.mjs`, `templates/skill/SKILL.md.template`)
 
-- Done: the template's metadata has `version: "0.1.0"`. No placeholder or
-  script change is needed because every new skill starts at `0.1.0`.
+- Done: the template's metadata has `version: "0.1.0"` and the template has
+  the standard `## Version` section. No placeholder or script change is
+  needed because every new skill starts at `0.1.0`.
 
 ### 6.3 Skill bump helper (new `scripts/bump-skill.mjs`)
 
@@ -193,7 +207,9 @@ Add the `skill:bump` and `version:set` scripts.
 - Validator negative tests (in a scratch copy, not committed):
   - a skill without `metadata.version` fails;
   - an invalid version such as `1.0` fails;
-  - with `--base`, a changed skill whose version didn't increase fails;
+  - with `--base`, a changed `ready` skill whose version didn't increase
+    fails;
+  - with `--base`, a changed `draft` skill passes without a bump;
   - with `--base`, a new skill passes without comparison;
   - a skill marked `ready` below `1.0.0` fails.
 - `npm run skill:create -- eeid-version-test` creates a skill with

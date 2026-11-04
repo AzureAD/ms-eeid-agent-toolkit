@@ -54,7 +54,17 @@ async function main() {
   await Promise.all(['references', 'scripts', 'assets'].map(
     (directory) => mkdir(join(destination, directory)),
   ));
+  const evalsDestination = join(root, 'tests/evals', name);
+  await mkdir(evalsDestination);
+  const evalsReadme = (await readFile(join(root, 'templates/evals/README.md.template'), 'utf8'))
+    .replace(/\{\{name\}\}/g, name);
+  await writeFile(join(evalsDestination, 'README.md'), evalsReadme, { flag: 'wx' });
+  for (const type of ['triggering', 'behavior']) {
+    await mkdir(join(evalsDestination, type));
+    await writeFile(join(evalsDestination, type, '.gitkeep'), '', { flag: 'wx' });
+  }
   console.log(`Created draft skill: skills/${name}/SKILL.md`);
+  console.log(`Created eval folders: tests/evals/${name}/triggering and behavior`);
   console.log('Complete the instructions and evaluations before marking it ready.');
 }
 

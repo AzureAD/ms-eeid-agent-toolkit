@@ -33,10 +33,13 @@ Requires Node.js 22 or later and npm.
 # Install development tooling without creating a lockfile for this initial review.
 npm install --package-lock=false
 
-# Validate manifests and skill structure.
+# Validate manifests, skill structure, and skill routing.
 npm run validate
 
-# Create a draft skill with predefined MIT/copyright metadata.
+# Run tooling unit tests and the deterministic checks for every skill.
+npm test
+
+# Create a draft skill (and its tests/evals folders) with predefined MIT/copyright metadata.
 npm run skill:create -- eeid-example --description "Draft scaffold for an example capability."
 
 # Apply release checks; this intentionally fails while draft skills remain.

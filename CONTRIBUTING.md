@@ -34,17 +34,18 @@ and release conventions.
 │       ├── claude-code/            # Reserved for Claude Code packaging inputs
 │       └── copilot-cli/            # Reserved for Copilot CLI packaging inputs
 ├── scripts/                        # Repository-level automation
-│   ├── create-skill.mjs            # Create a draft skill from the template
-│   └── validate.mjs                # Validate manifests and repository skill rules
-├── tests/                          # Automated checks and behavioral evaluations
-│   ├── tooling/                    # Skill creation and validation tooling tests
+│   ├── create-skill.mjs            # Create a draft skill (and its eval folders) from the templates
+│   ├── validate.mjs                # Validate manifests, skill rules, routing, and eval presence
+│   └── lib/skill-routing.mjs       # Routing check: links, file names, reachability from SKILL.md
+├── tests/                          # Automated checks and model-based evaluations
+│   ├── tooling/                    # Unit tests for scripts/ (npm test)
 │   ├── packaging/                  # Package completeness and installation checks
-│   ├── skills/                     # Tests for executable skill helpers
-│   └── evals/                      # Agent behavioral evaluation suites
-│       └── native-auth/            # Native Auth migration evaluation scenarios
-│           ├── cases/              # Evaluation prompts and assessment criteria
-│           ├── fixtures/           # Synthetic customer applications and inputs
-│           └── expected/           # Expected outcomes and reference artifacts
+│   ├── skills/                     # Deterministic checks for every skill, e.g. routing (npm test)
+│   └── evals/                      # Model-based evals, run locally (see tests/evals/README.md)
+│       └── <skill-name>/           # Same name as skills/<skill-name>
+│           ├── triggering/         # Should-trigger and should-not-trigger cases
+│           ├── behavior/           # What the skill does once loaded
+│           └── fixtures/           # Synthetic customer apps the cases seed
 ├── .claude-plugin/                 # Future generated Claude manifests and catalog
 └── .github/                        # GitHub ownership, discovery, and automation
     ├── CODEOWNERS                  # Path-based review ownership
@@ -75,13 +76,20 @@ Some installers can still discover drafts; do not publish an unfinished revision
 - Write a specific description explaining the task and activation conditions.
   Retain `license: MIT` and the predefined copyright metadata.
 - Give each skill its own semantic version in `metadata.version` (quoted, for
-  example `version: "0.1.0"`), separate from the plugin version, and increase
-  it in every PR that changes the skill. See
+  example `version: "0.1.0"`), separate from the plugin version. Draft skills
+  stay at `0.1.0`; a skill moves to `1.0.0` or higher when it becomes `ready`,
+  and from then on every PR that changes it increases the version. See
   [docs/toolkit/skill-versioning-plan.md](docs/toolkit/skill-versioning-plan.md);
-  validator and helper support is planned there.
-- The template's title, draft notice, headings, and TODO text are authoring
-  suggestions, not validated requirements. Organize the body for the capability;
-  required metadata applies even when creating a skill manually.
+  helper support is planned there.
+- Every `SKILL.md` has a `## Version` section that tells the agent where to
+  find the skill's version. Copy its standard text from the template, then add
+  anything skill-specific (for example where the skill records the version)
+  after it. Skills are installed on their own, so this text lives in each
+  skill rather than in a shared file.
+- Apart from the `## Version` section, the template's title, draft notice,
+  headings, and TODO text are authoring suggestions, not validated
+  requirements. Organize the body for the capability; required metadata and
+  the `## Version` section apply even when creating a skill manually.
 - Bundle all required runtime references, scripts, and assets inside the skill.
   Do not depend on root docs, sibling skills, or external filesystem symlinks.
 - Link authoritative Microsoft Learn guidance and record relevant supported
@@ -152,11 +160,21 @@ must have appropriate repository access.
 ## Validation and evaluations
 
 `npm run validate` checks the local JSON schemas, matching package/plugin versions,
-skill frontmatter, naming, MIT/copyright metadata, draft status, skill-contained
+skill frontmatter, naming, MIT/copyright metadata, draft status, each skill's
+semantic `metadata.version` (at least `1.0.0` when `ready`) and `## Version`
+section, the routing check (every link and file name in a skill resolves, and
+every file under `references/`, `assets/`, and `scripts/` is reachable from
+`SKILL.md`), triggering and behavior eval cases for `ready` skills, skill-contained
 Markdown file links, and disallows symlinks within skill directories. Drafts are
 reported explicitly. `npm run validate:release` additionally rejects draft status.
-Validation does not enforce template body text, headings, or TODO markers; authors
+Apart from the `## Version` heading, validation does not enforce template body
+text, headings, or TODO markers; authors
 must review content readiness before marking a skill ready.
+
+`npm test` runs the unit tests for `scripts/` (`tests/tooling/`) and the
+deterministic checks for every skill (`tests/skills/`). Model-based evals
+(triggering and behavior) run locally with `claude plugin eval`; see
+[tests/evals/README.md](tests/evals/README.md).
 
 These checks are not a full runtime-conformance or behavioral test suite.
 External URLs, prose references, tool permissions, MCP endpoint connectivity,

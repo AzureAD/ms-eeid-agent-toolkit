@@ -1,0 +1,29 @@
+# Evals: {{name}}
+
+Cases and fixtures for `skills/{{name}}`. How evals work, how to run them,
+and how to write graders: [../README.md](../README.md).
+
+```bash
+claude plugin eval . --eval-dir tests/evals/{{name}} --scaffold --allow-tools Bash Write Edit
+```
+
+Add at least one case to each folder before marking the skill `ready`;
+`npm run validate` checks this.
+
+## Triggering (`triggering/`)
+
+| Case | Expect | Prompt idea |
+| --- | --- | --- |
+| TODO | Fires / Doesn't fire | TODO |
+
+## Behavior (`behavior/`)
+
+| Case | Request | Checks |
+| --- | --- | --- |
+| TODO | TODO | TODO |
+
+## Fixtures
+
+| Fixture | What it is |
+| --- | --- |
+| TODO | TODO |

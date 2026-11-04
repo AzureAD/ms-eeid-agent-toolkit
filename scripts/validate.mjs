@@ -3,11 +3,13 @@ import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Ajv2020 from 'ajv/dist/2020.js';
 import { parseDocument } from 'yaml';
+import { checkSkillRouting } from './lib/skill-routing.mjs';
 
 const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const args = process.argv.slice(2);
 const release = args.includes('--release');
 const copyright = 'Microsoft Corporation. All rights reserved.';
+const semver = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
 
 function check(condition, message) {
   if (!condition) throw new Error(message);
@@ -67,6 +69,23 @@ async function validateLinks(file, text, skillRoot) {
   }
 }
 
+// Eval cases are folders holding a prompt.md or case.yaml, under
+// tests/evals/<skill>/<type>/ (nested folders allowed).
+async function countEvalCases(directory) {
+  let entries;
+  try {
+    entries = await readdir(directory, { withFileTypes: true });
+  } catch {
+    return 0;
+  }
+  if (entries.some((entry) => entry.isFile() && ['prompt.md', 'case.yaml'].includes(entry.name))) return 1;
+  let count = 0;
+  for (const entry of entries) {
+    if (entry.isDirectory()) count += await countEvalCases(join(directory, entry.name));
+  }
+  return count;
+}
+
 async function validateSkill(name) {
   const directory = join(root, 'skills', name);
   check(name.length <= 64 && /^eeid-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(name),
@@ -90,6 +109,12 @@ async function validateSkill(name) {
     `${name}: metadata values must be strings.`);
   check(data.metadata.copyright === copyright, `${name}: copyright metadata is missing or incorrect.`);
   check(['draft', 'ready'].includes(data.metadata.status), `${name}: metadata.status must be draft or ready.`);
+  check(semver.test(data.metadata.version ?? ''),
+    `${name}: metadata.version must be a numeric semantic version, optionally with a prerelease suffix.`);
+  check(data.metadata.status !== 'ready' || Number(semver.exec(data.metadata.version)[1]) >= 1,
+    `${name}: a ready skill must be at version 1.0.0 or higher.`);
+  check(/^## Version[ \t]*$/m.test(match[2]),
+    `${name}: SKILL.md must have a "## Version" section (see templates/skill/SKILL.md.template).`);
   if (data.compatibility !== undefined) {
     check(typeof data.compatibility === 'string' && data.compatibility.trim().length > 0 &&
       data.compatibility.length <= 500, `${name}: compatibility must be 1-500 characters.`);
@@ -100,6 +125,14 @@ async function validateSkill(name) {
     if (!file.endsWith('.md')) continue;
     const content = await readFile(file, 'utf8');
     await validateLinks(file, content, directory);
+  }
+  const routing = await checkSkillRouting(directory);
+  check(routing.errors.length === 0, `${name}: routing check failed:\n  ${routing.errors.join('\n  ')}`);
+  for (const type of ['triggering', 'behavior']) {
+    const cases = await countEvalCases(join(root, 'tests/evals', name, type));
+    check(cases > 0 || data.metadata.status !== 'ready',
+      `${name}: a ready skill needs at least one ${type} eval case in tests/evals/${name}/${type}/.`);
+    if (cases === 0) console.warn(`Eval warning: ${name} has no ${type} eval cases (tests/evals/${name}/${type}/).`);
   }
   console.log(`Validated ${name} (${data.metadata.status})`);
   if (data.metadata.status === 'draft') {
@@ -117,7 +150,7 @@ async function main() {
   const plugin = await validateJson('plugin.json', 'plugin.schema.json', ajv);
   await validateJson('mcp.json', 'mcp.schema.json', ajv);
   const packageJson = await readJson(join(root, 'package.json'));
-  check(/^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/.test(plugin.version),
+  check(semver.test(plugin.version),
     'plugin.json: use a numeric semantic version, optionally with a prerelease suffix.');
   check(plugin.version === packageJson.version, 'package.json and plugin.json versions must match.');
   check(plugin.license === 'MIT' && packageJson.license === 'MIT', 'Plugin and package licenses must be MIT.');

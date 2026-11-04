@@ -6,17 +6,19 @@ Prepared 2026-10-28. Use this list to pick up the remaining work on
 ## Current state
 
 - The skill covers **raw API** V1 → V2 migration (sign-in, sign-up, SSPR,
-  full or per flow) on iOS, macOS, Android, and web SPA. SDK migration is
-  not supported yet; the skill stops when it detects the SDK.
+  full or per flow) on any client platform (iOS, Android, Flutter, React
+  Native, MAUI, browser apps, server-rendered web apps, and so on); the raw
+  API approach has no platform limit. SDK migration is not supported yet;
+  the skill stops when it detects the SDK, and SDK support will be limited
+  to the platforms its SDKs cover.
 - Workflow: preflight → inventory → plan → approval → pre-apply check →
   apply → security review → validate → report, with per-phase archives and
   a restart when the skill version changes. See `SKILL.md`.
 - Metadata `status: draft`, `version: "0.1.0"`.
-- **Nothing is committed.** All work is uncommitted on branch
-  `shenj-skeleton` (PR https://github.com/AzureAD/ms-eeid-agent-toolkit/pull/2).
-  The working tree also has `docs/domains/native-auth/` and
-  `docs/toolkit/plugin-publishing-guide.md` from other sessions; review them
-  before committing.
+- Work is on branch `shenj-skeleton`
+  (PR https://github.com/AzureAD/ms-eeid-agent-toolkit/pull/2). The V2 API
+  references were rebuilt from the JS SDK contract on 2026-11-03 (step
+  tables per flow, HAL handler, link allowlist, JIT, errors).
 - The skill has **never been run against a real app**. Only static
   validation (`npm run validate`) has passed.
 
@@ -46,49 +48,39 @@ Prepared 2026-10-28. Use this list to pick up the remaining work on
   accepts both the tenant domain and the tenant GUID in the base URL.
 - No bundled iOS or Android code examples; generated code follows the app's
   existing patterns, style, and standards.
+- The JS SDK (msal-browser `custom_auth`) is the V2 API contract source
+  until public docs exist; iOS and Android SDKs inform guidance only. SDK
+  code is never copied into customer apps, and references don't cite SDK
+  sources.
+- Migrated code is HAL-link driven with a link allowlist per step; unknown
+  states, actions, or missing links end the flow (web fallback or generic
+  error). `state: continue` resumes at the configured `authorize-challenge`.
+- Links are always relative (confirmed by the SDK team); an absolute link
+  is an error and is never followed. The sign-up reference follows the
+  SDK's sign-up PR stack, which the SDK team confirmed will merge.
+- V2 has no gaps compared with V1, so there is no gap check. The parity
+  rule decides scope inside a flow: only methods and steps the V1 UI
+  handled; app choices (sign-in after sign-up or reset, existing account
+  during sign-up) keep the V1 behavior.
 
 ## Pending items
 
-### 1. V2 error handling (waiting on input)
+### 1. Open V2 contract questions
 
-**Need:** the major V2 errors a client must handle, derived from the native
-auth SDK's error handling code. Most V2 errors need no client-specific
-handling.
+- **Existing account during sign-up:** the SDK's fixtures for the
+  `action: challenge` answer at sign-up start are synthetic. Confirm with
+  the product team that the service returns this shape.
 
-**Input:** the SDK error handling source, provided by the user.
+### 2. Evaluations (in progress)
 
-**Update:**
-
-- `references/api/v2-sign-in.md`, `v2-sign-up.md`, `v2-sspr.md`: error
-  tables with stable error codes instead of HTTP statuses only.
-- `references/api/approach.md`: remove the "pending" note under "Error
-  handling map".
-- `references/api/v1-v2-mapping.md`: V1 error → V2 error mapping table.
-- `references/api/validation-api.md`: required tests for the mapped errors.
-- `assets/plan-template.md` section 6: example rows.
-
-**Done when:** every V1 error the detection patterns list (`user_not_found`,
-`invalid_oob_value`, `user_already_exists`, password suberrors, and so on)
-has a V2 equivalent or an explicit "generic error" rule.
-
-### 2. V2 gap list details (waiting on input)
-
-**Need:** the current V2 gaps and their effect on migration.
-
-**Input:** gap details from the user or product team.
-
-**Update:** the gap list in `references/flows-and-scope.md`. Open questions
-to cover:
-
-- JIT strong-auth method registration during sign-in (currently a gap).
-- SMS: SSPR (currently "work in progress") and sign-in or MFA (not stated).
-- Custom authentication extensions (currently "may be unavailable").
-- Who keeps the list current as V2 moves from preview to GA, and how gap
-  changes reach customers (skill version bump and release notes).
-
-### 3. Evaluations (deferred)
-
-`tests/evals/native-auth/` is empty. Needed before the skill can be marked
+Runner: `claude plugin eval`, run locally (no model key in CI). See
+`tests/evals/README.md` and `tests/evals/eeid-native-auth-migrate-v2/`.
+First slice added 2026-11-03: the
+`spa-js-v1` fixture, five plan cases (each flow alone, sign-in + SSPR, all
+flows), five should-trigger and six should-not-trigger triggering cases.
+First full run 2026-11-04 (one run per case, no baseline arm, Claude Code
+2.1.309): 16 of 16 passed, about 12.5 minutes and $12.60. Next: three runs per
+case to measure variance. Still needed before the skill can be marked
 `ready`:
 
 1. Synthetic fixture apps: React + TypeScript SPA with a dev proxy, iOS
@@ -108,7 +100,29 @@ to cover:
 5. A manual end-to-end run against a test tenant enrolled in the V2
    preview, once per release.
 
-### 4. Skill versioning tooling
+### 2a. Practices adopted from auth0/agent-skills (agreed 2026-11-03)
+
+1. Activation evals: positive prompts, each with a near-miss negative twin,
+   repeated runs, and a comparison of the committed and edited description.
+2. A reference lint in CI. Done 2026-11-03: the routing check
+   (`scripts/lib/skill-routing.mjs`, run by `npm run validate` and
+   `tests/skills/routing.test.mjs`) and its unit tests. Still to do: our own
+   reference invariants, a context budget for `SKILL.md`, a description
+   length limit, and unit tests for the rest of `scripts/validate.mjs`.
+3. Behavioral grader rules: "must not" checks only count when a positive
+   check passed, regex over substrings, skip lockfiles, no pinned versions,
+   tenant-dependent cases reviewed by hand.
+4. Per-client packaging: Claude Code, Cursor, Codex, Gemini, and the
+   `.agents` marketplace manifests; check whether the Skills CLI
+   (`npx skills add`) works with our layout.
+5. Release tooling: `version:set` updates every client manifest; a release
+   branch creates the GitHub release.
+6. Repo docs: `AGENTS.md` (with `CLAUDE.md` pointing to it), `CHANGELOG.md`,
+   and an architecture rationale.
+
+Not adopted yet: a security scan of skill content (needs investigation).
+
+### 3. Skill versioning tooling
 
 Spec: [skill-versioning-plan.md](skill-versioning-plan.md), section 6.
 The skill side and the skill template are done. Remaining: validator
@@ -116,20 +130,18 @@ enforcement (`metadata.version` required, `--base` bump check),
 `npm run skill:bump`, `npm run version:set`, `package.json` scripts, and
 `CONTRIBUTING.md` rules.
 
-### 5. Release readiness
+### 4. Release readiness
 
 - Criteria for changing `metadata.status` from `draft` to `ready` (evals
   passing at the agreed thresholds, manual tenant run, owner review).
 - Security review of the skill's own instructions and examples.
-- Source attribution: the V2 references are based on private preview
-  material without public links. Record the source and date in each
-  `references/api/v2-*.md` file, and replace with Microsoft Learn links when
+- Replace or add Microsoft Learn links in `references/api/v2-*.md` when
   V2 documentation is public.
 - Verify every external link in the references.
 - Decide the first supported clients and test the skill in each (Claude
   Code and Copilot CLI have reserved adapter folders).
 
-### 6. Production proxy guidance for SPAs (open question)
+### 5. Production proxy guidance for SPAs (open question)
 
 Native auth endpoints don't support CORS, so a SPA calling the raw API needs
 a proxy in production too. The skill only updates the local dev proxy and
@@ -138,7 +150,7 @@ lists any production proxy as manual follow-up (rules in
 give more guidance, such as the required paths, headers, and methods for a
 production proxy.
 
-### 7. Later scope (not started)
+### 6. Later scope (not started)
 
 - **SDK migration** (iOS, Android, SPA): add `references/sdk/` approach
   guides, detection of V1 versus V2 SDK interfaces, and the `sdk` row in

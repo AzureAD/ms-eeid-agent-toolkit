@@ -111,10 +111,10 @@ ms-eeid-agent-toolkit/
     packaging/
     skills/
     evals/
-      native-auth/
-        cases/
+      eeid-native-auth-migrate-v2/
+        triggering/
+        behavior/
         fixtures/
-        expected/
   .claude-plugin/
   .github/
     CODEOWNERS

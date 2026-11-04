@@ -4,4 +4,4 @@
 /docs/toolkit/native-auth-v2-migration-tool-plan.md @shenj
 /docs/domains/native-auth/ @shenj
 /tests/skills/eeid-native-auth-migrate-v2/ @shenj
-/tests/evals/native-auth/ @shenj
+/tests/evals/eeid-native-auth-migrate-v2/ @shenj

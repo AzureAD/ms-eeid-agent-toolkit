@@ -28,7 +28,10 @@ Source: [Native authentication API reference](https://learn.microsoft.com/en-us/
   `register/v1.0/introspect` → `register/v1.0/challenge`
   (`challenge_type=oob`, `challenge_channel`, `challenge_target`) →
   `register/v1.0/continue` (`grant_type=oob`, `oob`) → `token` with
-  `grant_type=continuation_token`.
+  `grant_type=continuation_token`. When `challenge_target` is the email
+  already verified during sign-in, `register/v1.0/challenge` can return
+  `challenge_type: preverified`; the client then skips the code and calls
+  `register/v1.0/continue` with `grant_type=continuation_token`.
 
 ## Sign-up
 

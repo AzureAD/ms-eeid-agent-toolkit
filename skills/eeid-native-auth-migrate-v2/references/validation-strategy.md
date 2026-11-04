@@ -117,10 +117,12 @@ use the commands it already defines.
 
 | Platform | Where to look | B: build / type-check / lint | C: unit tests |
 | --- | --- | --- | --- |
-| Web SPA | `package.json` scripts; package manager from lock file (`package-lock.json` → npm, `yarn.lock` → yarn, `pnpm-lock.yaml` → pnpm, `bun.lock*` → bun) | Scripts such as `typecheck`, `lint`, `build`; `npx tsc --noEmit` only if `tsconfig.json` and TypeScript are already present | `test` script in non-watch mode (`CI=true`; Vitest `vitest run`; Jest `--watchAll=false`) |
+| JavaScript / TypeScript (browser apps, React Native, Electron, Node) | `package.json` scripts; package manager from lock file (`package-lock.json` → npm, `yarn.lock` → yarn, `pnpm-lock.yaml` → pnpm, `bun.lock*` → bun) | Scripts such as `typecheck`, `lint`, `build`; `npx tsc --noEmit` only if `tsconfig.json` and TypeScript are already present | `test` script in non-watch mode (`CI=true`; Vitest `vitest run`; Jest `--watchAll=false`) |
 | Web dev proxy | `cors.js`, `proxy.config.js`, `vite.config.*` proxy | `node --check <proxy file>` | — |
 | iOS / macOS | `*.xcworkspace` (use it if present) or `*.xcodeproj`; `Package.swift` | `xcodebuild -list` to find the existing scheme, then `xcodebuild build -scheme <S> -destination 'generic/platform=iOS Simulator' CODE_SIGNING_ALLOWED=NO` (macOS: `-destination 'platform=macOS'`); `swift build` for a Swift package | The scheme's unit test target: `xcodebuild test -scheme <S> -destination 'platform=iOS Simulator,name=<available simulator>' -only-testing:<UnitTestTarget>` (`xcrun simctl list devices available`); `swift test` |
 | Android | `gradlew`, `build.gradle(.kts)` | `./gradlew assembleDebug` (add `lintDebug` only if the project already runs lint) | `./gradlew testDebugUnitTest` |
+| Flutter | `pubspec.yaml` | `flutter analyze` | `flutter test` |
+| .NET (MAUI, ASP.NET) | `*.sln`, `*.csproj` | `dotnet build` | `dotnet test` on the existing unit test projects |
 
 - Use the Gradle wrapper, never a global `gradle`.
 - Exclude tenant-dependent tests from C (UI test targets, `connectedAndroidTest`, E2E suites). If the project's only test command also runs them, mark C `Not run` and explain; don't change the command.
@@ -137,9 +139,9 @@ use the commands it already defines.
 
 | Flow | Scenarios |
 | --- | --- |
-| `sign-in` | Password success; email OTP success; wrong password; wrong OTP then correct; OTP resend; MFA second factor; user without an MFA method (gap list behavior); unknown username shows the same message as a wrong password |
-| `sign-up` | Success with all fields on one screen; extra attributes requested by the service; existing email; password policy failure; wrong OTP; resend; user is signed in at the end |
-| `sspr` | Success and signed in at the end; unknown username (generic message); wrong OTP; resend; weak new password |
+| `sign-in` | Password success; email OTP success; wrong password; wrong OTP then correct; OTP resend; MFA second factor; user without an MFA method (JIT registration, or web fallback if the app had none in V1); unknown username shows the same message as a wrong password |
+| `sign-up` | Success with all fields on one screen (email code first, then the rest); extra attributes requested by the service; existing email behaves as it did in V1; password policy failure; wrong OTP; resend; signed in at the end only if V1 did that |
+| `sspr` | Success, and signed in at the end only if V1 did that; unknown username (generic message); wrong OTP; resend; weak new password |
 | All | Web fallback shown when the service requires a browser; tokens and continuation tokens absent from the console, logs, and URLs; each deferred flow still works on V1 |
 
 ## Baseline (pre-apply check)

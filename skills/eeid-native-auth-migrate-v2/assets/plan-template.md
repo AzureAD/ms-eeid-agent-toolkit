@@ -44,8 +44,6 @@ answer under "Decisions and revisions". Write "None." when empty.>
 
 - [ ] <e.g. Tests: this project has no test framework. Introduce <framework>
   (adds <dependencies> and `<test command>`) or skip tests?>
-- [ ] <e.g. sign-in: users without an MFA method will get an error (V2 gap).
-  Migrate sign-in anyway, or defer it?>
 - [ ] <e.g. `src/auth/signin.ts` has your uncommitted changes and this plan
   changes it. Commit or stash them, then tell me to continue.>
 
@@ -72,11 +70,11 @@ the code it migrated may need changes; check the release notes.>
 
 ## 2. Scope
 
-| Flow | Sub-flows found | Gap-list impact | Decision | Reason |
+| Flow | Methods and sub-flows the V1 UI handles | Other V2 steps (→ unhandled outcome) | Decision | Reason |
 | --- | --- | --- | --- | --- |
-| sign-in | <MFA (email OTP)> | <none / JIT not supported> | Migrate | |
-| sign-up | <none> | <none> | Defer | <customer keeps it on V1> |
-| sspr | <none> | <email OTP only> | Migrate | |
+| sign-in | <password, MFA (email OTP)> | <SMS, JIT registration> | Migrate | |
+| sign-up | <email OTP, password, dynamic attributes; no sign-in after sign-up> | <JIT registration> | Defer | <customer keeps it on V1> |
+| sspr | <email OTP; sign-in after reset> | <SMS> | Migrate | |
 
 <Decision is Migrate, Defer, or Already on V2 (left unchanged). A flow that
 already mixes V1 and V2 calls must be migrated in this phase.>
@@ -96,14 +94,19 @@ mixes V1 and V2, including MFA and JIT inside each flow.>
 
 | Flow | Today (V1) | After migration (V2) |
 | --- | --- | --- |
-| <sign-up> | <one form, then OTP> | <service may ask for email first, or extra attribute pages> |
+| <sign-up> | <one form sends email, password, and attributes, then OTP> | <same form; email sent first, code verified, then password and attributes; service may ask for extra attributes> |
+| <sign-in> | <users without an MFA method register it in the app (V1 JIT)> | <unchanged, V2 JIT registration — or: sent to web fallback if V1 had no JIT> |
 | <all> | <browser fallback continues the flow> | <browser fallback restarts sign-in> |
 
 ## 6. Error handling map
 
 | Flow | V1 error the UI handles | V2 condition | UI message (unchanged unless noted) |
 | --- | --- | --- | --- |
-| <sign-in> | <`user_not_found`> | <generic discovery failure> | <"Incorrect email or password" — generic, no account-existence leak> |
+| <sign-in> | <`user_not_found`> | <`invalidRequest` + `userNotFound` / AADSTS50034> | <"Incorrect email or password" — generic, no account-existence leak> |
+| <sign-up> | <`user_already_exists`> | <sign-up start returns `action: challenge`> | <"An account with this email already exists" — unchanged> |
+
+<V2 conditions come from the approach's error reference. Anything not
+mapped uses the app's existing generic error.>
 
 ## 7. Implementation steps
 
@@ -128,7 +131,7 @@ Rules that matter most for this app:
 
 | Rule | How this migration meets it |
 | --- | --- |
-| <e.g. SEC-03 Flow state in memory> | <V2 continuation token and links kept in the flow's in-memory state; token storage unchanged> |
+| <e.g. SEC-03 Flow state where V1 kept it> | <V2 continuation token and links kept in the same in-memory flow state as V1; token storage unchanged> |
 | <e.g. SEC-06 No account enumeration> | <Sign-in and password reset keep one generic error message> |
 | <e.g. API-01 Validated links> | <All V2 links go through `resolveLink`> |
 

@@ -1,4 +1,4 @@
-# Flows, scope, coexistence, and V2 gaps
+# Flows, scope, coexistence, and parity
 
 ## Flow IDs
 
@@ -48,18 +48,26 @@ the parent flow, or split into two components).
   `/oauth2/v2.0/token`) stays V1 while sign-up stays V1. When sign-up moves
   to V2, the V2 sign-up journey ends with authorization code + token exchange.
 
-## V2 gap list (bundled with this skill version, V2 private preview)
+## Parity rule (methods and sub-flows)
 
-Apply only the rows whose **Approach** matches the plan's `approach`
-(`all` applies to every approach).
+V2 has no feature gaps compared with V1, so every flow can be migrated. The
+migration keeps the app's behavior, not the service's full feature set:
 
-| Gap | Approach | Effect on migration |
-| --- | --- | --- |
-| Inline MFA / strong-auth method registration (JIT) during sign-in isn't supported | all | If the app relies on V1 `registration_required` or `/register/v1.0/*`, `sign-in` can't be fully migrated. Defer `sign-in`, or migrate it only if the customer accepts that users without an MFA method get an error (record the decision in the plan). Users need an MFA method registered at sign-up, in the admin center, or via Microsoft Graph. |
-| SSPR with SMS OTP is a work in progress | all | `sspr` migrates only for email OTP recovery. |
-| The tenant must be enrolled in the V2 private preview | all | Manual prerequisite; report as customer follow-up. |
-| Custom authentication extensions may be unavailable in the preview | all | Report as a risk if the tenant uses them. |
-| Web fallback restarts authentication (doesn't resume a native flow) | all | Report as a behavior change. |
+- A migrated flow handles only the methods and sub-flows the V1 UI handled:
+  sign-in methods (password, email OTP, SMS OTP), method choice screens,
+  MFA, JIT registration, and dynamic sign-up attributes.
+- A V2 step the V1 UI never handled (for example `enroll` in an app without
+  V1 JIT registration, or an SMS method in an email-only app) goes to the
+  flow's unhandled outcome (web fallback or the app's generic error). The
+  approach's V2 references say which steps end a flow differently (for
+  example `enroll` after the password is already reset).
+- Choices that belong to the app stay with the app: whether a flow signs
+  the user in at the end (V1 automatic sign-in after sign-up or reset), and
+  what sign-up does when the account already exists. Keep the V1 behavior;
+  never add a sign-in step the app didn't have.
+- Adding new V2 capabilities (a new method, JIT UI) isn't part of the
+  migration. If the customer asks, it's a separate change after the
+  migration.
 
-The gap list version is the skill's `skill-version` recorded in the plan and
-the report ("V2 gaps as of skill 0.1.0").
+Record the supported steps per flow in the plan's scope table, and every
+step that goes to the unhandled outcome as a behavior change.

@@ -11,7 +11,7 @@ lock files). Report each hit with file, line, flow ID, and kind.
 | `oauth2/v2.0/challenge` | `sign-in` | V1 challenge (also MFA, with `id`) |
 | `oauth2/v2.0/introspect` | `sign-in` (MFA) | V1 MFA method discovery |
 | `oauth2/v2.0/token` | `sign-in`, plus auto sign-in after `sign-up`/`sspr` | V1 only with `grant_type` `password`, `oob`, `mfa_oob`, or `continuation_token`. **Not V1:** `grant_type=refresh_token` (token refresh, unchanged in V2; leave it alone) and `grant_type=authorization_code` (V2 code exchange). |
-| `register/v1.0/introspect`, `register/v1.0/challenge`, `register/v1.0/continue` | `sign-in` (JIT) | **V2 gap** — see flows-and-scope.md |
+| `register/v1.0/introspect`, `register/v1.0/challenge`, `register/v1.0/continue` | `sign-in` (JIT) | V1 JIT registration; V2 `enroll` (see the approach's V2 references). A `preverified` branch has no V2 equivalent. |
 | `signup/v1.0/start`, `signup/v1.0/challenge`, `signup/v1.0/continue` | `sign-up` | |
 | `resetpassword/v1.0/start`, `/challenge`, `/continue`, `/submit`, `/poll_completion` | `sspr` | |
 
@@ -37,7 +37,7 @@ to every caller.
 
 ## Already V2 (don't migrate again)
 
-`authorize-challenge`, `/api/v0.1/`, `application/hal+json`, `_links`,
+`authorize-challenge`, `/api/v2.0/` (or another `/api/v…/` version), `application/hal+json`, `_links`,
 `_embedded`, `continuationToken` (camelCase), `state: "interactionRequired"`,
 `action: "verify"`.
 

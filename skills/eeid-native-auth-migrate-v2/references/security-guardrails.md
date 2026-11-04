@@ -78,13 +78,21 @@ data in logs).
 
 Sources: RFC 9700 §4.3 (token leakage through URLs and browser history).
 
-### SEC-03 Keep flow state in memory; don't add new copies of tokens
+### SEC-03 Keep flow state where V1 kept it; don't add new copies of tokens
 
-- Keep continuation tokens, authorization codes, and other per-flow state in
-  memory only. Never persist them (local storage, session storage, cookies,
-  user defaults, shared preferences, files, databases).
+- Keep the V2 continuation token, links, and other per-flow state where the
+  V1 code keeps its continuation token, with the same scope (per flow, per
+  user). In client apps that's usually memory (a module, store, or view
+  model); in a server-rendered web app it's usually the user's server-side
+  session. Never add a new or less protected place for it (local storage,
+  cookies, user defaults, shared preferences, files, databases, URLs), and
+  never share it between users.
+- Authorization codes are never stored anywhere (API-03).
 - Clear flow state when the flow completes, fails, is cancelled, or the user
   changes. Never reuse a flow across users.
+- If the V1 code keeps its continuation token somewhere readable outside
+  the app or the user's session (for example a client-side cookie, a URL,
+  or logs), report it as a pre-existing finding; don't change it.
 - Hand access, ID, and refresh tokens to the app where the V1 code did. The
   app's token storage and session handling are out of scope (see Step 6 in
   `SKILL.md`). Never write tokens anywhere new: no extra caches, globals
@@ -112,7 +120,7 @@ responsibility for transport security); MASVS-NETWORK.
 
 ### SEC-05 No client secrets or real credentials in the app or tests
 
-- Native and SPA apps are public clients. Never add a client secret,
+- Native auth apps are public clients, whatever the platform. Never add a client secret,
   certificate, or private key to app code, config, or build files.
 - Tenant ID and client ID are configuration, not secrets, but don't hard-code
   real values in tests or fixtures.

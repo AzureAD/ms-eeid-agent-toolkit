@@ -8,7 +8,7 @@
 | Approach | <Raw native auth API> |
 | Flows migrated | <sign-in, sspr> |
 | Flows still on V1 | <sign-up — reason> |
-| Skill version (and V2 gap list) | <skill-version> |
+| Skill version | <skill-version> |
 | Validation settings | max <N> fix attempts, <N> min per command |
 | Changes committed | **No** — review with `git status` / `git diff` |
 | Migration folder | `.native-auth-v2-migration/` — <commit: commit it with your changes / ignore: added to `.gitignore` / manual: you handle it / not decided yet> |
@@ -57,8 +57,9 @@ proposed during validation.>
 **Behavior changes users will see:** <from the plan, confirmed against what
 was applied>
 
-**Known limitations (V2 gap list <skill-version>):** <e.g. users without an
-MFA method can't sign in on V2; SSPR supports email OTP only>
+**Steps sent to web fallback (parity rule):** <V2 steps the V1 UI never
+handled, e.g. sign-in: users who must register an MFA method go to web
+fallback because the app had no V1 JIT registration>
 
 **Coexistence:** <flows still on V1, shared code that serves both, and
 confirmation that no flow mixes V1 and V2>

@@ -1,42 +1,68 @@
 # V2 sign-in
 
-Possible sequence (policy can change it — stay response-driven):
+Read `v2-api-core.md` first: it defines the HAL handler, the link
+allowlist, challenge/verify, finishing, and unhandled responses.
 
-1. Start authorization → follow the `sign_in` link.
-2. `POST {sign_in link}` (`/{tenant}/api/v0.1/signin/start`), JSON:
-   `{ "continuationToken": "…", "username": "user@contoso.com" }`
-3. Response: `state: interactionRequired`, `action: challenge`,
-   `_embedded.methods[]` (e.g. `password`, `email`) — or a single method if
-   policy already chose one.
-4. Pick a method (match the app's existing UX, e.g. password for a password
-   form) → `POST` its `challenge` link with `{ "continuationToken": "…" }`.
-   - Password: response `action: verify`, `type: password`, `_links.verify` (no code sent).
-   - Email/SMS OTP: response `action: verify`, `hint`, `codeLength`,
-     `_links.verify`, `_links.resend`.
-5. Verify: `POST` the `verify` link with
-   `{ "continuationToken": "…", "password": "…" }` or
-   `{ "continuationToken": "…", "otp": "…" }`.
-6. Response is one of:
-   - `state: continue` + `_links.continue` → resume authorization → code → token.
-   - `state: interactionRequired`, `action: challenge` + `_embedded.methods`
-     → **MFA**: pick a second-factor method, repeat challenge + verify.
-7. Resume authorization and exchange the code (see v2-api-core.md).
+## Step table
 
-Notes:
+The table is the complete list of what the migrated code handles. A
+response or link not listed for the current step → unhandled response.
 
-- Inline MFA registration (JIT) isn't supported in the preview; a user with
-  no MFA method gets an error (see the gap list).
-- Use the same client behavior for existing and nonexistent identifiers.
-- Use `codeLength` to size OTP input; show only the masked `hint`.
+| Step | Request | Handled responses | Allowed links |
+| --- | --- | --- | --- |
+| 1. Entry | Start authorization | 401 with `continuation_token` | `sign_in` (flat) |
+| 2. Start | `POST sign_in` `{ continuationToken, username }` | `challenge`, `authenticationFactor: singleFactor`, `_embedded.methods` | each method's `challenge` |
+| 3. Challenge | `POST challenge` `{ continuationToken }` | `verify` (`password`, `email`, `sms`); `riskverify` (SMS) | `verify`, `resend` (code types); `riskverify` |
+| 4. Risk check (SMS) | `POST riskverify` `{ continuationToken }` | `verify` with `type: sms` | `verify`, `resend` |
+| 5. Verify | `POST verify` `{ continuationToken, password }` or `{ continuationToken, otp }` | `state: continue`; `challenge` with `multiFactor` (MFA); `enroll` (JIT) | MFA: each method's `challenge`; JIT: see `v2-jit-registration.md` |
+| 6. MFA challenge | `POST challenge` (second-factor method) | `verify` (`email`, `sms`); `riskverify` | `verify`, `resend`; `riskverify` |
+| 7. MFA verify | `POST verify` `{ continuationToken, otp }` | `state: continue`; `enroll` (JIT) | JIT: see `v2-jit-registration.md` |
+| 8. Finish | Resume authorization → `code` → `/token` | tokens | none |
 
-| Condition | Status | Client action |
-| --- | --- | --- |
-| Missing username/token | `400` | Fix request |
-| User discovery failure | `400`/`401` | Generic failure, no account-existence leak |
-| Sign-in unavailable | `403`/`404` | Use another flow |
-| Bad method/ID/state | `400`/`410` | Follow latest link or restart |
-| Bad credential | `400`/`401` | Allow policy-compliant retry |
-| Attempts exceeded / throttled | `423`/`429` | Stop auto-retry |
-| OTP delivery failure | `5xx` | Generic failure; offer another method |
+Resend (steps 3–4 and 6): `POST resend` `{ continuationToken }` and handle
+the response like a challenge response.
 
-Verification isn't idempotent — never auto-retry after an ambiguous failure.
+## Choosing a method
+
+Apply the parity rule (`references/flows-and-scope.md`): only method types
+the V1 sign-in UI handled are **usable**.
+
+- Start (step 2):
+  - One usable method → challenge it without asking the user.
+  - More than one, and the V1 UI let the user choose (for example a "send me
+    a code instead" option) → show that choice with the masked `hint`s.
+  - More than one, and the V1 UI had no choice → use the first usable type
+    in the order of the `challenge_type` list the V1 code sent (for example
+    `password oob redirect` → `password`).
+  - None usable → unhandled response.
+- MFA (step 5 → 6): the same rules, with the V1 MFA UI (V1 `introspect`
+  method list). A V1 app that had no MFA handling → unhandled response.
+- `enroll` at step 5 or 7: the app's V1 code handled
+  `registration_required` → follow `v2-jit-registration.md`. Otherwise →
+  unhandled response.
+
+## Example (password, no MFA)
+
+```text
+POST sign_in  { "continuationToken": "ct1", "username": "user@contoso.com" }
+→ { "continuationToken": "ct2", "state": "interactionRequired", "action": "challenge",
+    "challengeContext": { "authenticationFactor": "singleFactor" },
+    "_embedded": { "methods": [ { "id": "pwd", "type": "password",
+        "_links": { "challenge": { "href": "/{tenant}/api/v2.0/auth/methods/pwd/challenge" } } } ] } }
+
+POST …/pwd/challenge  { "continuationToken": "ct2" }
+→ { "continuationToken": "ct3", "state": "interactionRequired", "action": "verify", "type": "password",
+    "_links": { "verify": { "href": "/{tenant}/api/v2.0/auth/methods/pwd/verify" } } }
+
+POST …/pwd/verify  { "continuationToken": "ct3", "password": "…" }
+→ { "continuationToken": "ct4", "state": "continue", "_links": { "continue": { … } } }
+   (don't follow _links.continue; finish with the configured authorize-challenge)
+```
+
+## Notes
+
+- Use the same UI path for an unknown username and a wrong password. The
+  service returns different codes (`v2-errors.md`); the UI must not show
+  the difference (SEC-06).
+- Verification isn't idempotent. Never retry verify automatically.
+- Errors and their V1 equivalents: `v2-errors.md`.

@@ -44,9 +44,11 @@ them for security, validate them, and write a migration report.
 This skill's version is `metadata.version` in the front matter of this
 `SKILL.md`. It is the skill's own version, not the plugin's. If the front
 matter isn't visible to you, read this file from the skill folder; if you
-still can't, use `unknown`. Write it to the plan's and report's
-`skill-version`. The bundled references, including the gap list, belong to
-the same version.
+still can't, use `unknown`. Use this value whenever you record or report
+which version of the skill you used. The files bundled with this skill
+belong to the same version.
+
+In this skill, write it to the plan's and report's `skill-version`.
 
 ## Working folder
 
@@ -109,8 +111,8 @@ Before following the table:
 
 ## Version change → restart
 
-A different skill version may change the V2 mapping, SDK interfaces, gap
-list, or rules, so a plan or code made with another version can't be
+A different skill version may change the V2 mapping, SDK interfaces,
+or rules, so a plan or code made with another version can't be
 trusted. Don't re-check or patch the plan; restart the migration. This
 applies to every difference (patch, minor, or major) on a plan whose status
 isn't `reported`.
@@ -153,13 +155,15 @@ guide. Steps 2, 3, 6, and 7 say when to use it.
 | `approach` | Detected by | Guide |
 | --- | --- | --- |
 | `api` | Raw V1 endpoint calls (see detection patterns) | [references/api/approach.md](references/api/approach.md) |
-| `sdk` | MSAL native auth classes | Not supported in this version → **stop** |
+| `sdk` | MSAL native auth classes | Not supported in this version → **stop** (when added, it will be limited to the platforms its SDKs support) |
 
 ## Step 1 — Preflight and scope
 
-1. Identify the platform: iOS, macOS, Android, or web SPA (React, Angular,
-   Vue, or plain JS). Anything else (Flutter, React Native, MAUI, server
-   app): **stop** and report what you detected.
+1. Identify the app's platform and stack (for example iOS, Android,
+   Flutter, React Native, MAUI, a browser app, or a server-rendered web
+   app) and its language, for the plan's application profile. The raw API
+   approach has no platform limit: it changes HTTP calls and flow state,
+   and the V2 code is written in the app's own language and style.
 2. Detect the approach with
    [references/v1-detection-patterns.md](references/v1-detection-patterns.md)
    and look it up in **Approach routing**. If the approach isn't supported,
@@ -167,10 +171,8 @@ guide. Steps 2, 3, 6, and 7 say when to use it.
    password reset), **stop** and report what you detected.
 3. Work out the requested scope. Map the customer's words to flow IDs with
    [references/flows-and-scope.md](references/flows-and-scope.md)
-   (`sign-in`, `sign-up`, `sspr`). No flows named → every flow V2 supports.
-   Check each flow against the **V2 gap list** rows for this approach; a
-   requested flow blocked by a gap is deferred with the reason, or you stop
-   if nothing is left to migrate.
+   (`sign-in`, `sign-up`, `sspr`). No flows named → every flow the app
+   uses.
 4. Create `.native-auth-v2-migration/` in the app root.
 
 ## Step 2 — Inventory (read-only)
@@ -194,9 +196,11 @@ finishing it in the plan (it can't be deferred, because it breaks the
 2. Run the coexistence check: shared client code, config, OTP/MFA UI, types.
    Each shared item must keep working for flows that stay on V1 (add new V2
    code next to it rather than changing it).
-3. Work out what users will notice (**behavior changes**) and how each V1
-   error the UI branches on maps to V2 (**error handling map**), as the
-   approach guide describes.
+3. Work out which V2 steps each flow supports (the **parity rule** in
+   [references/flows-and-scope.md](references/flows-and-scope.md)), what
+   users will notice (**behavior changes**), and how each V1 error the UI
+   branches on maps to V2 (**error handling map**), as the approach guide
+   describes.
 4. Record the baseline: `git rev-parse HEAD` and, for each file in scope,
    `git hash-object <file>`. If git isn't available, write `baseline: none`.
    List files that already have uncommitted changes under `dirty-files`.
@@ -222,8 +226,8 @@ finishing it in the plan (it can't be deferred, because it breaks the
 7. Write `plan.md` from [assets/plan-template.md](assets/plan-template.md)
    with `status: draft`, `revision: 1`, `phase: 1` (or the next phase
    number), `approach`, and `skill-version`. Put every open question for
-   the customer under "Decisions needed" (for example accepting a gap-list
-   limitation, choosing a test framework, or uncommitted changes in files
+   the customer under "Decisions needed" (for example choosing a test
+   framework, or uncommitted changes in files
    the plan changes).
 8. **STOP.** Show the plan's "At a glance" summary and any decisions needed.
    Call out validation explicitly, for example: *"Approving this plan also
@@ -237,7 +241,7 @@ finishing it in the plan (it can't be deferred, because it breaks the
 ## Step 4 — Plan review loop
 
 - **Change request or decision** (add/remove a flow, answer a "Decisions
-  needed" item, edit `validation-settings`): re-check the gap list and
+  needed" item, edit `validation-settings`): re-check the parity and
   coexistence rules for the change, edit the plan, move answered decisions
   out of "Decisions needed", increment `revision`, set `status: draft`, record
   the baseline again (Step 3, item 4), add a row to "Decisions and
@@ -394,8 +398,10 @@ When the customer starts it:
 
 Stop and explain, without changing code, when:
 
-- the platform or approach isn't supported, or one app mixes approaches;
-- every requested flow is blocked by the V2 gap list;
+- the approach isn't supported, or one app mixes approaches;
+- the V1 calls aren't in code the app owns (for example they're inside a
+  binary dependency or generated code the repo doesn't contain), so the
+  HTTP layer and flow code can't be found and changed;
 - a requested split would mix V1 and V2 inside one flow;
 - the plan is stale, the customer hasn't approved the current revision, or
   decisions are still open;

@@ -1,0 +1,4 @@
+# Owners must be valid GitHub users/teams with appropriate repository access.
+# No default owner is assigned until shared tooling maintainers are agreed.
+/skills/eeid-native-auth-migrate-v2/ @shenj
+/tests/evals/eeid-native-auth-migrate-v2/ @shenj

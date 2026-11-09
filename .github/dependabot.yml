@@ -1,0 +1,25 @@
+# Weekly update PRs for the repository tooling: npm packages (package-lock.json)
+# and the GitHub Actions pinned in .github/workflows/. Each ecosystem's
+# updates come in one grouped PR. The 7-day cooldown skips versions released
+# in the last week. Follows microsoft/skills' dependabot.yml.
+version: 2
+updates:
+  - package-ecosystem: "npm"
+    directory: "/"
+    groups:
+      npm:
+        patterns: ["*"]
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7
+
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    groups:
+      github-actions:
+        patterns: ["*"]
+    schedule:
+      interval: "weekly"
+    cooldown:
+      default-days: 7

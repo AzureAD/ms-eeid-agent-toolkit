@@ -6,9 +6,9 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { loadCases, selectCases, splitFrontMatter } from '../../scripts/evals/lib/cases.mjs';
 import { gradeRun } from '../../scripts/evals/lib/graders.mjs';
-import { parseVerdict } from '../../scripts/evals/lib/judge.mjs';
+import { parseReason, parseVerdict } from '../../scripts/evals/lib/judge.mjs';
 import { normalizeCopilotEvents, permissionArgs } from '../../scripts/evals/adapters/copilot.mjs';
-import { parseArgs, runSuite } from '../../scripts/evals/run.mjs';
+import { parseArgs, runSuite, writeReport } from '../../scripts/evals/run.mjs';
 
 const root = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 const evalDir = join(root, 'tests/evals/eeid-native-auth-migrate-v2');
@@ -43,9 +43,9 @@ test('splits front matter from the body', () => {
 
 test('loads every case in the native auth suite with its settings and graders', async () => {
   const cases = await loadCases(evalDir);
-  assert.equal(cases.length, 16);
-  const plan = cases.find((testCase) => testCase.name === 'plan-sign-in-sspr');
-  assert.equal(plan.path, 'behavior/plan-sign-in-sspr');
+  assert.equal(cases.length, 34);
+  const plan = cases.find((testCase) => testCase.name === 'api-plan-sign-in-sspr');
+  assert.equal(plan.path, 'behavior/api-plan-sign-in-sspr');
   assert.ok(plan.scaffoldScript.endsWith('scaffold.sh'));
   assert.ok(plan.allowedTools.includes('Write'));
   assert.deepEqual(plan.graders.find((grader) => grader.name === 'plan-is-draft').target,
@@ -55,9 +55,24 @@ test('loads every case in the native auth suite with its settings and graders', 
 
 test('selects cases by tag and by name glob', async () => {
   const cases = await loadCases(evalDir);
-  assert.equal(selectCases(cases, { tags: ['smoke'] }).length, 3);
-  assert.deepEqual(selectCases(cases, { caseGlob: 'plan-sign-*' }).map((testCase) => testCase.name).sort(),
-    ['plan-sign-in-only', 'plan-sign-in-sspr', 'plan-sign-up-only']);
+  assert.equal(selectCases(cases, { tags: ['triggering'] }).length, 19);
+  assert.equal(selectCases(cases, { tags: ['behavior'] }).length, 15);
+  for (const testCase of cases) assert.equal(testCase.tags.length, 1, `${testCase.name} has exactly one tag, its type`);
+  // Approach prefixes: api-* (raw API), sdk-js-* (MSAL JS SDK), sdk-ios-* (MSAL iOS/macOS SDK); no-trigger-* are shared.
+  assert.equal(selectCases(cases, { caseGlob: 'api-*' }).length, 13);
+  assert.equal(selectCases(cases, { caseGlob: 'api-plan-*' }).length, 6);
+  assert.equal(selectCases(cases, { caseGlob: 'sdk-js-*' }).length, 9);
+  assert.equal(selectCases(cases, { caseGlob: 'no-trigger-*' }).length, 6);
+  assert.equal(selectCases(cases, { caseGlob: '*no-trigger-*' }).length, 10);
+  assert.equal(selectCases(cases, { caseGlob: 'api-trigger-*' }).length, 5);
+  assert.equal(selectCases(cases, { caseGlob: 'sdk-js-trigger-*' }).length, 2);
+  assert.equal(selectCases(cases, { caseGlob: '*-migrate-*' }).length, 4);
+  assert.equal(selectCases(cases, { caseGlob: 'sdk-js-plan-*' }).length, 3);
+  assert.equal(selectCases(cases, { caseGlob: 'sdk-ios-*' }).length, 6);
+  assert.equal(selectCases(cases, { caseGlob: 'sdk-ios-trigger-*' }).length, 2);
+  assert.equal(selectCases(cases, { caseGlob: 'sdk-ios-plan-*' }).length, 2);
+  assert.deepEqual(selectCases(cases, { caseGlob: 'api-plan-sign-*' }).map((testCase) => testCase.name).sort(),
+    ['api-plan-sign-in-only', 'api-plan-sign-in-sspr', 'api-plan-sign-up-only']);
 });
 
 test('grades files, tools, created files, and judged rubrics', async () => {
@@ -113,6 +128,45 @@ test('parses the judge verdict from the last VERDICT line', () => {
   assert.equal(parseVerdict('no verdict'), false);
 });
 
+test('keeps the judge reasoning before the last VERDICT line', () => {
+  assert.equal(parseReason('It only says the plan\n awaits approval.\nVERDICT: FAIL'), 'It only says the plan awaits approval.');
+  assert.equal(parseReason('VERDICT: PASS'), '(no reasoning given)');
+  assert.equal(parseReason('no verdict here'), 'no verdict here');
+  assert.equal(parseReason('x'.repeat(50), 10).length, 10);
+});
+
+test('records each judge vote with its reason, and the summary lists failed checks', async () => {
+  const workspace = await tempWorkspace();
+  const outDir = await mkdtemp(join(tmpdir(), 'eval-report-'));
+  try {
+    const verdicts = [
+      { pass: false, reason: 'No direct question.' },
+      { pass: true, reason: 'Asks for approval.' },
+      { pass: false, reason: 'Status line only.' },
+    ];
+    const graded = await gradeRun([{ name: 'stops-for-approval', type: 'llm', criteria: 'PASS if it asks.' }],
+      { workspace, createdFiles: [], transcript: { finalMessage: 'The plan awaits approval.', tools: [], events: [] } },
+      { judge: async () => verdicts.shift() });
+    const [result] = graded.results;
+    assert.equal(result.passed, false);
+    assert.equal(result.detail, 'judge votes: FAIL PASS FAIL');
+    assert.deepEqual(result.votes.map((vote) => vote.reason), ['No direct question.', 'Asks for approval.', 'Status line only.']);
+
+    const document = {
+      skill: 's', agent: 'copilot', threshold: 1, passed: 0, total: 1,
+      cases: [{ name: 'api-plan-sspr-only', score: 0, runs: [{ n: 1, score: 0, ...graded }] }],
+    };
+    await writeReport(document, outDir, () => {});
+    const summary = await readFile(join(outDir, 'summary.md'), 'utf8');
+    assert.match(summary, /## Failed checks/);
+    assert.match(summary, /\*\*api-plan-sspr-only\*\*, run 1, `stops-for-approval`: judge votes: FAIL PASS FAIL/);
+    assert.match(summary, /Vote 3 \(FAIL\): Status line only\./);
+  } finally {
+    await rm(workspace, { recursive: true, force: true });
+    await rm(outDir, { recursive: true, force: true });
+  }
+});
+
 test('normalizes Copilot events into the shared transcript', () => {
   const lines = [
     JSON.stringify({ type: 'tool.execution_start', data: { toolCallId: 't1', toolName: 'view', arguments: { path: '/h/skills/eeid-native-auth-migrate-v2/SKILL.md' } } }),
@@ -129,6 +183,16 @@ test('normalizes Copilot events into the shared transcript', () => {
   assert.equal(transcript.events.length, 5);
 });
 
+test('Copilot final message ignores reasoning that arrives after the reply', () => {
+  const lines = [
+    { type: 'assistant.message', data: { content: 'Plan written. Do you approve revision 1?' } },
+    { type: 'assistant.reasoning', data: { content: 'Preparing the final overview.' } },
+    { type: 'assistant.turn_end', data: {} },
+    { type: 'assistant.idle', data: {} },
+  ].map((event) => JSON.stringify(event));
+  assert.equal(normalizeCopilotEvents(lines, 'x').finalMessage, 'Plan written. Do you approve revision 1?');
+});
+
 test('Copilot permissions deny URLs, and deny writes and shell unless the case allows them', () => {
   const readOnly = permissionArgs(['Read', 'Skill']);
   assert.deepEqual(readOnly, ['--deny-tool', 'url', '--deny-tool', 'write', '--deny-tool', 'shell']);
@@ -138,8 +202,8 @@ test('Copilot permissions deny URLs, and deny writes and shell unless the case a
 });
 
 test('parses runner arguments', () => {
-  const options = parseArgs(['--agent', 'copilot', '--skill', 'x', '--tag', 'smoke', '--tag', 'plan', '--runs', '1', '--baseline']);
-  assert.deepEqual(options.tags, ['smoke', 'plan']);
+  const options = parseArgs(['--agent', 'copilot', '--skill', 'x', '--tag', 'triggering', '--tag', 'behavior', '--runs', '1', '--baseline']);
+  assert.deepEqual(options.tags, ['triggering', 'behavior']);
   assert.equal(options.runs, 1);
   assert.equal(options.baseline, true);
   assert.equal(parseArgs(['--agent', 'claude-code', '--list-models']).listModels, true);
@@ -154,8 +218,13 @@ test('runs a case end to end with a fake agent', async () => {
     name: 'fake',
     async prepare(args) { prepared.push(args); },
     async run({ workspace, outDir: runDir }) {
+      // A complete plan: the seeded sign-in + SSPR plan with its run-time
+      // values filled in.
+      const plan = (await readFile(join(evalDir, 'fixtures/plans/spa-js-v1-sign-in-sspr.md'), 'utf8'))
+        .replaceAll('{{SKILL_VERSION}}', '0.1.0').replaceAll('{{TODAY}}', '2026-11-05')
+        .replaceAll('{{COMMIT}}', '0000000').replaceAll('{{HASH}}', '0000000');
       await mkdir(join(workspace, '.native-auth-v2-migration'), { recursive: true });
-      await writeFile(join(workspace, PLAN), GOOD_PLAN);
+      await writeFile(join(workspace, PLAN), plan);
       await writeFile(join(runDir, 'events.jsonl'), '');
       return {
         error: null,
@@ -172,7 +241,7 @@ test('runs a case end to end with a fake agent', async () => {
   };
   try {
     const document = await runSuite(
-      { skill: 'eeid-native-auth-migrate-v2', caseGlob: 'plan-sign-in-sspr', runs: 1, threshold: 1, tags: [], outDir },
+      { skill: 'eeid-native-auth-migrate-v2', caseGlob: 'api-plan-sign-in-sspr', runs: 1, threshold: 1, tags: [], outDir },
       { adapter: fakeAgent, judge: async () => true, log: () => {} },
     );
     assert.equal(document.total, 1);
@@ -187,7 +256,7 @@ test('runs a case end to end with a fake agent', async () => {
 test('builds the claude plugin eval command from runner options', async () => {
   const { buildClaudeArgs } = await import('../../scripts/evals/adapters/claude-code.mjs');
   const args = buildClaudeArgs(
-    { tags: ['smoke', 'plan'], caseGlob: 'plan-*', runs: 1, threshold: 0.8, model: 'm', judgeModel: 'j', keep: true },
+    { tags: ['triggering', 'behavior'], caseGlob: 'plan-*', runs: 1, threshold: 0.8, model: 'm', judgeModel: 'j', keep: true },
     { evalDirRel: 'tests/evals/x', outDir: '/out' },
   );
   assert.deepEqual(args.slice(0, 5), ['plugin', 'eval', '.', '--eval-dir', 'tests/evals/x']);
@@ -196,7 +265,7 @@ test('builds the claude plugin eval command from runner options', async () => {
     const at = args.indexOf(expected[0]);
     assert.equal(args[at + 1], expected[1], expected[0]);
   }
-  assert.deepEqual(args.filter((arg, i) => args[i - 1] === '--tag'), ['smoke', 'plan']);
+  assert.deepEqual(args.filter((arg, i) => args[i - 1] === '--tag'), ['triggering', 'behavior']);
   assert.ok(args.includes('--scaffold') && args.includes('--no-publish') && args.includes('--keep-temp'));
   assert.ok(args.includes('--trust-plugin'));
   const baseline = buildClaudeArgs({ baseline: true }, { evalDirRel: 'e', outDir: '/o' });
@@ -209,8 +278,8 @@ test('converts claude plugin eval results into the runner report', async () => {
     startedAt: '2026-11-04T00:00:00Z',
     costUsd: 1.5,
     cases: [{
-      name: 'plan-sign-in-sspr',
-      dir: 'tests/evals/eeid-native-auth-migrate-v2/behavior/plan-sign-in-sspr',
+      name: 'api-plan-sign-in-sspr',
+      dir: 'tests/evals/eeid-native-auth-migrate-v2/behavior/api-plan-sign-in-sspr',
       aggregates: { score: 0.5 },
       arms: {
         with: [{ score: 0.5, error: null, graders: [
@@ -222,7 +291,7 @@ test('converts claude plugin eval results into the runner report', async () => {
     }],
   }, { root, evalDir, skill: 'eeid-native-auth-migrate-v2', threshold: 1 });
   assert.equal(document.agent, 'claude-code');
-  assert.equal(document.cases[0].path, 'behavior/plan-sign-in-sspr');
+  assert.equal(document.cases[0].path, 'behavior/api-plan-sign-in-sspr');
   assert.equal(document.cases[0].passed, false);
   assert.equal(document.cases[0].withoutScore, 0);
   assert.equal(document.cases[0].runs[0].results[1].skipped, true);
@@ -238,15 +307,15 @@ test('delegates a suite to the claude command and reports its results', async ()
     "import { writeFileSync } from 'node:fs';",
     "const args = process.argv.slice(2);",
     "const out = args[args.indexOf('--output-dir') + 1];",
-    "writeFileSync(out + '/aggregate-result.json', JSON.stringify({ cases: [{ name: 'trigger-upgrade-native-auth',",
-    "  dir: 'tests/evals/eeid-native-auth-migrate-v2/triggering/trigger-upgrade-native-auth', aggregates: { score: 1 },",
+    "writeFileSync(out + '/aggregate-result.json', JSON.stringify({ cases: [{ name: 'api-trigger-upgrade-native-auth',",
+    "  dir: 'tests/evals/eeid-native-auth-migrate-v2/triggering/api-trigger-upgrade-native-auth', aggregates: { score: 1 },",
     "  arms: { with: [{ score: 1, error: null, graders: [] }] } }] }));",
   ].join('\n'));
   await import('node:fs/promises').then(({ chmod }) => chmod(fakeClaude, 0o755));
   const outDir = join(work, 'out');
   try {
     const document = await runSuite(
-      { skill: 'eeid-native-auth-migrate-v2', caseGlob: 'trigger-upgrade-native-auth', threshold: 1, tags: [], outDir, claudeBin: fakeClaude },
+      { skill: 'eeid-native-auth-migrate-v2', caseGlob: 'api-trigger-upgrade-native-auth', threshold: 1, tags: [], outDir, claudeBin: fakeClaude },
       { adapter: claudeCodeAdapter, judge: null, log: () => {} },
     );
     assert.equal(document.total, 1);
@@ -290,7 +359,7 @@ test('--baseline runs each case with and without the skill', async () => {
   };
   try {
     const document = await runSuite(
-      { skill: 'eeid-native-auth-migrate-v2', caseGlob: 'trigger-upgrade-native-auth', runs: 1, threshold: 1, tags: [], baseline: true, outDir },
+      { skill: 'eeid-native-auth-migrate-v2', caseGlob: 'api-trigger-upgrade-native-auth', runs: 1, threshold: 1, tags: [], baseline: true, outDir },
       { adapter: fakeAgent, judge: null, log: () => {} },
     );
     assert.deepEqual(arms, [true, false]);
@@ -315,4 +384,25 @@ test('in a baseline comparison, skill-loaded checks are shown but not scored', a
   assert.equal((await gradeRun([notUsed], empty, { baseline: true })).results[0].indicator, undefined);
   // When every check would be excluded, they are scored normally.
   assert.equal((await gradeRun([skillFired], empty, { baseline: true })).score, 0);
+});
+
+test('retries a judge vote once when the call fails, and fails the check on a second failure', async () => {
+  const grader = { name: 'final-message', type: 'llm', criteria: 'PASS if it reports.' };
+  const run = { workspace: tmpdir(), createdFiles: [], transcript: { finalMessage: 'Done.', tools: [], events: [] } };
+
+  let calls = 0;
+  const flaky = async () => {
+    calls++;
+    if (calls === 1) throw new Error('judge timed out after 120 s');
+    return { pass: true, reason: 'Reports the outcome.' };
+  };
+  const [retried] = (await gradeRun([grader], run, { judge: flaky })).results;
+  assert.equal(calls, 4, 'the failed first vote is retried once, then two more votes');
+  assert.equal(retried.passed, true);
+  assert.equal(retried.detail, 'judge votes: PASS PASS PASS');
+
+  const broken = async () => { throw new Error('judge timed out after 120 s'); };
+  const [failed] = (await gradeRun([grader], run, { judge: broken })).results;
+  assert.equal(failed.passed, false);
+  assert.match(failed.detail, /judge timed out after 120 s/);
 });

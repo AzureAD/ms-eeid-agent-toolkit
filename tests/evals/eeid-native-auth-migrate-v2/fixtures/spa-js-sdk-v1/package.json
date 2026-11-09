@@ -1,0 +1,14 @@
+{
+  "name": "contoso-native-auth-sdk-spa",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Synthetic eval fixture: a plain-JavaScript SPA that uses the MSAL JS native auth SDK V1 methods.",
+  "type": "module",
+  "scripts": {
+    "start": "node cors.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@azure/msal-browser": "^5.20.0"
+  }
+}

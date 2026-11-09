@@ -1,0 +1,10 @@
+platform :ios, '17.0'
+use_frameworks!
+
+target 'ContosoAuth' do
+  pod 'MSAL', '~> 2.16'
+
+  target 'ContosoAuthTests' do
+    inherit! :search_paths
+  end
+end

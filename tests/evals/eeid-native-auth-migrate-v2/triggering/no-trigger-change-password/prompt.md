@@ -1,6 +1,6 @@
 ---
 description: "Should not trigger: change password for a signed-in user (not SSPR)."
-tags: [triggering, should-not-trigger]
+tags: [triggering]
 runs: 3
 max_turns: 12
 timeout_seconds: 300

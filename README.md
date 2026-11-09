@@ -12,7 +12,7 @@ manifests, and packaging automation aren't implemented yet.
 
 | Skill | What it does | Status |
 | --- | --- | --- |
-| [`eeid-native-auth-migrate-v2`](skills/eeid-native-auth-migrate-v2/SKILL.md) | Migrates an app that calls the Native Auth API V1 directly to Native Auth API V2: sign-in, sign-up, and self-service password reset, in full or one flow at a time, with a reviewable plan before any code changes | Draft |
+| [`eeid-native-auth-migrate-v2`](skills/eeid-native-auth-migrate-v2/SKILL.md) | Migrates an app that calls the Native Auth API V1 directly, or an app on the MSAL native auth SDK V1 methods (JavaScript single-page apps, iOS and macOS apps), to Native Auth V2: sign-in, sign-up, and self-service password reset, in full or one flow at a time, with a reviewable plan before any code changes | Draft |
 
 ## Goals
 
@@ -40,7 +40,7 @@ npm run validate
 npm test
 
 # Run a skill's model-based evals on an agent (claude-code or copilot), locally.
-npm run eval:agent -- --agent copilot --skill eeid-native-auth-migrate-v2 --tag smoke --runs 1
+npm run eval:agent -- --agent copilot --skill eeid-native-auth-migrate-v2 --case api-trigger-upgrade-native-auth --runs 1
 
 # Create a draft skill (and its tests/evals folders) with predefined MIT/copyright metadata.
 npm run skill:create -- eeid-example --description "Draft scaffold for an example capability."

@@ -40,7 +40,8 @@ A case is a folder with:
 
 - `prompt.md`: front matter for run settings (`tags`, `runs`, `max_turns`,
   `timeout_seconds`, `allowed_tools`), then the prompt as a user would type it.
-- `graders/*.md`: one check per file.
+- `graders/*.md`: one check per file. A skill may generate some of them
+  from its templates or fixtures (see its README); don't edit those by hand.
 - Optional `case.yaml` and `scaffold.sh`: seed the workspace before the run.
 
 The format is the one `claude plugin eval` reads; the repository's runner
@@ -75,24 +76,26 @@ including VS Code's integrated terminal.
 2. Do the one-time setup for your agent: [Claude Code](#claude-code) or
    [GitHub Copilot CLI](#github-copilot-cli). It installs the agent's
    command and signs you in.
-3. Run the smoke cases once. It's quick: three short runs.
+3. Run one short case once to check your setup:
 
    ```bash
-   npm run eval:agent -- --agent copilot --skill eeid-native-auth-migrate-v2 --tag smoke --runs 1
+   npm run eval:agent -- --agent copilot --skill eeid-native-auth-migrate-v2 --case api-trigger-upgrade-native-auth --runs 1
    ```
 
 4. Read the result. The last line prints the path of `summary.md`, with a
    score per case; `1.00` means every check passed.
-5. When the smoke cases pass, run every case:
+5. When it passes, run every case:
 
    ```bash
    npm run eval:agent -- --agent copilot --skill eeid-native-auth-migrate-v2
    ```
 
-   Every case runs 3 times, so this takes much longer: for
-   `eeid-native-auth-migrate-v2`, 16 cases make 48 agent sessions, and each
-   plan case takes several minutes. Every run uses your plan or API budget
-   for that agent.
+   This takes much longer. For `eeid-native-auth-migrate-v2`, 30 cases run
+   3 times each (90 agent sessions, each plan case several minutes), and its
+   four full-migration cases (`*-migrate-*`, one run each) can take an hour
+   or more each. Every run uses your plan or API budget for that agent. To
+   leave the long cases out, select cases by name instead (see
+   [Selecting cases](#selecting-cases)).
 
 The runner sets up each run, gives the agent only the permissions the case
 needs, and grades the result; you only choose the agent.
@@ -101,8 +104,8 @@ needs, and grades the result; you only choose the agent.
 
 | Option | Effect |
 | --- | --- |
-| `--tag <tag>` | Only cases with this tag: `triggering`, `behavior`, `smoke`, or another tag a skill's cases use. Repeat it to include several. |
-| `--case <name>` | Only the case with this name, for example `plan-sign-in-only`. `*` matches any text: `plan-*`. |
+| `--tag <tag>` | Only cases of one type: `triggering` or `behavior`. Repeat it to include both. |
+| `--case <name>` | Only cases whose name (or `<type>/<name>` path) matches. `*` matches any text; quote a pattern so your shell doesn't expand it: `'api-plan-*'`. |
 | `--runs <n>` | How many times to run each case (default: the case's own setting, usually 3). |
 | `--threshold <0..1>` | The score a case needs to pass (default `1`, every check). The command exits with an error when a case scores lower. |
 | `--model <model>` | The model the agent uses (default: the agent's own default). |
@@ -117,22 +120,36 @@ needs, and grades the result; you only choose the agent.
 # Every case for one skill.
 npm run eval:agent -- --agent copilot --skill eeid-native-auth-migrate-v2
 
-# The quick check: one run of each smoke case.
-npm run eval:agent -- --agent claude-code --skill eeid-native-auth-migrate-v2 --tag smoke --runs 1
+# The quick check: one run of one short case.
+npm run eval:agent -- --agent claude-code --skill eeid-native-auth-migrate-v2 --case api-trigger-upgrade-native-auth --runs 1
 
 # One type of case.
 npm run eval:agent -- --agent copilot --skill eeid-native-auth-migrate-v2 --tag triggering
 
 # One case, keeping its workspace to inspect.
-npm run eval:agent -- --agent claude-code --skill eeid-native-auth-migrate-v2 --case plan-sign-in-only --runs 1 --keep
+npm run eval:agent -- --agent claude-code --skill eeid-native-auth-migrate-v2 --case api-plan-sign-in-only --runs 1 --keep
 
 # What does the skill add? Compare with and without it.
 npm run eval:agent -- --agent copilot --skill eeid-native-auth-migrate-v2 --tag triggering --baseline
 
 # A specific model.
 npm run eval:agent -- --agent copilot --list-models
-npm run eval:agent -- --agent copilot --skill eeid-native-auth-migrate-v2 --tag smoke --model claude-sonnet-5.5
+npm run eval:agent -- --agent copilot --skill eeid-native-auth-migrate-v2 --tag triggering --model claude-sonnet-5.5
 ```
+
+### Selecting cases
+
+Every case has one tag, its type: `triggering` or `behavior`. Narrow further
+with `--case` and a name pattern; each skill's README lists its case names.
+For `eeid-native-auth-migrate-v2`:
+
+| Cases | Selection |
+| --- | --- |
+| One approach: raw API, JS SDK, or iOS SDK | `--case 'api-*'`, `--case 'sdk-js-*'`, `--case 'sdk-ios-*'` |
+| Should-trigger cases | `--case 'api-trigger-*'`, `--case 'sdk-js-trigger-*'`, `--case 'sdk-ios-trigger-*'` |
+| Should-not-trigger cases | `--case '*no-trigger-*'` |
+| Plan cases (stop at approval) | `--case '*-plan-*'` (or `'api-plan-*'`, `'sdk-js-plan-*'`, `'sdk-ios-plan-*'`) |
+| Full-migration cases (long) | `--case '*-migrate-*'` (or `'api-migrate-*'`, `'sdk-js-migrate-*'`) |
 
 ### Results
 
@@ -140,8 +157,10 @@ Each run of the command writes a folder
 `tests/evals/<skill>/results/<agent>-<timestamp>/`, which git ignores:
 
 - `summary.md`: a score per case (and the score without the skill, with
-  `--baseline`).
-- `results.json`: every run and every check's verdict.
+  `--baseline`), then every failed check per run, with the judge's
+  reasoning for each vote on a rubric check.
+- `results.json`: every run and every check's verdict, including each
+  judge vote and its reasoning.
 - Each agent adds its own detail files, listed in its section below.
 
 A score of `1.00` means every check passed in every run. Agents aren't
@@ -262,6 +281,11 @@ models, and how runs work.
 
 ## Writing cases and graders
 
+- **Tags and names:** tag each case with its type only (`triggering` or
+  `behavior`). Give cases name prefixes that group them, such as the
+  approach (`api-`, `sdk-js-`, `sdk-ios-`) followed by the kind (`trigger-`,
+  `no-trigger-`, `plan-`, `migrate-`), so `--case` patterns can select a
+  group.
 - **Prompts:** write what a user would type, not the skill's description.
   Give each should-trigger prompt a near-miss should-not-trigger twin that
   uses similar words.
@@ -282,3 +306,11 @@ models, and how runs work.
   installed. Seed them with a scaffold that copies the fixture and commits it.
 - Cases can't script a multi-turn conversation. Stop at the skill's first
   approval gate, or seed the files a later step needs.
+- Runs are non-interactive: no user can answer, and some agents (for
+  example the Copilot CLI with `-p`) tell the model not to ask questions.
+  A grader for an approval gate checks that the agent stopped and asked for
+  approval, and accepts either a direct question or a clear "nothing changes
+  until you approve" statement. Check the exact question by hand in an
+  interactive session (see **Copilot Chat in VS Code**).
+- Interactive agents may ask through a question dialog instead of the
+  final message text; graders only see the final message.

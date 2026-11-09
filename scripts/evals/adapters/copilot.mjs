@@ -99,7 +99,11 @@ export function normalizeCopilotEvents(lines, skillName) {
         existing.input = input;
       }
     }
-    const isAssistant = value.role === 'assistant' || /assistant/i.test(value.type ?? '');
+    // Only a real assistant message counts; reasoning, deltas, and turn or
+    // idle events also have "assistant" in their type but aren't the reply.
+    const type = value.type ?? '';
+    const isAssistant = (value.role === 'assistant' || /assistant/i.test(type)) &&
+      !/reasoning|delta|turn|idle|message_start|intent/i.test(type);
     const text = textOf(value.content ?? value.text ?? value.message ?? value.data?.content ?? value.data?.text);
     if (isAssistant && text.trim()) finalMessage = text;
     for (const child of Object.values(value)) if (child && typeof child === 'object') visit(child);

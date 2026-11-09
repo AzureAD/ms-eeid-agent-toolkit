@@ -6,7 +6,8 @@ approach's security reference (raw API:
 
 Use these rules in two places:
 
-- **While applying (Step 6):** every rule is a requirement for code you write.
+- **While applying (Step 6):** every rule is a requirement for code you
+  write, except where section 1 says to keep V1's behavior.
 - **In the security review (Step 7):** check the migration's changes
   against every rule. This is the main job. Reporting weaknesses that were
   already in the code is a secondary job with a limited scope.
@@ -31,6 +32,15 @@ Use these rules in two places:
   token storage.
 - A finding in an unchanged line is pre-existing, including in shared files
   the migration touched elsewhere.
+- **When a rule conflicts with V1's behavior.** Check every rule, including
+  on code the migration rewrites. If following a rule would change something
+  the app chose and users or its owner would notice (messages, screens, flow
+  order, the proxy's allowed origins), keep V1's behavior, record a
+  pre-existing finding with the rule's ID, and don't change it in the
+  migration; the customer decides from the report. This never applies to how
+  code handles secrets or security steps: don't repeat V1's logging of
+  tokens, tokens in URLs, disabled TLS checks, secrets in the app, or
+  skipped steps in V2 code. Those are introduced findings, and you fix them.
 - Without a baseline commit, you can't separate the two reliably. Treat
   every finding in files the migration changed as introduced, and say so in
   the report.
@@ -88,7 +98,7 @@ Sources: RFC 9700 §4.3 (token leakage through URLs and browser history).
   cookies, user defaults, shared preferences, files, databases, URLs), and
   never share it between users.
 - Authorization codes are never stored anywhere (API-03).
-- Clear flow state when the flow completes, fails, is cancelled, or the user
+- Clear flow state when the flow completes, ends in a failure, is cancelled, or the user
   changes. Never reuse a flow across users.
 - If the V1 code keeps its continuation token somewhere readable outside
   the app or the user's session (for example a client-side cookie, a URL,
@@ -131,18 +141,22 @@ Sources: MASWE-0004 (sensitive data hard-coded in the app package).
 
 ### SEC-06 No account enumeration
 
-- Show the same message and follow the same UI path for "user doesn't
-  exist", "wrong password", "wrong code", and "account locked" during sign-in
-  and password reset.
-- Password reset shows a neutral message such as "If an account exists, a
-  code has been sent."
-- Sign-up may need to tell the user an account exists. Keep the V1 app's
-  existing behavior; don't add new disclosure. Report a pre-existing
-  disclosure in sign-in or password reset as a finding.
-- Don't add client-side behavior that differs measurably by account
-  existence, such as skipping a step or returning early.
-- Never show raw service error descriptions to users. Map stable error codes
-  to the app's own messages, and keep trace and correlation IDs for support.
+- Show the same message and follow the same screen path for "user doesn't
+  exist", "wrong password", and "account locked" during sign-in and password
+  reset.
+- Show no raw service error text to users.
+- Add no client-side behavior that differs measurably by account existence,
+  such as skipping a step or returning early.
+- Don't add a "neutral" sentence the V1 screen didn't have (for example "If
+  an account exists, a code has been sent." next to the masked email it was
+  sent to).
+- A **wrong or expired one-time code** may say so: the code screen appears
+  only after the service accepted the username, so it reveals nothing new.
+  Sign-up may tell the user an account exists, as V1 did.
+- Keep trace and correlation IDs for support.
+
+A message V1 already has follows **When a rule conflicts with V1's behavior**
+(section 1): keep it and report the finding.
 
 Sources: OWASP Authentication Cheat Sheet (authentication and error
 messages, account enumeration).
@@ -184,9 +198,10 @@ attribute labels, page titles, options).
   `[innerHTML]`, `bypassSecurityTrust*`, `loadHTMLString`, or
   `WebView.loadData` with it.
 - Never evaluate service-provided content as code (`eval`, `new Function`).
-- If the service sends a validation pattern (for example `regex`), use it
-  only for client-side hints; the service still validates. Guard against
-  invalid patterns.
+- If the service sends a validation pattern (for example `regex` or
+  `validation.validationRegEx`), use it only for client-side hints; the
+  service still validates. It may be HTML-encoded: decode it first, and
+  guard against invalid or very slow patterns.
 
 ### SEC-11 Secure input handling
 
@@ -237,8 +252,18 @@ Sources: RFC 9700 §2.3 (privilege restriction).
    | SEC-10 | `innerHTML`, `outerHTML`, `dangerouslySetInnerHTML`, `v-html`, `bypassSecurityTrust`, `eval(`, `new Function`, `loadHTMLString`, `loadData` |
 
 5. Apply the approach's rules.
-6. Fix introduced findings (section 1), re-run the relevant searches, and
-   re-review the changed hunks after each fix.
+6. Fix every introduced finding (section 1) within the approved scope,
+   re-run the relevant searches, and re-review the changed hunks after each
+   fix, at most `max-fix-attempts` times per finding (never raise the
+   limit; see the fix loop in `validation-strategy.md`). Count fixed
+   findings for the audit line; don't list them. A finding you can't fix, or whose
+   fix needs work outside the plan, is an **unresolved introduced finding**:
+   keep it for the report's "Action required" and propose a plan change if
+   one would fix it.
+7. Record pre-existing findings in the inventoried files; never change
+   their code.
+8. Set `status: reviewed`. Security fixes change code, so validation runs
+   after the review.
 
 ## 5. Recording findings
 

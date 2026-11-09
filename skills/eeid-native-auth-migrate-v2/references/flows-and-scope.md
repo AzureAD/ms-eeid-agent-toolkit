@@ -48,7 +48,7 @@ the parent flow, or split into two components).
   `/oauth2/v2.0/token`) stays V1 while sign-up stays V1. When sign-up moves
   to V2, the V2 sign-up journey ends with authorization code + token exchange.
 
-## Parity rule (methods and sub-flows)
+## Parity rule (methods, sub-flows, and UI features)
 
 V2 has no feature gaps compared with V1, so every flow can be migrated. The
 migration keeps the app's behavior, not the service's full feature set:
@@ -65,9 +65,37 @@ migration keeps the app's behavior, not the service's full feature set:
   the user in at the end (V1 automatic sign-in after sign-up or reset), and
   what sign-up does when the account already exists. Keep the V1 behavior;
   never add a sign-in step the app didn't have.
-- Adding new V2 capabilities (a new method, JIT UI) isn't part of the
+- UI features follow the V1 UI too. For example, wire a `resend` link
+  only on screens where the V1 UI offered "send a new code"; a V2 step
+  table listing `resend` as an allowed link doesn't mean the app must offer
+  it.
+- Adding new V2 capabilities (a new method, JIT UI, a resend option the V1
+  screen didn't have) isn't part of the
   migration. If the customer asks, it's a separate change after the
   migration.
+- **Handle invisible differences in code.** A V2 difference the user
+  doesn't need to act on (for example V2 asking for sign-up values after
+  the email code) is handled in code, without a new screen or an extra
+  step for the user.
+
+### V2-native options
+
+Sometimes keeping the V1 behavior has a real cost: it holds a secret
+longer, or needs noticeably more code than the V2 way of doing it. Then
+don't choose for the customer. Add a "Decisions needed" item that offers
+both, with keeping the V1 behavior as the suggested default, and say what
+each choice means for users and for the code. For example: *"Sign-up:
+keep the one-screen form (the password stays in memory until V2 asks for
+it after the email code), or ask for the password after the code (no
+buffered password, one more screen)?"*
+
+- Only offer an option when keeping V1 has a cost you can name. Don't
+  offer UX improvements; those are separate changes after the migration.
+- Never pick either option yourself, and never apply a V2-native option
+  the customer didn't choose.
+- The plan can't be approved until the customer answers (golden rule 1).
+  Record the answer under "Decisions and revisions" and plan the chosen
+  behavior; a V2-native choice is also a behavior change (section 5).
 
 Record the supported steps per flow in the plan's scope table, and every
 step that goes to the unhandled outcome as a behavior change.

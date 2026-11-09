@@ -14,14 +14,26 @@ V2 is **server-driven**. Every response says what comes next through
    `v2-jit-registration.md`).
 3. Follows only the links that table allows for that step (**link
    allowlist**, below).
-4. Replaces the token and links with the newest after every response.
+4. Replaces the token and links with the newest after every response that
+   returns them; after a failure it keeps the latest (`v2-errors.md`).
 5. Sends anything it can't handle to the flow's **unhandled outcome**: web
    fallback, or the app's existing generic error (see "Unhandled responses").
 
-Tenant policy decides which steps happen (for example MFA, SMS risk checks,
-extra sign-up attributes), so the code never hard-codes a fixed sequence of
-calls. It does hard-code **which steps it handles**: the step tables are the
-complete list.
+Tenant policy decides which steps happen (for example MFA or extra sign-up
+attributes), so the code never hard-codes a fixed sequence of calls. It does
+hard-code **which actions it handles**: the step tables are the complete
+list.
+
+Handle each response by its `state` and `action`, not by the request that
+produced it. The service may return any action after any request (for
+example MFA right after JIT activation); an action the flow handles is
+handled the same way wherever it appears, with that action's links. Two
+answers depend on where they come:
+
+- `action: challenge` from sign-up start means the account already exists
+  (`v2-sign-up.md`).
+- Any response except `poll` after an SSPR password update means the
+  password is already reset (`v2-sspr.md`).
 
 ## HAL response handler
 
@@ -34,9 +46,9 @@ handler:
 - Reads the continuation token from `continuationToken` (JSON endpoints) or
   `continuation_token` (OAuth endpoints).
 - Checks for **web fallback** first, on every response, including both
-  `authorize-challenge` calls. Any of these signals means web fallback:
-  `suberror: web_redirect_required` (OAuth error), `error.code:
-  redirect_to_web` (HAL error), or `state: webFallbackRequired`.
+  `authorize-challenge` calls: an OAuth error with `error: invalid_grant`
+  and `suberror: web_redirect_required` means web fallback. It's the only
+  web fallback signal.
 - Detects errors by the **body**, not the HTTP status: an object `error` is
   a HAL error; a string `error` is an OAuth error (see `v2-errors.md`).
 - Reads the correlation ID from the `x-ms-request-id` response header (fall
@@ -149,7 +161,6 @@ Don't send `response_type` or any other parameter. The normal response is
 | `state` | `action` | Meaning | Where handled |
 | --- | --- | --- | --- |
 | `interactionRequired` | `challenge` | Pick a method from `_embedded.methods`, POST its `challenge` link | sign-in, sspr, sign-in MFA; after an SSPR poll it ends the flow (`v2-sspr.md`) |
-| `interactionRequired` | `riskverify` | POST the `riskverify` link before an SMS code is sent | SMS steps |
 | `interactionRequired` | `verify` | Submit a password or one-time code to `verify` | all flows |
 | `interactionRequired` | `collectAttributes` | Submit requested attributes to `submitAttributes` | sign-up |
 | `interactionRequired` | `update` | `PUT` a new password to `update` | sspr |
@@ -159,8 +170,8 @@ Don't send `response_type` or any other parameter. The normal response is
 | `continue` | — | The flow succeeded; finish (see below) | all flows |
 
 `state` and `action` values are case-sensitive as shown. Anything else →
-unhandled response, except `state: webFallbackRequired`, which is web
-fallback.
+unhandled response. V2 no longer returns `action: riskverify` (an SMS risk
+check); treat it like any unknown action.
 
 ## Embedded methods
 
@@ -175,10 +186,11 @@ Challenge methods (in `action: challenge` responses):
   to case (the service may send `"SMS"`). A method without a
   `challenge` link can't be used; skip it. No usable method → unhandled
   response.
-- `challengeContext.authenticationFactor` is on every `challenge` response:
-  `singleFactor` at flow start, `multiFactor` for MFA after the first
-  verify. Any other value, or the wrong one for the step → unhandled
-  response.
+- `challengeContext.authenticationFactor` says which kind of challenge it
+  is: `singleFactor` (first credential, usually at flow start) or
+  `multiFactor` (MFA, usually after the first verify). Pick the screen from
+  this value, not from the step it follows. A missing or unknown value →
+  unhandled response.
 - Show only the masked `hint`. Never show `id` to users.
 
 Enrollment methods (in `action: enroll` responses) are described in
@@ -192,12 +204,10 @@ Enrollment methods (in `action: enroll` responses) are described in
      - `password`: `_links.verify` only. No code is sent.
      - `email` or `sms`: `hint`, `codeLength`, `_links.verify`,
        `_links.resend`.
-   - `action: riskverify` with `_links.riskverify` (SMS only): POST it with
-     `{ "continuationToken" }`. The response must be `action: verify` with
-     `type: sms`; anything else → unhandled response.
-2. **Resend:** POST the `resend` link with `{ "continuationToken" }`. The
+2. **Resend** (only where the V1 UI offered it; see the parity rule): POST
+   the `resend` link with `{ "continuationToken" }`. The
    response is handled exactly like a challenge response (new `verify` and
-   `resend` links, possibly `riskverify` first).
+   `resend` links).
 3. **Verify:** POST the `verify` link with `{ "continuationToken",
    "password" }` or `{ "continuationToken", "otp" }`. What can come back
    depends on the flow (see its step table).

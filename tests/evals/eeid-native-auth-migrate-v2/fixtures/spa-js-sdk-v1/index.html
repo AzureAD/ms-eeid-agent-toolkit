@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Contoso sign-in</title>
+    <script type="module">
+      import { wireForms } from "./src/ui/app.js";
+      wireForms();
+    </script>
+  </head>
+  <body>
+    <p id="error" role="alert"></p>
+    <form id="sign-in-form" data-screen="sign-in">
+      <input name="email" type="email" required />
+      <input name="password" type="password" required />
+      <button>Sign in</button>
+    </form>
+    <form id="sign-up-form" data-screen="sign-up" hidden>
+      <input name="email" type="email" required />
+      <input name="password" type="password" required />
+      <input name="displayName" required />
+      <button>Create account</button>
+    </form>
+    <form id="reset-form" data-screen="reset" hidden>
+      <input name="email" type="email" required />
+      <button>Reset password</button>
+    </form>
+    <form id="code-form" data-screen="code" hidden>
+      <p>We sent a code to <span id="sent-to"></span>.</p>
+      <input id="code" name="code" autocomplete="one-time-code" required />
+      <button>Verify</button>
+    </form>
+    <form id="new-password-form" data-screen="new-password" hidden>
+      <input name="newPassword" type="password" required />
+      <button>Save password</button>
+    </form>
+    <section data-screen="home" hidden>
+      <p>Welcome, <span id="user-name"></span>.</p>
+      <button id="sign-out">Sign out</button>
+    </section>
+  </body>
+</html>

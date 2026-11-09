@@ -24,6 +24,16 @@ export function parseVerdict(output) {
   return matches[matches.length - 1][1].toUpperCase() === 'PASS';
 }
 
+// The judge's reasoning: the text before its last VERDICT line, on one line,
+// shortened so reports stay readable.
+export function parseReason(output, maxLength = 400) {
+  const matches = [...output.matchAll(/VERDICT:\s*(PASS|FAIL)/gi)];
+  const end = matches.length ? matches[matches.length - 1].index : output.length;
+  const reason = output.slice(0, end).replace(/\s+/g, ' ').trim();
+  if (!reason) return matches.length ? '(no reasoning given)' : '(no verdict given)';
+  return reason.length > maxLength ? `${reason.slice(0, maxLength - 1)}…` : reason;
+}
+
 function runCommand(command, args, timeoutMs) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, { stdio: ['ignore', 'pipe', 'pipe'] });
@@ -31,23 +41,29 @@ function runCommand(command, args, timeoutMs) {
     let stderr = '';
     child.stdout.on('data', (chunk) => { stdout += chunk; });
     child.stderr.on('data', (chunk) => { stderr += chunk; });
-    const timer = setTimeout(() => child.kill('SIGTERM'), timeoutMs);
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      child.kill('SIGTERM');
+    }, timeoutMs);
     child.on('error', (error) => {
       clearTimeout(timer);
       reject(error.code === 'ENOENT'
         ? new Error(`judge command "${command}" not found; pass --judge with another judge, or put it on your PATH (for claude, or set CLAUDE_BIN)`)
         : error);
     });
-    child.on('close', (code) => {
+    child.on('close', (code, signal) => {
       clearTimeout(timer);
       if (code === 0) resolve(stdout);
-      else reject(new Error(`judge exited ${code}: ${stderr.trim().slice(-300)}`));
+      else if (timedOut) reject(new Error(`judge timed out after ${Math.round(timeoutMs / 1000)} s`));
+      else reject(new Error(`judge exited ${code ?? `on signal ${signal}`}: ${stderr.trim().slice(-300)}`));
     });
   });
 }
 
 // kind: "claude" (Claude Code CLI, `claude -p`), "copilot" (Copilot CLI with
-// every tool denied), or "none" (llm graders are skipped).
+// every tool denied), or "none" (llm graders are skipped). Each vote returns
+// { pass, reason }.
 export function createJudge(kind, { model, claudeBin = process.env.CLAUDE_BIN ?? 'claude', copilotBin = 'copilot' } = {}) {
   if (kind === 'none') return null;
   return async (criteria, evidence) => {
@@ -64,6 +80,6 @@ export function createJudge(kind, { model, claudeBin = process.env.CLAUDE_BIN ??
     } else {
       throw new Error(`unknown judge "${kind}"`);
     }
-    return parseVerdict(output);
+    return { pass: parseVerdict(output), reason: parseReason(output) };
   };
 }

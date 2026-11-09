@@ -21,9 +21,9 @@ usage; it must be present and unchanged.
 - `client_id`, `scope`, `claims` are sent only on that first request
   (`client_id` also on `/token`). The scopes match what the V1 code requested.
 - One HAL response handler: errors detected by the body, continuation token
-  read per endpoint, web fallback on any of `suberror: web_redirect_required`,
-  `error.code: redirect_to_web`, or `state: webFallbackRequired` (every
-  endpoint, including both `authorize-challenge` calls), no body logging.
+  read per endpoint, web fallback on `error: invalid_grant` with
+  `suberror: web_redirect_required` (every endpoint, including both
+  `authorize-challenge` calls), no body logging.
 - Each flow handles only its step table: the listed responses per step and
   the allowed links. Other links are ignored; an unknown `state`/`action`,
   a missing token or required link, or a step the V1 UI didn't handle leads
@@ -43,18 +43,19 @@ usage; it must be present and unchanged.
 - OTP submitted as `otp`; UI uses `hint` and the code-length rule
   (non-integer → unrestricted input).
 - `sign-in`: `challengeContext.authenticationFactor` checked
-  (`singleFactor` at start, `multiFactor` for MFA); SMS `riskverify`
-  handled where the V1 UI used SMS.
+  (`singleFactor` at start, `multiFactor` for MFA); no `riskverify`
+  handling (V2 no longer returns it).
 - `sign-up`: start sends only `{continuationToken, username}`; existing
   account (`action: challenge`) maps to the V1 `user_already_exists`
   handling and its links aren't followed; repeated `collectAttributes`;
-  only requested attributes submitted; `email` never submitted as an
-  attribute.
+  only requested attributes submitted; a requested `email` gets the
+  sign-up username, without asking the user again.
 - `sspr`: `PUT` for `update`; polls with the V1 app's own interval and
   limit, or 1.5 s apart and at most 5 attempts, never without a delay, then
   the generic error.
 - JIT (only where V1 handled `registration_required`): `enroll` →
-  `activate` with the right body per method.
+  `activate` with the right body per method; the response to `activate` is
+  handled by its action, not assumed to be `state: continue`.
 - Never retries verify, attribute submission, password update, or
   activation automatically.
 
@@ -73,7 +74,8 @@ Mock the HTTP layer with response shapes from the `v2-*.md` references.
   and the flow continues normally.
 - An unknown `state`/`action`, a missing continuation token, and a missing
   required link each lead to the unhandled outcome.
-- The continuation token and links are replaced after every response.
+- The continuation token and links are replaced after every response that
+  returns new ones, and kept after a failure.
 - The right token field name is sent per endpoint (`continuation_token` for
   OAuth, `continuationToken` for JSON).
 - The entry 401 `InsufficientAuthorization` with `continuation_token` is
@@ -81,10 +83,9 @@ Mock the HTTP layer with response shapes from the `v2-*.md` references.
   handled as unavailable.
 - `state: continue` resumes at the configured `authorize-challenge`, even
   when `_links.continue` points elsewhere.
-- HAL and OAuth error bodies are both normalized; each web fallback signal
-  (`suberror: web_redirect_required`, `error.code: redirect_to_web`,
-  `state: webFallbackRequired`) leads to web fallback, including on the
-  `authorize-challenge` start and resume; error objects keep codes and `correlationId` and
+- HAL and OAuth error bodies are both normalized; `error: invalid_grant`
+  with `suberror: web_redirect_required` leads to web fallback, including
+  on the `authorize-challenge` start and resume; error objects keep codes and `correlationId` and
   contain no tokens or request bodies.
 - Code length: a non-integer `codeLength` leaves the input unrestricted.
 - Method types are matched without regard to case (`"SMS"` works like
@@ -94,8 +95,8 @@ Mock the HTTP layer with response shapes from the `v2-*.md` references.
 
 | Flow | Tests |
 | --- | --- |
-| `sign-in` | Password success through code exchange; email OTP success; wrong password; wrong OTP; unknown user (`userNotFound`, and AADSTS50034 in the message) gets the same UI as a wrong password; MFA `challenge` with `multiFactor` after verify (where V1 had MFA); wrong `authenticationFactor` → unhandled; SMS `riskverify` then `verify` (where V1 used SMS); a method type the V1 UI never handled → unhandled; `enroll` → JIT or unhandled, per the plan |
-| `sign-up` | Email code → `collectAttributes` (password and attributes) → `continue` → tokens or end, per V1; `enroll` after verify or attribute submission → JIT then tokens (V1 automatic sign-in handled `registration_required`), or V1's error handling, or end as "sign-up complete" (no V1 automatic sign-in), with no added web fallback; repeated `collectAttributes`; existing account (`action: challenge` at start) → V1 `user_already_exists` handling, no further request sent; `collectAttributes` requesting `email` → unhandled; password policy errors (an inner code such as `passwordTooShort`, and `attributeValidationError` with `password` in `attributeIds`); wrong OTP; resend |
-| `sspr` | Success through `PUT update`, polling, and `continue` (tokens or end, per V1); MFA `challenge` or `enroll` after polling → MFA or JIT then tokens (V1 automatic sign-in handled `mfa_required` / `registration_required`), or V1's error handling, or end as "password reset" (no V1 automatic sign-in), with no added web fallback; poll still running after the last attempt (V1 app's limit, or 5) → generic error; unknown user gets a generic error; wrong OTP; SMS `riskverify` (where V1 used SMS) |
-| JIT (if handled) | Email and phone (`channels: ["sms"]`) registration bodies; `activate` → `continue`; resend; unsupported method only → unhandled; no `preverified` branch left (registering the sign-in email still goes through `activate`) |
-| All | Verify, attribute submission, password update, and activation are never retried automatically |
+| `sign-in` | Password success through code exchange; email OTP success; wrong password; wrong OTP; unknown user (`userNotFound`, and AADSTS50034 in the message) gets the V1 message; MFA `challenge` with `multiFactor` after verify (where V1 had MFA); missing or unknown `authenticationFactor` → unhandled; SMS code sign-in (where V1 used SMS); a method type the V1 UI never handled → unhandled; `enroll` → JIT or unhandled, per the plan |
+| `sign-up` | Email code → `collectAttributes` (password and attributes) → `continue` → tokens or end, per V1; `enroll` after verify or attribute submission → JIT then tokens (V1 automatic sign-in handled `registration_required`), or V1's error handling, or end as "sign-up complete" (no V1 automatic sign-in), with no added web fallback; repeated `collectAttributes`; existing account (`action: challenge` at start) → V1 `user_already_exists` handling, no further request sent; `collectAttributes` requesting `email` → the sign-up email is submitted automatically; password policy errors (an inner code such as `passwordTooShort`, and `attributeValidationError` with `password` in `attributeIds`); wrong OTP; resend (where the V1 UI offered it) |
+| `sspr` | Success through `PUT update`, polling, and `continue` (tokens or end, per V1); MFA `challenge` or `enroll` after polling → MFA or JIT then tokens (V1 automatic sign-in handled `mfa_required` / `registration_required`), or V1's error handling, or end as "password reset" (no V1 automatic sign-in), with no added web fallback; poll still running after the last attempt (V1 app's limit, or 5) → generic error; unknown user gets the V1 message; wrong OTP; SMS code reset (where V1 used SMS) |
+| JIT (if handled) | Email and phone (`channels: ["sms"]`) registration bodies; `activate` → `continue`; `activate` → another handled action (for example MFA, where V1 had MFA); resend (where the V1 UI offered it); unsupported method only → unhandled; no `preverified` branch left (registering the sign-in email still goes through `activate`) |
+| All | After a failed step, the screen and token follow V1 (a form V1 stays on stays, including after a rejected registration contact); a failed code exchange restarts authorization; a poll failure after the new password stops with the generic reset error; verify, attribute submission, password update, and activation are never retried automatically |

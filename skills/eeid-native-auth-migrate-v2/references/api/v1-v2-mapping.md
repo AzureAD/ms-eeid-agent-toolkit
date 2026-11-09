@@ -26,7 +26,7 @@ references win.
 | MFA | `mfa_required` error → `/introspect` → `/challenge` + `id` → `/token` `mfa_oob` | `action: challenge` with `multiFactor` after the first verify |
 | JIT registration | `registration_required` → `/register/v1.0/*` | `action: enroll` → `enroll` → `activate` |
 | Errors | Flat `error`, `suberror` | OAuth errors, or nested HAL `error.code` / `innerError` (`v2-errors.md`) |
-| Fallback | `challenge_type: redirect` | `suberror: web_redirect_required`, `error.code: redirect_to_web`, or `state: webFallbackRequired` (any endpoint), or any unhandled response |
+| Fallback | `challenge_type: redirect` | OAuth error `invalid_grant` + `suberror: web_redirect_required` (any endpoint), or any unhandled response |
 
 ## Flow mapping
 
@@ -35,7 +35,7 @@ references win.
 | V1 | V2 |
 | --- | --- |
 | `initiate` (`username`, `challenge_type`, `capabilities`) | `authorize-challenge` (`client_id`, `scope`) → `POST sign_in` link `{continuationToken, username}`; `challenge_type` and `capabilities` are dropped |
-| `challenge` | pick a method from `_embedded.methods` → `POST` its `challenge` link (SMS may add `riskverify`) |
+| `challenge` | pick a method from `_embedded.methods` → `POST` its `challenge` link |
 | `token` `grant_type=password` / `oob` | `POST verify` link `{continuationToken, password}` / `{continuationToken, otp}` |
 | `mfa_required` → `introspect` → `challenge(id)` → `token mfa_oob` | `challenge` (`multiFactor`) after verify → challenge + verify the second factor |
 | `registration_required` → `/register/v1.0/*` | `enroll` → `v2-jit-registration.md` |
@@ -150,7 +150,7 @@ async function parse(res: Response) {
   const body = await res.json().catch(() => { throw new UnhandledResponseError("not json"); });
   const correlationId = res.headers.get("x-ms-request-id") ?? requestId;
   const err = body.error;
-  if (body.suberror === "web_redirect_required" || err?.code === "redirect_to_web" || body.state === "webFallbackRequired") {
+  if (err === "invalid_grant" && body.suberror === "web_redirect_required") {
     throw new UnhandledResponseError("web fallback required");
   }
   if (err && typeof err === "object") {
@@ -236,7 +236,12 @@ V2 needs these proxy changes:
 
 - **Answer `OPTIONS` preflight locally with `204`**. V2 sends
   `Content-Type: application/json` and `client-request-id`, so browsers
-  preflight; forwarding `OPTIONS` upstream fails the preflight.
+  preflight; forwarding `OPTIONS` upstream fails the preflight. The
+  preflight response uses **the proxy's existing CORS policy** (the same
+  allowed origins and methods its other responses send). Don't restrict
+  or widen it: a stricter preflight than the proxy's other responses can
+  block the app on an origin that works today (for example `127.0.0.1` or
+  another port).
 - Allow headers: `Content-Type, client-request-id`; allow `PUT` (password
   update). Expose `x-ms-request-id` if the app reads it.
 - The proxy target keeps the app's existing tenant path
@@ -244,3 +249,8 @@ V2 needs these proxy changes:
 - The link resolver rebases links onto the proxy base. With a proxy base of
   `/api`, V2 native auth calls become `{proxy}/api/api/v2.0/...` — expected,
   not a bug. Keep the query string (for example `?dc=…`).
+- **Change only what V2 needs** (the items above, and only those the proxy
+  doesn't already do). Leave everything else as it is, even when it's weak:
+  allowed origins, logging, the listen address, other headers. Report those
+  as pre-existing findings in the security review; never fix them as part
+  of the migration.

@@ -2,7 +2,7 @@
 managed-by: eeid-native-auth-migrate-v2   # Load this skill before changing or applying this plan.
 skill-version: "<metadata.version of the skill>"   # a different installed version restarts the migration
 app-root: <path to the app root, relative to the workspace>
-approach: api            # api | sdk (sdk not supported yet)
+approach: api            # api | sdk (sdk: JavaScript single-page apps, iOS and macOS apps)
 phase: 1
 status: draft            # draft | approved | applying | applied | reviewed | validated | reported
 revision: 1
@@ -15,7 +15,7 @@ baseline:
     <path>: <git hash-object>
 dirty-files: []          # files with uncommitted changes when planned; the migration never edits them (excluded from check A1)
 validation-settings:     # you may edit these before approving
-  max-fix-attempts: 3            # per failing check
+  max-fix-attempts: 5            # per failure (each failing test or error)
   command-timeout-minutes: 30    # per build/test command
 validation-baseline: null  # set in the pre-apply check: { <check ID>: passed | "failed: <summary>" | "not-run: <reason>" } or skipped
 ---
@@ -32,6 +32,7 @@ validation-baseline: null  # set in the pre-apply check: { <check ID>: passed | 
 | --- | --- |
 | Migrate now | <sign-in, sspr> |
 | Stay on V1 | <sign-up — reason> |
+| Users will notice | <per migrated flow: behavior changes, or "none"> |
 | Files to change / add | <N changed, M new (including K test files)> |
 | Commands run on approval | <`npm run typecheck`, `npm test -- --watchAll=false` — twice (baseline and after)> |
 | You must do manually | <N items — section 10> |
@@ -46,6 +47,10 @@ answer under "Decisions and revisions". Write "None." when empty.>
   (adds <dependencies> and `<test command>`) or skip tests?>
 - [ ] <e.g. `src/auth/signin.ts` has your uncommitted changes and this plan
   changes it. Commit or stash them, then tell me to continue.>
+- [ ] <e.g. V2-native option. Sign-up: keep the one-screen form (suggested;
+  the password stays in memory until V2 asks for it after the email code),
+  or ask for the password after the code (no buffered password, one more
+  screen)?>
 
 ## Previous phases
 
@@ -102,7 +107,7 @@ mixes V1 and V2, including MFA and JIT inside each flow.>
 
 | Flow | V1 error the UI handles | V2 condition | UI message (unchanged unless noted) |
 | --- | --- | --- | --- |
-| <sign-in> | <`user_not_found`> | <`invalidRequest` + `userNotFound` / AADSTS50034> | <"Incorrect email or password" — generic, no account-existence leak> |
+| <sign-in> | <`user_not_found`> | <`invalidRequest` + `userNotFound` / AADSTS50034> | <"User not found" — unchanged (V1 conflict); finding in section 8> |
 | <sign-up> | <`user_already_exists`> | <sign-up start returns `action: challenge`> | <"An account with this email already exists" — unchanged> |
 
 <V2 conditions come from the approach's error reference. Anything not
@@ -132,7 +137,7 @@ Rules that matter most for this app:
 | Rule | How this migration meets it |
 | --- | --- |
 | <e.g. SEC-03 Flow state where V1 kept it> | <V2 continuation token and links kept in the same in-memory flow state as V1; token storage unchanged> |
-| <e.g. SEC-06 No account enumeration> | <Sign-in and password reset keep one generic error message> |
+| <e.g. SEC-06 No account enumeration> | <Sign-in and reset messages keep V1 wording (V1 conflict); unknown-user disclosure reported below; no new disclosure> |
 | <e.g. API-01 Validated links> | <All V2 links go through `resolveLink`> |
 
 Known pre-existing concerns seen during inventory: <list, or "none"; they are

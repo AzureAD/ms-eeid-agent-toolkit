@@ -1,6 +1,6 @@
 ---
 description: "Should not trigger: browser-redirect MSAL sign-in."
-tags: [smoke, triggering, should-not-trigger]
+tags: [triggering]
 runs: 3
 max_turns: 12
 timeout_seconds: 300

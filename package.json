@@ -20,7 +20,7 @@
     "eval:agent": "node scripts/evals/run.mjs"
   },
   "devDependencies": {
-    "ajv": "8.17.1",
+    "ajv": "8.18.0",
     "yaml": "2.8.3"
   }
 }

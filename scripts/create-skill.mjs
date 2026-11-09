@@ -1,8 +1,7 @@
 import { mkdir, readFile, realpath, writeFile } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
+import { pluginDir, repoPath, repoRoot as root, skillsRoot } from './lib/paths.mjs';
 
-const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const args = process.argv.slice(2);
 
 async function main() {
@@ -39,9 +38,8 @@ async function main() {
     if (!(key in values)) throw new Error(`Unknown template placeholder: ${placeholder}`);
     return values[key];
   });
-  const skillsRoot = join(root, 'skills');
-  if (await realpath(skillsRoot) !== skillsRoot) {
-    throw new Error('The skills directory must not be a symlink.');
+  if (await realpath(skillsRoot) !== join(await realpath(pluginDir), 'skills')) {
+    throw new Error(`${repoPath(skillsRoot)} must not be a symlink.`);
   }
   const destination = join(skillsRoot, name);
   try {
@@ -63,7 +61,7 @@ async function main() {
     await mkdir(join(evalsDestination, type));
     await writeFile(join(evalsDestination, type, '.gitkeep'), '', { flag: 'wx' });
   }
-  console.log(`Created draft skill: skills/${name}/SKILL.md`);
+  console.log(`Created draft skill: ${repoPath(join(destination, 'SKILL.md'))}`);
   console.log(`Created eval folders: tests/evals/${name}/triggering and behavior`);
   console.log('Complete the instructions and evaluations before marking it ready.');
 }

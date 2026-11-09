@@ -15,6 +15,7 @@ import { loadCases, selectCases } from './lib/cases.mjs';
 import { gradeRun } from './lib/graders.mjs';
 import { createJudge } from './lib/judge.mjs';
 import { createWorkspace } from './lib/workspace.mjs';
+import { skillsRoot } from '../lib/paths.mjs';
 
 const root = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 export const ADAPTERS = { 'claude-code': claudeCodeAdapter, copilot: copilotAdapter };
@@ -22,7 +23,7 @@ export const ADAPTERS = { 'claude-code': claudeCodeAdapter, copilot: copilotAdap
 const USAGE = `Usage: npm run eval:agent -- --agent <agent> --skill <skill> [options]
 
   --agent <agent>        ${Object.keys(ADAPTERS).join(' | ')}
-  --skill <skill>        Skill folder name under skills/
+  --skill <skill>        Skill folder name under .github/plugins/eeid-toolkit/skills/
 
 Options:
   --tag <tag>            Only cases of this type: triggering or behavior (repeatable)
@@ -79,7 +80,7 @@ function average(runs) {
 export async function runSuite(options, { adapter, judge, log = console.log } = {}) {
   const skill = options.skill;
   const evalDir = resolve(root, options.evalDir ?? join('tests/evals', skill));
-  const skillDir = options.skillDir ?? join(root, 'skills', skill);
+  const skillDir = options.skillDir ?? join(skillsRoot, skill);
   const cases = selectCases(await loadCases(evalDir), options);
   if (cases.length === 0) throw new Error('No eval cases matched.');
   const outDir = options.outDir ?? join(evalDir, 'results', `${adapter.name}-${timestamp()}`);

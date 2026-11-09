@@ -1,7 +1,8 @@
 # Evals: eeid-native-auth-migrate-v2
 
-Cases and fixtures for `skills/eeid-native-auth-migrate-v2`. How evals work,
-how to run them on each supported agent, and how to write graders:
+Cases and fixtures for
+`.github/plugins/eeid-toolkit/skills/eeid-native-auth-migrate-v2`. How evals
+work, how to run them on each supported agent, and how to write graders:
 [../README.md](../README.md). Use `eeid-native-auth-migrate-v2` as `<skill>`
 in its commands. Each case is tagged with its type (`triggering` or
 `behavior`). Case names start with the integration approach they test, so a

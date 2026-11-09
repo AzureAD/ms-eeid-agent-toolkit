@@ -39,14 +39,7 @@ npm ci
 ├── CONTRIBUTING.md                 # Contribution rules and repository conventions
 ├── LICENSE                         # MIT license terms
 ├── package.json                    # Development dependencies and npm commands
-├── plugin.json                     # Portable identity and global release version
-├── mcp.json                        # MCP configuration; currently declares no servers
-├── skills/                         # Canonical, customer-installable capabilities
-│   └── eeid-native-auth-migrate-v2/ # Native Auth V1 to V2 migration capability
-│       ├── SKILL.md                # Skill metadata and workflow instructions
-│       ├── references/             # Skill-local runtime guidance
-│       ├── scripts/                # Skill execution helpers, if needed
-│       └── assets/                 # Customer output templates and static resources
+├── package-lock.json               # Exact development dependency versions (npm ci)
 ├── docs/                           # Human-oriented knowledge and documentation
 │   └── domains/                    # Team-owned domain knowledge areas
 ├── templates/                      # Templates used by repository tooling
@@ -54,14 +47,12 @@ npm ci
 │   │   └── SKILL.md.template       # Starter instructions and required metadata
 │   └── evals/                      # New-skill eval folder templates
 │       └── README.md.template      # Starter list of a skill's cases and fixtures
-├── packaging/                      # Package validation and adapter inputs
-│   ├── schemas/                    # Local canonical Agent Plugins 1.0 schemas
-│   └── adapters/                   # Thin client-specific packaging and wrappers
-│       ├── claude-code/            # Reserved for Claude Code packaging inputs
-│       └── copilot-cli/            # Reserved for Copilot CLI packaging inputs
+├── packaging/                      # Package validation inputs
+│   └── schemas/                    # Local canonical Agent Plugins 1.0 schemas
 ├── scripts/                        # Repository-level automation
 │   ├── create-skill.mjs            # Create a draft skill (and its eval folders) from the templates
 │   ├── validate.mjs                # Validate manifests, skill rules, routing, and eval presence
+│   ├── lib/paths.mjs               # Repository layout: plugin and skills folders
 │   ├── lib/skill-routing.mjs       # Routing check: links, file names, reachability from SKILL.md
 │   └── evals/                      # Eval runner and one adapter per agent (npm run eval:agent)
 ├── tests/                          # Automated checks and model-based evaluations
@@ -70,19 +61,35 @@ npm ci
 │   ├── skills/                     # Deterministic checks for every skill, e.g. routing (npm test)
 │   └── evals/                      # Model-based evals, run locally
 │       ├── README.md               # How evals work and how to run them on each agent
-│       └── <skill-name>/           # Same name as skills/<skill-name>
+│       └── <skill-name>/           # Same name as the skill's folder
 │           ├── triggering/         # Should-trigger and should-not-trigger cases
 │           ├── behavior/           # What the skill does once loaded
 │           ├── fixtures/           # Synthetic customer apps the cases seed
 │           └── scripts/            # Helpers the case scaffolds call
-├── .claude-plugin/                 # Future generated Claude manifests and catalog
-└── .github/                        # GitHub ownership, discovery, and automation
+├── .claude-plugin/                 # Future Claude Code marketplace catalog
+└── .github/                        # GitHub ownership, plugins, and automation
     ├── CODEOWNERS                  # Path-based review ownership
-    ├── plugin/                     # Future generated Copilot marketplace catalog
-    └── workflows/                  # Future PR and release automation
+    ├── plugin/                     # Future Copilot CLI marketplace catalog
+    ├── workflows/                  # Future PR and tagging automation
+    └── plugins/
+        └── eeid-toolkit/           # The plugin customers install, as is
+            ├── plugin.json         # Portable manifest; holds the plugin version
+            ├── mcp.json            # MCP configuration; currently declares no servers
+            ├── README.md           # What the plugin does and its skills
+            ├── CHANGELOG.md        # One entry per plugin version
+            └── skills/             # Customer-installable skills
+                └── eeid-native-auth-migrate-v2/ # Native Auth V1 to V2 migration
+                    ├── SKILL.md    # Skill metadata and workflow instructions
+                    ├── references/ # Skill-local runtime guidance
+                    ├── scripts/    # Skill execution helpers, if needed
+                    └── assets/     # Customer output templates and static resources
 ```
 
-`dist/` is reserved for generated release packages and is ignored by Git.
+The plugin folder follows the [microsoft/skills](https://github.com/microsoft/skills)
+layout. Agents install it straight from the repository, so there is no build
+step and no generated package. Skills go only under
+`.github/plugins/eeid-toolkit/skills/`; `npm run validate` rejects a root
+`skills/` folder.
 
 ## Adding a skill
 
@@ -92,7 +99,8 @@ npm ci
    npm run skill:create -- eeid-example --description "Draft scaffold for an example capability."
    ```
 
-   The command creates `skills/eeid-example/SKILL.md` with empty
+   The command creates
+   `.github/plugins/eeid-toolkit/skills/eeid-example/SKILL.md` with empty
    `references/`, `scripts/`, and `assets/` directories, and
    `tests/evals/eeid-example/` with empty `triggering/` and `behavior/`
    folders and a README. It refuses an existing destination.
@@ -119,7 +127,8 @@ repository can still be installed and used. Don't point customers at a draft.
   license and copyright metadata, `metadata.status: draft` and `version:
   "0.1.0"`, the standard `## Version` section, and the skill's eval folders
   under `tests/evals/<name>/`.
-- Use a flat `skills/<name>/SKILL.md` layout and stable `eeid-` capability names.
+- Use a flat `.github/plugins/eeid-toolkit/skills/<name>/SKILL.md` layout and
+  stable `eeid-` capability names.
   Names must match the folder, be at most 64 characters, and contain lowercase
   ASCII letters, digits, and single hyphens. Spaces are not allowed, even when
   the name is quoted. Use `eeid-example`, not `"eeid example"`.
@@ -256,15 +265,15 @@ code you haven't reviewed.
 
 ## Packaging and releases
 
-All `ready` skills ship in one plugin. Its version is in `plugin.json` (keep
-`package.json` at the same version); each skill also has its own version (see
+All `ready` skills ship in one plugin. Its version is in
+`.github/plugins/eeid-toolkit/plugin.json` (keep `package.json` at the same
+version); each skill also has its own version (see
 [Skill rules](#skill-rules)). During development the plugin stays at `0.1.0`.
 
 Packaging and releases aren't set up yet. **TBD**, to be added later:
 
 - A plugin manifest for each supported client, generated from `plugin.json`,
   and a check that they stay in sync.
-- A build command that stages release packages into `dist/` (ignored by git).
 - Release tooling: a command to set the plugin version, release notes listing
   each skill and its version, a `CHANGELOG.md`, and a tagged GitHub release
   for each reviewed release pull request.

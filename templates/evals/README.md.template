@@ -1,6 +1,6 @@
 # Evals: {{name}}
 
-Cases and fixtures for `skills/{{name}}`. How evals work, how to run them
+Cases and fixtures for `.github/plugins/eeid-toolkit/skills/{{name}}`. How evals work, how to run them
 on each supported agent, and how to write graders:
 [../README.md](../README.md). Use `{{name}}` as `<skill>` in its commands.
 

@@ -7,10 +7,11 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import { appendFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { loadCases } from '../../scripts/evals/lib/cases.mjs';
 import { gradeRun } from '../../scripts/evals/lib/graders.mjs';
 import { createWorkspace } from '../../scripts/evals/lib/workspace.mjs';
+import { skillsRoot } from '../../scripts/lib/paths.mjs';
 
 const root = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
 const evalDir = join(root, 'tests/evals/eeid-native-auth-migrate-v2');
@@ -150,7 +151,7 @@ test('the full-migration cases are behavior cases, run once, and seed an unappro
 test('report-template graders pass on a report built from the template, and match sections by number and first word', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'eval-report-'));
   try {
-    const template = await readFile(join(root, 'skills/eeid-native-auth-migrate-v2/assets/report-template.md'), 'utf8');
+    const template = await readFile(join(skillsRoot, 'eeid-native-auth-migrate-v2/assets/report-template.md'), 'utf8');
     const filled = template.replace(/<[^<>\n]+>/g, 'filled');
     await mkdir(join(dir, '.native-auth-v2-migration'), { recursive: true });
     await writeFile(join(dir, '.native-auth-v2-migration/report.md'), filled);
@@ -311,7 +312,7 @@ test('the email-first check accepts any capitalization and "precedes", and needs
 });
 
 test('SDK references: each platform loads the shared rules, and the shared file names no platform API', async () => {
-  const references = new URL('../../skills/eeid-native-auth-migrate-v2/references/', import.meta.url);
+  const references = pathToFileURL(join(skillsRoot, 'eeid-native-auth-migrate-v2/references/'));
   const shared = await readFile(new URL('sdk/shared-rules.md', references), 'utf8');
   assert.doesNotMatch(shared, /\bon[A-Z][a-z]\w+|StateV2|MSALNativeAuth|CustomAuth|@azure\/msal|isState\(|scenario/);
   for (const platform of ['js', 'ios']) {

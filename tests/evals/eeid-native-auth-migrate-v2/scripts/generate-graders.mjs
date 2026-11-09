@@ -15,9 +15,10 @@
 import { mkdir, readdir, readFile, rm, writeFile } from 'node:fs/promises';
 import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { skillsRoot } from '../../../../scripts/lib/paths.mjs';
 
 const evalDir = dirname(dirname(fileURLToPath(import.meta.url)));
-const skillDir = join(evalDir, '../../../skills/eeid-native-auth-migrate-v2');
+const skillDir = join(skillsRoot, 'eeid-native-auth-migrate-v2');
 const MIGRATION_FOLDER = '.native-auth-v2-migration';
 
 // Plan cases: which flows the request migrates and which it defers.

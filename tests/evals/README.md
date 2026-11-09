@@ -1,6 +1,6 @@
 # Skill evals
 
-Model-based evals for the skills in `skills/`. Each eval case is a folder of
+Model-based evals for the skills in `.github/plugins/eeid-toolkit/skills/`. Each eval case is a folder of
 plain files (a prompt, a scaffold that seeds a fixture app, and graders) that
 any supported agent can run. A run starts a fresh, isolated session of the
 agent with only the skill under test installed, seeds an empty workspace,
@@ -27,7 +27,7 @@ Every skill needs triggering and behavior cases before it's marked `ready`;
 ```text
 tests/evals/
 ├── README.md                  # this file
-└── <skill-name>/              # same name as skills/<skill-name>
+└── <skill-name>/              # same name as the skill's folder
     ├── README.md              # this skill's cases and fixtures
     ├── triggering/<case>/     # should-trigger and should-not-trigger cases
     ├── behavior/<case>/       # what the skill does once loaded
@@ -60,7 +60,7 @@ npm run eval:agent -- --agent <agent> --skill <skill> [options]
 | `claude-code` | Claude Code | [Claude Code](#claude-code) |
 | `copilot` | GitHub Copilot CLI | [GitHub Copilot CLI](#github-copilot-cli) |
 
-`<skill>` is the skill's folder name under `skills/`, for example
+`<skill>` is the skill's folder name under `.github/plugins/eeid-toolkit/skills/`, for example
 `eeid-native-auth-migrate-v2`.
 
 **Run it in a terminal, not in an agent's chat.** The command starts the

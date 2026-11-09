@@ -1,4 +1,5 @@
-# Owners must be valid GitHub users/teams with appropriate repository access.
-# No default owner is assigned until shared tooling maintainers are agreed.
-/skills/eeid-native-auth-migrate-v2/ @shenj
-/tests/evals/eeid-native-auth-migrate-v2/ @shenj
+# Owners must be valid GitHub users/teams with write access to the repository.
+# The last matching pattern wins, so the default owner comes first.
+* @AzureAD/devex-ciam
+/skills/eeid-native-auth-migrate-v2/ @shenj @AzureAD/devex-ciam
+/tests/evals/eeid-native-auth-migrate-v2/ @shenj @AzureAD/devex-ciam

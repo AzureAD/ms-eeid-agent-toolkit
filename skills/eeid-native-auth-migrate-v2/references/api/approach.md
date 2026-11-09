@@ -2,7 +2,10 @@
 
 The app calls the native auth HTTP endpoints itself (no MSAL native auth
 SDK). This file lists everything that is specific to this approach. The
-workflow, gates, and shared rules stay in `SKILL.md`.
+workflow and gates stay in `SKILL.md`; shared procedures are in
+[../migration-lifecycle.md](../migration-lifecycle.md),
+[../security-guardrails.md](../security-guardrails.md), and
+[../validation-strategy.md](../validation-strategy.md).
 
 ## References for this approach
 
@@ -76,10 +79,19 @@ In addition to the V1 call sites from `references/v1-detection-patterns.md`, fin
   an MFA method in an app without V1 JIT registration); JIT registration of
   the email already verified at sign-in now needs a code (V1
   `preverified` is gone); web fallback restarts authentication.
+- **V2-native options:** where keeping the V1 behavior has a real cost (for
+  example one-screen sign-up holding the password in memory until V2 asks
+  for it), add a "Decisions needed" item with both choices and keeping V1
+  as the default ("V2-native options" in
+  [../flows-and-scope.md](../flows-and-scope.md)).
 - **Error handling map:** for each V1 error the UI branches on, the V2
   condition from [v2-errors.md](v2-errors.md) and the UI message that
-  should show. Keep messages generic where they could reveal whether an
-  account exists. Anything else uses the app's existing generic error.
+  should show. Keep V1's messages and each distinction the V1 UI made,
+  including any service error text it showed (**When a rule conflicts with
+  V1's behavior** in [../security-guardrails.md](../security-guardrails.md)).
+  List each conflict in section 8 as a pre-existing finding (for example
+  SEC-06). Anything else uses the
+  fallback the V1 code has for that call.
 - **Manual prerequisites:** tenant enrolled in the V2 preview; public client
   with native auth enabled; production proxy updates
   if the app uses one outside this repo.

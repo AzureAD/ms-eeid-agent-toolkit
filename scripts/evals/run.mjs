@@ -1,7 +1,7 @@
 // Runs a skill's eval cases (the `claude plugin eval` layout) on an agent
 // through an adapter and writes the same report for every agent.
 //
-//   npm run eval:agent -- --agent copilot --skill eeid-native-auth-migrate-v2 --tag smoke --runs 1
+//   npm run eval:agent -- --agent copilot --skill eeid-native-auth-migrate-v2 --tag triggering --runs 1
 //
 // Most adapters run the agent case by case and the runner grades each run.
 // An adapter with runSuite() (claude-code) hands the whole suite to the
@@ -25,7 +25,7 @@ const USAGE = `Usage: npm run eval:agent -- --agent <agent> --skill <skill> [opt
   --skill <skill>        Skill folder name under skills/
 
 Options:
-  --tag <tag>            Only cases with this tag (repeatable)
+  --tag <tag>            Only cases of this type: triggering or behavior (repeatable)
   --case <name>          Only this case (* matches any text)
   --runs <n>             Runs per case (default: the case's runs, else 3)
   --threshold <0..1>     Score a case needs to pass (default 1)
@@ -147,6 +147,24 @@ export async function runSuite(options, { adapter, judge, log = console.log } = 
 }
 
 // Writes results.json and summary.md, the same for every agent.
+// Lists every scored check that failed, per run, with the judge's reasoning
+// for rubric checks, so a failure can be understood without the raw files.
+function failedChecks(document) {
+  const lines = [];
+  for (const testCase of document.cases) {
+    testCase.runs.forEach((run, index) => {
+      for (const result of run.results ?? []) {
+        if (result.passed || result.skipped || result.indicator) continue;
+        lines.push(`- **${testCase.name}**, run ${index + 1}, \`${result.name}\`: ${result.detail}`);
+        (result.votes ?? []).forEach((vote, voteIndex) => {
+          if (vote.reason) lines.push(`  - Vote ${voteIndex + 1} (${vote.pass ? 'PASS' : 'FAIL'}): ${vote.reason}`);
+        });
+      }
+    });
+  }
+  return lines.length ? ['## Failed checks', '', ...lines, ''] : [];
+}
+
 export async function writeReport(document, outDir, log = console.log) {
   const baseline = document.cases.some((testCase) => testCase.withoutScore !== undefined);
   const lines = [
@@ -162,6 +180,7 @@ export async function writeReport(document, outDir, log = console.log) {
       return `| ${testCase.name} | ${testCase.score.toFixed(2)} |${without} ${testCase.runs.length} | ${errors} |`;
     }),
     '',
+    ...failedChecks(document),
   ];
   await writeFile(join(outDir, 'results.json'), JSON.stringify(document, null, 2));
   await writeFile(join(outDir, 'summary.md'), lines.join('\n'));

@@ -69,9 +69,26 @@ async function gradeLlm(grader, run, judge) {
   if (!judge) return { skipped: true, detail: 'no judge configured' };
   const evidence = await targetText(grader.focus, run);
   const votes = [];
-  for (let i = 0; i < 3; i++) votes.push(await judge(grader.criteria, evidence));
-  const passes = votes.filter(Boolean).length;
-  return { passed: passes >= 2, detail: `judge votes: ${votes.map((vote) => (vote ? 'PASS' : 'FAIL')).join(' ')}` };
+  for (let i = 0; i < 3; i++) {
+    // A judge returns { pass, reason }; a plain boolean is accepted too. A
+    // call that times out or errors is retried once; a second failure fails
+    // the check with that error.
+    let vote;
+    try {
+      vote = await judge(grader.criteria, evidence);
+    } catch {
+      vote = await judge(grader.criteria, evidence);
+    }
+    votes.push(typeof vote === 'object' && vote !== null
+      ? { pass: Boolean(vote.pass), reason: vote.reason ?? '' }
+      : { pass: Boolean(vote), reason: '' });
+  }
+  const passes = votes.filter((vote) => vote.pass).length;
+  return {
+    passed: passes >= 2,
+    detail: `judge votes: ${votes.map((vote) => (vote.pass ? 'PASS' : 'FAIL')).join(' ')}`,
+    votes,
+  };
 }
 
 // In a with/without-skill comparison, a check that the skill loaded can never

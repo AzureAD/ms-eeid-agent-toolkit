@@ -1,6 +1,6 @@
 ---
 description: "Should not trigger: Azure AD B2C to External ID migration."
-tags: [triggering, should-not-trigger]
+tags: [triggering]
 runs: 3
 max_turns: 12
 timeout_seconds: 300

@@ -5,13 +5,17 @@ allowlist, challenge/verify, finishing, and unhandled responses.
 
 V2 sign-up is **email first**: the email (username) goes in the sign-up
 start request, the service sends an email code right away, and the password
-and other attributes are collected only after the code is verified. Email
-is never a collected attribute.
+and other attributes are collected only after the code is verified. The
+service may still list `email` in `collectAttributes`; submit the sign-up
+email for it (see "Attributes").
 
 ## Step table
 
-The table is the complete list of what the migrated code handles. A
-response or link not listed for the current step → unhandled response.
+The table is the complete list of what the migrated code handles, in the
+order it usually happens. Handle each response by its `state` and `action`
+(see "Model" in `v2-api-core.md`): an action this table doesn't list →
+unhandled response; a listed action after a different request than shown is
+handled the same way. Only the links listed for that action are followed.
 
 | Step | Request | Handled responses | Allowed links |
 | --- | --- | --- | --- |
@@ -22,13 +26,13 @@ response or link not listed for the current step → unhandled response.
 | 5. Finish | Resume authorization → `code` → `/token` (only if V1 signed in after sign-up) | tokens | none |
 
 Resend (step 2–3): `POST resend` `{ continuationToken }`; the response is a
-new `verify` with `type: email`.
+new `verify` with `type: email`. Offer it only where the V1 UI offered resend.
 
 Response checks, all → unhandled response when they fail:
 
 - Step 2 `verify` must have `type: email`.
 - `collectAttributes` must have an `attributes` array whose items each have
-  a non-empty string `attributeId`, and must never request `email`.
+  a non-empty string `attributeId`.
 - After an attribute submission (step 4), `collectAttributes` must not
   request `password` or an attribute already submitted successfully in this
   flow (it would loop).
@@ -41,14 +45,28 @@ Attribute names are the same as in V1; keep the app's names, including
 custom `extension_…` attributes. `password` is submitted as an attribute.
 
 Descriptor fields: `attributeId`, `inputType` (for example `text`,
-`password`, `boolean`), `required`, `canChange`, `label`, `regex`,
-`confirmationInput`. Ignore unknown fields.
+`password`, `boolean`), `required`, `canChange`, `label`, `validation`
+(with `validationRegEx`), `confirmationInput`. Ignore unknown fields.
+
+`validation.validationRegEx` can be HTML-encoded (for example `&amp;`) and
+isn't safe to run as-is. Treat it as a hint: keep the app's own V1
+validation for fields it already had, and never build a regular expression
+from it without decoding it and guarding against invalid or very slow
+patterns. A bad pattern is ignored, not an error.
 
 Submit **only** the attributes the latest `collectAttributes` requests:
 
+- `email`: submit the email the user signed up with (the `username` from
+  the start request, already verified by the code) automatically. Don't
+  ask the user for it again.
+
 - The V1 form already collected the value (one-screen sign-up): keep the
   values in memory only, from the form until they're submitted, then clear
-  them. Never store them anywhere else. Submit them when the service asks.
+  them. Never store them anywhere else. Submit them **automatically** when
+  the service asks: don't show them again in a form or ask the user to
+  confirm them. Show a form only for an attribute the V1 form didn't
+  collect (see the next item), or after the service rejects a value (for
+  example a password that's too weak), so the user can correct it.
 - The service asks for an attribute the V1 UI never collected: the V1 code
   rendered `attributes_required` / `required_attributes` dynamically → render
   it the same way. Otherwise → unhandled response.
@@ -92,6 +110,14 @@ Follow what the V1 app did:
 Never add a web fallback the V1 app didn't have after the account was
 created.
 
+**Keep V1's order on screen.** If the V1 app showed a "sign-up complete"
+screen before signing the user in (for example a "Continue to sign in"
+button that used the continuation token), show it as soon as the account
+exists: at `state: continue` or at `enroll`. Keep the flow state in memory.
+When the user continues, run the registration (for `enroll`) and finish
+with tokens. Don't run registration before the confirmation, and don't skip
+the confirmation. Record this order in the plan's sign-up scope row.
+
 ## Behavior change to put in the plan
 
 A V1 app that sent email, password, and attributes in one start request now
@@ -99,6 +125,11 @@ sends the email first and the rest after the code. The screens can stay the
 same (values held in memory as described above), but the order of network
 calls changes, and the existing-account answer comes before any password is
 sent.
+
+Keeping the one-screen form holds the password in memory until V2 asks for
+it, so offer the V2-native alternative (password after the code) as a
+"Decisions needed" item, with the one-screen form as the default (see
+"V2-native options" in `references/flows-and-scope.md`).
 
 ## Notes
 

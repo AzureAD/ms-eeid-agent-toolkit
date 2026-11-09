@@ -18,12 +18,16 @@ Read `v2-api-core.md` first.
 | --- | --- | --- | --- |
 | 1. Enroll required | (response from the parent flow) | `enroll` with `_embedded.methods` | each method's `enroll` |
 | 2. Register | `POST enroll` with the method's body (below) | `activate` with `hint`, `codeLength` | `activate`, `resend` |
-| 3. Activate | `POST activate` `{ continuationToken, otp }` | `state: continue` | none |
+| 3. Activate | `POST activate` `{ continuationToken, otp }` | `state: continue`, or another action the parent flow handles (for example MFA `challenge` with `multiFactor` where V1 handled MFA) | that action's links |
 | 4. Finish | Resume authorization → `code` → `/token` | tokens | none |
+
+After `activate`, today's service returns `state: continue`, but any next
+step is possible. Handle it as the parent flow handles that action after a
+verify; an action the parent flow doesn't handle → unhandled response.
 
 Resend (step 2–3): `POST resend` `{ continuationToken }`; the response is a
 new `activate`. Today the `resend` link is the same URL as the method's
-`enroll` link; use whatever the response returns.
+`enroll` link; use whatever the response returns. Offer it only where the V1 UI offered resend.
 
 ## Methods
 
@@ -42,8 +46,9 @@ Enrollment methods have no `id` or `hint`:
 | `type: phone` with `"sms"` in `channels` | the V1 registration UI handled SMS | `{ continuationToken, phoneNumber, channel: "sms" }` |
 
 - Ignore other types and channels. No usable method → unhandled response.
-- A method with an empty or non-array `channels`, a missing `type`, or a
-  missing `enroll` link is malformed → unhandled response.
+- A method with a missing `type` or a missing `enroll` link can't be used;
+  skip it. A `phone` method without `"sms"` in `channels` (including an
+  empty or missing `channels`) isn't usable for an SMS-only V1 UI; skip it.
 - One usable method → use it. More than one → the V1 method choice UI.
 
 ## No preverified shortcut

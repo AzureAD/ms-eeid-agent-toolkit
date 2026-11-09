@@ -1,11 +1,11 @@
 ---
 name: eeid-native-auth-migrate-v2
-description: Migrate an app that calls the Microsoft Entra External ID native authentication API V1 directly (raw HTTP, for example /oauth2/v2.0/initiate, /signup/v1.0/start, /resetpassword/v1.0/start) to native authentication API V2 (authorize-challenge, HAL action-driven flows). Use when the user asks to migrate, upgrade, or move native auth to V2 or "the new native auth API", to assess or plan that migration, to change or approve the migration plan, to apply a reviewed plan, or to continue a migration in progress. Supports sign-in, sign-up, and self-service password reset, in full or per flow. Do not use for native auth SDK (MSAL) migration, Azure AD B2C migration, adding native auth to a new app, or browser-redirect MSAL flows.
+description: Migrate an app's Microsoft Entra External ID native authentication from V1 to V2. Apps that call the native auth API V1 directly (raw HTTP such as /oauth2/v2.0/initiate) move to API V2 (authorize-challenge, HAL flows). Apps on the MSAL native auth SDK V1 methods (signIn, signUp, resetPassword) move to its V2 methods (signInV2, signUpV2, resetPasswordV2), in JavaScript single-page apps (CustomAuthPublicClientApplication, @azure/msal-browser) and iOS or macOS apps (MSALNativeAuthPublicClientApplication). Use when the user asks to migrate, upgrade, or move native auth to V2 or "the new native auth API", to assess or plan that migration, to change or approve the migration plan, to apply a reviewed plan, or to continue a migration in progress. Supports sign-in, sign-up, and self-service password reset, in full or per flow. Do not use for Android native auth SDK migration, server-side code, upgrading an MSAL package on its own, Azure AD B2C migration, adding native auth to a new app, or browser-redirect MSAL flows.
 license: MIT
 metadata:
   copyright: Microsoft Corporation. All rights reserved.
   status: draft
-  version: "0.1.0"
+  version: "0.2.4"
 ---
 
 # Native Auth V1 → V2 migration
@@ -21,6 +21,15 @@ them for security, validate them, and write a migration report.
    An approval covers exactly one plan revision. Any later plan change sets
    `status: draft` and needs a new approval. A plan with open items under
    "Decisions needed" can't be approved.
+   **End every message that waits for approval with two things:** a plain
+   statement that no code will change until the customer approves plan
+   revision N, then a direct question (the approval question) asking them
+   to approve revision N or say what to change, for example: *"No code
+   changes until you approve. Please review
+   `.native-auth-v2-migration/plan.md`. Do you approve revision N, or what
+   should I change?"* With decisions open, ask them to answer those
+   decisions instead. Never end with only a status line such as "the plan
+   awaits approval" or "after approval, the tests run".
 2. **Never commit, push, or create branches.** Leave all changes in the
    working tree for the customer to review.
 3. **Never mix V1 and V2 inside one flow**, including MFA and method
@@ -52,36 +61,12 @@ In this skill, write it to the plan's and report's `skill-version`.
 
 ## Working folder
 
-One plan covers **one app**. All migration documents live in that app's root
-(the folder with its `package.json`, Xcode project, or Gradle build), never
-in the skill folder:
-
-```text
-.native-auth-v2-migration/
-  plan.md        # current phase: plan + checkpoint state + decisions
-  report.md      # current phase: migration report
-  phases/
-    2026-10-27-sign-in-sspr/   # finished phases: <date>-<flow IDs>
-      plan.md
-      report.md
-```
-
-If the workspace holds several native auth apps, ask which one to migrate.
-Each app gets its own plan and its own working folder.
-
-**The customer decides what happens to this folder in Git; there is no
-default.** It isn't a migration decision, so it's not part of the plan.
-Ask once, after the report is written (Step 9), and record the answer in
-the report's "Migration folder" row:
-
-| Answer | What you do |
-| --- | --- |
-| `commit` | Nothing. The customer commits the folder; you never commit. |
-| `ignore` | Add `.native-auth-v2-migration/` to the app's `.gitignore`. |
-| `manual` | Nothing. The customer handles it. |
-
-Later phases reuse the answer from the previous phase's report and don't
-ask again. The folder is never part of the migration's code changes.
+Migration documents live in `.native-auth-v2-migration/` in the root of the
+app being migrated (`plan.md`, `report.md`, and `phases/` for finished
+phases), never in the skill folder. One plan covers one app; if the
+workspace holds several native auth apps, ask which one to migrate. Layout
+and the Git question asked after the report: **Working folder** in
+[references/migration-lifecycle.md](references/migration-lifecycle.md).
 
 ## Where am I? (run first, every time)
 
@@ -91,12 +76,12 @@ Look for `.native-auth-v2-migration/plan.md` and read its front matter:
 | --- | --- |
 | No plan file | Start at **Step 1** |
 | `status: draft` | Show the plan summary; ask for approval or changes (**Step 4**) |
-| `status: approved` | **Step 5** (pre-apply check), then **Step 6** |
+| `status: approved` | **Step 5** (pre-apply check), then **Step 6**. If implementation items are already ticked, the plan changed after apply started: see **Changing the plan after apply started** in the lifecycle reference |
 | `status: applying` | Find unchecked items in the plan checklist; continue **Step 6** |
 | `status: applied` | **Step 7** (security review) |
 | `status: reviewed` | **Step 8** (validate) |
 | `status: validated` | **Step 9** (report) |
-| `status: reported` | Summarize; if flows are deferred, offer the next phase (**Next phase**). If none are deferred, the migration is complete: say so and stop. Run a new inventory only if the customer reports V1 code that is still there. |
+| `status: reported` | Summarize; if flows are deferred, offer the next phase (**Next phase**). If the customer asks to keep fixing failed checks or unresolved findings, see **Continue fixing** in the lifecycle reference. If nothing is deferred or left to fix, the migration is complete: say so and stop. Run a new inventory only if the customer reports V1 code that is still there. |
 
 Before following the table:
 
@@ -111,41 +96,14 @@ Before following the table:
 
 ## Version change → restart
 
-A different skill version may change the V2 mapping, SDK interfaces,
-or rules, so a plan or code made with another version can't be
-trusted. Don't re-check or patch the plan; restart the migration. This
-applies to every difference (patch, minor, or major) on a plan whose status
-isn't `reported`.
-
-1. **Stop and explain**, for example: *"This plan was made with version
-   0.3.0 of the migration skill; the installed version is 0.4.0. To be safe,
-   the migration restarts with the installed version."* If either version is
-   `unknown`, explain that and ask whether to restart; don't restart without
-   a yes, so a missing version can't cause a restart loop.
-2. **Offer the alternative:** the customer can reinstall the plan's version
-   of the skill and finish the plan with it. Wait for their choice.
-3. **Revert code changes** if `status` is `applying`, `applied`,
-   `reviewed`, or `validated`:
-   - List the files the migration modified and created (the plan's
-     implementation steps, checked against `git diff <baseline commit>`).
-   - Ask for explicit approval before reverting. With approval, restore the
-     modified files to the baseline commit
-     (`git restore --source=<baseline commit> --staged --worktree -- <files>`)
-     and delete the files the migration created.
-   - Never touch files in `dirty-files`; the migration never edited them.
-   - If the customer declines, or `baseline` is `none`, **stop**. Never start
-     a new plan on half-migrated code; it would mix V1 and V2 inside flows.
-   For `draft` and `approved`, no code was changed; skip this step.
-4. **Archive** `plan.md` (and `report.md` if it exists) to
-   `.native-auth-v2-migration/phases/<YYYY-MM-DD>-<flow IDs>-restarted/`,
-   using today's date.
-5. **Start again at Step 1.** List the archived attempt under "Previous
-   phases" in the new plan. You may suggest the customer's earlier decisions
-   as defaults, but put each one under "Decisions needed" again; never carry
-   one over silently.
-
-A `reported` plan from another version needs no restart; see **Next
-phase**.
+A plan whose `skill-version` differs from yours and whose status isn't
+`reported` can't be continued. Follow **Version change → restart** in
+[references/migration-lifecycle.md](references/migration-lifecycle.md):
+stop and explain, offer to reinstall the plan's version, revert the
+migration's code changes only with explicit approval, archive the plan, and
+start again at Step 1. If the customer declines the
+revert, or there is no baseline, **stop**: never start a new plan on
+half-migrated code.
 
 ## Approach routing
 
@@ -155,7 +113,9 @@ guide. Steps 2, 3, 6, and 7 say when to use it.
 | `approach` | Detected by | Guide |
 | --- | --- | --- |
 | `api` | Raw V1 endpoint calls (see detection patterns) | [references/api/approach.md](references/api/approach.md) |
-| `sdk` | MSAL native auth classes | Not supported in this version → **stop** (when added, it will be limited to the platforms its SDKs support) |
+| `sdk`, JavaScript single-page app | `CustomAuthPublicClientApplication` from `@azure/msal-browser` | [references/sdk/js/approach.md](references/sdk/js/approach.md) |
+| `sdk`, iOS or macOS app | `MSALNativeAuthPublicClientApplication` from MSAL for iOS and macOS | [references/sdk/ios/approach.md](references/sdk/ios/approach.md) |
+| `sdk`, any other platform (Android, React Native, Flutter, server-run code) | MSAL native auth classes | Not supported in this version → **stop** |
 
 ## Step 1 — Preflight and scope
 
@@ -197,46 +157,37 @@ finishing it in the plan (it can't be deferred, because it breaks the
    Each shared item must keep working for flows that stay on V1 (add new V2
    code next to it rather than changing it).
 3. Work out which V2 steps each flow supports (the **parity rule** in
-   [references/flows-and-scope.md](references/flows-and-scope.md)), what
+   [references/flows-and-scope.md](references/flows-and-scope.md), including
+   any **V2-native options** to offer as decisions), what
    users will notice (**behavior changes**), and how each V1 error the UI
    branches on maps to V2 (**error handling map**), as the approach guide
    describes.
-4. Record the baseline: `git rev-parse HEAD` and, for each file in scope,
-   `git hash-object <file>`. If git isn't available, write `baseline: none`.
-   List files that already have uncommitted changes under `dirty-files`.
-   The migration never edits a file with uncommitted changes: for each one
-   the plan would change, add a "Decisions needed" item asking the customer
-   to commit or stash it first (and the plan is re-baselined afterwards).
-5. Plan validation with
-   [references/validation-strategy.md](references/validation-strategy.md)
-   and the approach's validation reference:
-   - Pick the build and unit test commands the project already defines.
-     Never create commands. None found → say so in the plan.
-   - Compare existing tests with the approach's required tests and plan the
-     missing ones. Test framework present → list each new test file.
-     No test framework → add a "Decisions needed" item: introduce a
-     framework, or skip tests.
-   - List existing tests that need a real tenant (E2E, UI, device); they
-     won't be run or changed.
-   - Fill `validation-settings` with the defaults (`max-fix-attempts: 3`,
-     `command-timeout-minutes: 30`).
-6. If no flow will stay on V1 after this phase, add a cleanup step: remove
-   V1 endpoint constants, V1 config (such as the challenge type list), and
-   V1 client code that nothing uses any more.
-7. Write `plan.md` from [assets/plan-template.md](assets/plan-template.md)
-   with `status: draft`, `revision: 1`, `phase: 1` (or the next phase
-   number), `approach`, and `skill-version`. Put every open question for
-   the customer under "Decisions needed" (for example choosing a test
-   framework, or uncommitted changes in files
-   the plan changes).
-8. **STOP.** Show the plan's "At a glance" summary and any decisions needed.
-   Call out validation explicitly, for example: *"Approving this plan also
-   runs `npm run typecheck` and `npm test -- --watchAll=false` twice: once
-   before the changes as a baseline and once after. Each run may take a few
-   minutes. You can change the fix-attempt and timeout limits in the plan's
-   `validation-settings`."* Then ask:
-   *"Please review `.native-auth-v2-migration/plan.md`. Approve it, or tell
-   me what to change."* End your turn.
+4. Write the plan as **Writing the plan** in
+   [references/migration-lifecycle.md](references/migration-lifecycle.md)
+   describes: record the baseline and `dirty-files`, plan validation and
+   tests, add the V1 cleanup step when no flow stays on V1, and write
+   `plan.md` with `status: draft`. Every open question goes under
+   "Decisions needed".
+5. **STOP.** In your message, show:
+   - the plan's "At a glance" summary: which flows migrate now and which
+     stay on V1;
+   - the behavior changes users will notice in each migrated flow (for
+     example, V2 sign-up verifies the email before it asks for the password
+     and attributes), or say there are none;
+   - any decisions needed;
+   - the validation commands that approval runs, for example: *"Approving
+     this plan also runs `npm run typecheck` and
+     `npm test -- --watchAll=false` twice: once before the changes as a
+     baseline and once after. Each run may take a few minutes. You can
+     change the fix-attempt and timeout limits in the plan's
+     `validation-settings`."*
+
+   The automatic sign-in at the end of sign-up or SSPR belongs to that flow.
+   If you mention it, say it is part of that flow, so it doesn't read as
+   migrating the sign-in flow.
+
+   End your message with the no-code-change statement and the approval
+   question (golden rule 1), then end your turn.
 
 ## Step 4 — Plan review loop
 
@@ -244,12 +195,16 @@ finishing it in the plan (it can't be deferred, because it breaks the
   needed" item, edit `validation-settings`): re-check the parity and
   coexistence rules for the change, edit the plan, move answered decisions
   out of "Decisions needed", increment `revision`, set `status: draft`, record
-  the baseline again (Step 3, item 4), add a row to "Decisions and
-  revisions" quoting the customer's words, then ask for approval again. End
-  your turn.
+  the baseline again (**Writing the plan**, item 1, in the lifecycle
+  reference), add a row to "Decisions and revisions" quoting the
+  customer's words, then end with the no-code-change statement and the
+  approval question (golden rule 1).
+  End your turn. If code was already applied (`status` was `applying` or
+  later), follow **Changing the plan after apply started** in
+  [references/migration-lifecycle.md](references/migration-lifecycle.md).
 - **Side question** (for example "why does MFA have to move too?"): answer it
-  from the references, don't change the plan, then restate where things
-  stand: *"The plan is still at revision N, waiting for your approval."*
+  from the references, don't change the plan, then end with the
+  no-code-change statement and the approval question (golden rule 1).
 - **Approval** — only an explicit yes from the customer in chat ("approved",
   "looks good, go ahead"), and only when "Decisions needed" is empty.
   Otherwise list the open decisions and ask for them first. Set
@@ -260,7 +215,8 @@ finishing it in the plan (it can't be deferred, because it breaks the
 ## Step 5 — Pre-apply check
 
 Re-read the plan. If a baseline was recorded, compare `git hash-object` for
-each in-scope file. If any file changed since planning, or new V1 usage
+each in-scope file (for a revision made after apply started, only the files
+the migration hasn't changed yet; see the lifecycle reference). If any file changed since planning, or new V1 usage
 appears, **stop**: explain, update the plan (new revision, `status: draft`),
 and ask for approval again. If any file the plan changes has uncommitted
 changes now, **stop** and ask the customer to commit or stash them; never
@@ -306,93 +262,38 @@ Tell the customer this may take a few minutes; if they decline, write
 
 Re-read the plan,
 [references/security-guardrails.md](references/security-guardrails.md),
-and the approach's security reference. Follow the review method in the
-guardrails.
-
-1. Review the migration's changes (`git diff <baseline commit>` and new
-   files) against every rule, and trace each migrated flow end to end.
-2. Fix every introduced finding within the approved scope and re-check it,
-   at most `max-fix-attempts` times per finding. Count fixed findings for
-   the report's audit line; don't list them. A finding you can't fix, or
-   whose fix needs work outside the plan, is an **unresolved introduced
-   finding**: keep it for the report's "Action required" and propose a plan
-   change if one would fix it.
-3. Review the inventoried files for pre-existing findings. Record them; never
-   change their code.
-4. Keep every finding (rule ID, severity, `file:line`, description,
-   recommendation) for the report, with secret values redacted.
-5. Set `status: reviewed`. Security fixes change code, so validation runs
-   after this step.
+and the approach's security reference, then follow **Review method** in the
+guardrails: review the migration's changes against every rule, trace each
+migrated flow end to end, fix every introduced finding within scope or
+report it as unresolved, and record pre-existing findings without changing
+their code. Set `status: reviewed`.
 
 ## Step 8 — Validate
 
 Re-read the plan (including `validation-settings`),
 [references/validation-strategy.md](references/validation-strategy.md),
-and the approach's validation reference.
-
-1. Run group A (scope and contract checks) for every migrated flow.
-2. Run the plan's group B (build, type-check, lint) and group C (unit tests,
-   including the new ones) commands, in the background if your client
-   supports it, within `command-timeout-minutes`. Compare failures with
-   `validation-baseline`.
-3. For each new failure caused by the migration, follow the fix loop: fix
-   within scope, re-run, at most `max-fix-attempts` times. A fix that needs
-   work outside the plan → mark `Failed` and propose a plan change; don't
-   make it.
-4. **Re-review fixes.** If this step changed code, review only the changed
-   hunks against the security rules (Step 7). If that review changes code,
-   re-run only the checks those changes affect. Repeat while a round changes
-   code, at most `max-fix-attempts` rounds; anything still open is reported
-   as a failed check or an unresolved introduced finding.
-5. Group D: list existing tenant-dependent tests for migrated flows, and
-   write the manual test script for each migrated flow.
-6. Keep every result (ID, command, exit code, result, notes) for the report.
-7. Set `status: validated`, even if some checks failed. Failures are
-   reported, not hidden.
+and the approach's validation reference, then follow **Validation run** in
+the strategy: groups A–D, the fix loop, and a security re-review of any
+fixes. Set `status: validated`, even if some checks failed; failures are
+reported, not hidden.
 
 ## Step 9 — Report
 
-Write `report.md` from [assets/report-template.md](assets/report-template.md).
-Work out the overall outcome first: **Complete** (everything planned was
-applied and all run checks passed), **Complete with failures** (applied, but
-some checks failed or introduced security findings are unresolved), or
-**Partial** (some planned items weren't applied).
-Fill every section from real results: deviations from the plan, behavior
-changes and known limitations, validation results, tests added (or why
-none), tenant-dependent tests not run or changed, the manual test script,
-the security review (audit line, unresolved introduced findings, pre-existing
-findings), and manual follow-up. Set `status: reported`.
-
-In chat, summarize in a few lines: lead with the outcome and anything the
-customer must act on (failed checks, unresolved security findings,
-manual follow-up), point to the report and to the uncommitted changes
-(`git status`).
-
-Then, unless an earlier phase's report already records the answer, ask
-what should happen to the `.native-auth-v2-migration/` folder in Git
-(**commit**, **ignore**, or **manual**; see **Working folder**). Record the
-answer in the report's "Migration folder" row, and for `ignore` add the
-`.gitignore` entry. The
-migration is complete whether or not the customer answers.
+Follow **Writing the report** in
+[references/migration-lifecycle.md](references/migration-lifecycle.md):
+work out the outcome, write `report.md` from
+[assets/report-template.md](assets/report-template.md) using real results
+only, and set `status: reported`. Summarize in chat, leading with the
+outcome and anything the customer must act on, then ask the Git question
+for the migration folder unless an earlier phase answered it.
 
 ## Next phase
 
 When the plan is `reported` and flows are deferred, offer the next phase.
-When the customer starts it:
-
-1. Move `plan.md` and `report.md` to
-   `.native-auth-v2-migration/phases/<YYYY-MM-DD>-<flow IDs>/`, using the
-   phase's approval date and migrated flow IDs (for example
-   `2026-10-27-sign-in-sspr`). If that folder exists, append `-2`, `-3`, ….
-2. Start again at **Step 1** with the deferred flows as the requested scope,
-   `phase` = previous + 1. Read the previous phase's report for context and
-   list it under "Previous phases" in the new plan.
-   If a previous phase was migrated with a different `skill-version`, add a
-   risk to the new plan: the code it migrated may need changes if the V2 API
-   changed between versions; the customer should check the release notes.
-   This skill doesn't change code from finished phases.
-3. The new plan includes the cleanup step when it leaves no flow on V1
-   (Step 3, item 6).
+When the customer starts it, follow **Next phase** in
+[references/migration-lifecycle.md](references/migration-lifecycle.md):
+archive the finished phase, then start again at **Step 1** with the deferred
+flows as the scope.
 
 ## Hard stops
 

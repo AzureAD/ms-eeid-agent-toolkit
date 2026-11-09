@@ -24,10 +24,14 @@ Severity if broken: High.
 ### API-02 Keep each continuation token in its transaction
 
 - Send a continuation token only with a link from the same response, and
-  always use the latest one. Discard the previous token after every response.
+  always use the latest one. Discard the previous token after every response
+  that returns a new one; a failure returns none, so the latest stays.
 - Never send a token from one flow to another flow, from V1 to V2, or from V2
   to V1. Keep V1 and V2 flow state in separate variables or objects.
-- Discard the token when the flow ends, fails, or is cancelled.
+- Discard the token when the flow ends (it completes, is cancelled, or ends
+  in a failure). A failed step the V1 screen stays on doesn't end the flow
+  (`v2-errors.md`). A failed code exchange always restarts authorization
+  (API-03), and a failed password update is never replayed automatically.
 
 Severity if broken: High.
 
@@ -90,7 +94,8 @@ over-broad CORS on a local-only proxy.
   not message text. Reading an `AADSTS<number>` out of a message is allowed;
   other wording is not (`v2-errors.md`).
 - Keep `traceId`, `correlationId`, `timestamp`, and `client-request-id` for
-  support; never show `message` or `error_description` to users (SEC-06).
+  support; show `message` or `error_description` only where the V1 UI showed
+  service text (SEC-06).
 
 Severity if broken: Medium.
 

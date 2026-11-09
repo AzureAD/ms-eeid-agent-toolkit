@@ -43,7 +43,7 @@ have edited them before approving.
 
 ```yaml
 validation-settings:
-  max-fix-attempts: 3            # per failing check
+  max-fix-attempts: 5            # per failure (each failing test or error)
   command-timeout-minutes: 30    # per build/test command
 ```
 
@@ -57,12 +57,21 @@ minutes)`.
 For a failure caused by the migration (a new failure, in code you changed,
 code that calls it, or a test you added):
 
-1. Fix it within the approved scope, then re-run that check.
-2. At most `max-fix-attempts` attempts per check. Still failing → stop
-   fixing, mark `Failed`, and explain the cause and what you tried.
-3. If the fix would need a file or flow outside the plan, don't make it.
-   Mark `Failed` and propose a plan change (new revision, needs approval).
-4. Record `Passed after N fixes` so the report shows what happened.
+1. Fix it within the approved scope, then re-run that check. One fix and
+   one re-run is one attempt.
+2. At most `max-fix-attempts` attempts **per failure**: each failing test,
+   build or type error, or lint error counts separately, so several
+   failing tests in one command each get their own attempts.
+3. Still failing at the limit → stop fixing it, mark the check `Failed`,
+   explain the cause and what you tried, and carry on with the rest of
+   validation and the report. **Don't raise `max-fix-attempts` or make a
+   plan revision to get more attempts.** After the report, the customer can
+   ask you to continue fixing (**Continue fixing** in
+   [migration-lifecycle.md](migration-lifecycle.md)).
+4. If the fix would need a file or flow outside the plan, don't make it.
+   Mark `Failed` and propose the plan change in the report (**Changing the
+   plan after apply started** in the lifecycle reference).
+5. Record `Passed after N fixes` so the report shows what happened.
 
 ## Adding tests
 
@@ -139,10 +148,28 @@ use the commands it already defines.
 
 | Flow | Scenarios |
 | --- | --- |
-| `sign-in` | Password success; email OTP success; wrong password; wrong OTP then correct; OTP resend; MFA second factor; user without an MFA method (JIT registration, or web fallback if the app had none in V1); unknown username shows the same message as a wrong password |
+| `sign-in` | Password success; email OTP success; wrong password; wrong OTP then correct; OTP resend; MFA second factor; user without an MFA method (JIT registration, or web fallback if the app had none in V1); unknown username shows the V1 message |
 | `sign-up` | Success with all fields on one screen (email code first, then the rest); extra attributes requested by the service; existing email behaves as it did in V1; password policy failure; wrong OTP; resend; signed in at the end only if V1 did that |
-| `sspr` | Success, and signed in at the end only if V1 did that; unknown username (generic message); wrong OTP; resend; weak new password |
+| `sspr` | Success, and signed in at the end only if V1 did that; unknown username shows the V1 message; wrong OTP; resend; weak new password |
 | All | Web fallback shown when the service requires a browser; tokens and continuation tokens absent from the console, logs, and URLs; each deferred flow still works on V1 |
+
+## Validation run (Step 8)
+
+1. Run group A for every migrated flow.
+2. Run the plan's group B and group C commands (including the new tests),
+   in the background if your client supports it, within
+   `command-timeout-minutes`. Compare failures with `validation-baseline`.
+3. For each new failure caused by the migration, follow the **Fix loop**.
+4. **Re-review fixes.** If this step changed code, review only the changed
+   hunks against the security rules (Step 7). If that review changes code,
+   re-run only the checks those changes affect. Repeat while a round changes
+   code, at most `max-fix-attempts` rounds; anything still open is reported
+   as a failed check or an unresolved introduced finding.
+5. Group D: list the existing tenant-dependent tests for migrated flows and
+   write the manual test script for each migrated flow.
+6. Keep every result for the report (see **Recording results**).
+7. Set `status: validated`, even if some checks failed. Failures are
+   reported, not hidden.
 
 ## Baseline (pre-apply check)
 

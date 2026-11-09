@@ -8,23 +8,25 @@ enabled, password reset enabled for the tenant.
 
 ## Step table
 
-The table is the complete list of what the migrated code handles. A
-response or link not listed for the current step → unhandled response.
+The table is the complete list of what the migrated code handles, in the
+order it usually happens. Handle each response by its `state` and `action`
+(see "Model" in `v2-api-core.md`): an action this table doesn't list →
+unhandled response; a listed action after a different request than shown is
+handled the same way. Only the links listed for that action are followed.
 
 | Step | Request | Handled responses | Allowed links |
 | --- | --- | --- | --- |
 | 1. Entry | Start authorization | 401 with `continuation_token` | `reset_password` (flat) |
 | 2. Start | `POST reset_password` `{ continuationToken, username }` | `challenge`, `authenticationFactor: singleFactor`, `email` and/or `sms` methods | each method's `challenge` |
-| 3. Challenge | `POST challenge` `{ continuationToken }` | `verify` (`email`, `sms`); `riskverify` (SMS) | `verify`, `resend`; `riskverify` |
-| 4. Risk check (SMS) | `POST riskverify` `{ continuationToken }` | `verify` with `type: sms` | `verify`, `resend` |
-| 5. Verify | `POST verify` `{ continuationToken, otp }` | `update` | `update` |
-| 6. New password | **`PUT`** `update` `{ continuationToken, newPassword }` | response with a `poll` link | `poll` |
-| 7. Poll | `POST poll` `{ continuationToken }` | `poll` (new token and link); `state: continue`; `challenge` with `multiFactor` (MFA after reset); `enroll` | `poll`; for `challenge` and `enroll`, see "Finish" |
-| 8. Finish | Resume authorization → `code` → `/token` (only if V1 signed in after reset) | tokens | none |
+| 3. Challenge | `POST challenge` `{ continuationToken }` | `verify` (`email`, `sms`) | `verify`, `resend` |
+| 4. Verify | `POST verify` `{ continuationToken, otp }` | `update` | `update` |
+| 5. New password | **`PUT`** `update` `{ continuationToken, newPassword }` | response with a `poll` link | `poll` |
+| 6. Poll | `POST poll` `{ continuationToken }` | `poll` (new token and link); `state: continue`; `challenge` with `multiFactor` (MFA after reset); `enroll` | `poll`; for `challenge` and `enroll`, see "Finish" |
+| 7. Finish | Resume authorization → `code` → `/token` (only if V1 signed in after reset) | tokens | none |
 
-Resend (steps 3–4): `POST resend` `{ continuationToken }` and handle the
+Resend (step 3): `POST resend` `{ continuationToken }` and handle the
 response like a challenge response. A `verify` with `type: password` at
-step 3 → unhandled response.
+step 3 → unhandled response. Offer it only where the V1 UI offered resend.
 
 ## Choosing a method
 
@@ -51,7 +53,7 @@ choice → show it with the masked `hint`s. None usable (for example only
 
 ## Finish
 
-Every step-7 outcome except `poll` means the password **is already reset**.
+Every step-6 outcome except `poll` means the password **is already reset**.
 
 - `state: continue`:
   - The V1 app signed the user in after reset (`/token` with
@@ -67,7 +69,7 @@ Every step-7 outcome except `poll` means the password **is already reset**.
 
 | V1 app after reset | V2 behavior |
 | --- | --- |
-| Signs in automatically (`/token` with `grant_type=continuation_token`), and that path handles `mfa_required` / `registration_required` | Run the same steps and UI as V2 sign-in: MFA = `v2-sign-in.md` steps 6–7 (pick a method, POST its `challenge` link, `riskverify` for SMS, POST `verify` with the code); `enroll` = `v2-jit-registration.md`. Then `state: continue` → finish with tokens |
+| Signs in automatically (`/token` with `grant_type=continuation_token`), and that path handles `mfa_required` / `registration_required` | Run the same steps and UI as V2 sign-in: MFA = `v2-sign-in.md` steps 5–6 (pick a method, POST its `challenge` link, POST `verify` with the code); `enroll` = `v2-jit-registration.md`. Then `state: continue` → finish with tokens |
 | Signs in automatically, but that path doesn't handle `mfa_required` / `registration_required` | Do what V1 did on that error (its error message, or its web fallback for `challenge_type: redirect`), after the password-reset confirmation |
 | Doesn't sign in automatically | End the flow the way V1 did (for example "password reset, please sign in") and discard the continuation token. The user's next sign-in handles MFA or registration. |
 
@@ -76,8 +78,8 @@ password is already changed.
 
 ## Notes
 
-- Unknown username: show the same message V1 showed for `user_not_found`,
-  kept generic (SEC-06). Detection: `v2-errors.md`.
+- Unknown username: show the same message V1 showed for `user_not_found`
+  and report it (SEC-06). Detection: `v2-errors.md`.
 - Don't retry the password update automatically.
 - V1 → V2 field renames: `new_password` → `newPassword`, `oob` → `otp`,
   `poll_completion` `status` → `poll` / `state: continue`.

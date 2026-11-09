@@ -41,11 +41,36 @@ to every caller.
 `_embedded`, `continuationToken` (camelCase), `state: "interactionRequired"`,
 `action: "verify"`.
 
-## Native auth SDK (out of scope → stop)
+## Native auth SDK — JavaScript (`approach: sdk`, single-page apps)
 
-- Apple: `MSALNativeAuthPublicClientApplication`, `MSALNativeAuth*`.
+- `CustomAuthPublicClientApplication` imported from
+  `@azure/msal-browser/custom-auth` (older code: `@azure/msal-custom-auth`),
+  and a `customAuth` block (`authApiProxyUrl`, `challengeTypes`) in its
+  config.
+- V1 calls on that instance: `signIn(`, `signUp(`, `resetPassword(`, and V1
+  states and checks such as `SignInCodeRequiredState`, `isCodeRequired()`,
+  `isUserAlreadyExists()`, `MfaAwaitingState`. Flow IDs: `signIn` →
+  `sign-in`, `signUp` → `sign-up`, `resetPassword` → `sspr`.
+- Only where this code runs in the browser. The same calls in server-run
+  code (Node, server components, route handlers) → not supported → stop.
+- **Already V2:** `signInV2(`, `signUpV2(`, `resetPasswordV2(`, `*StateV2`
+  classes, `AuthFlowErrorV2`.
+
+## Native auth SDK — iOS and macOS (`approach: sdk`)
+
+- `import MSAL` with `MSALNativeAuthPublicClientApplication` and
+  `MSALNativeAuthPublicClientApplicationConfig` (Swift or Objective-C).
+- V1 calls: `signIn(parameters:delegate:)`, `signUp(parameters:delegate:)`,
+  `resetPassword(parameters:delegate:)` with `MSALNativeAuthSignInParameters`
+  (and the sign-up and reset equivalents), and V1 delegates such as
+  `SignInStartDelegate`, `SignUpVerifyCodeDelegate`,
+  `ResetPasswordStartDelegate`. Flow IDs: `signIn` → `sign-in`, `signUp` →
+  `sign-up`, `resetPassword` → `sspr`.
+- **Already V2:** `signInV2(`, `signUpV2(`, `resetPasswordV2(`,
+  `…ParametersV2`, `MSALNativeAuthFlowDelegate`, `MSALNativeAuthFlowError`.
+
+## Native auth SDK — other platforms (out of scope → stop)
+
 - Android: `INativeAuthPublicClientApplication`,
   `PublicClientApplication.createNativeAuthPublicClientApplication`,
   `NativeAuth*`.
-- JavaScript: `CustomAuthPublicClientApplication`, `@azure/msal-custom-auth`,
-  `customAuth` config in `@azure/msal-browser`.

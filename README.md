@@ -30,8 +30,8 @@ as their implementation, ownership, and evaluation coverage mature.
 Requires Node.js 22 or later and npm.
 
 ```bash
-# Install development tooling without creating a lockfile for this initial review.
-npm install --package-lock=false
+# Install development tooling from the committed lockfile.
+npm ci
 
 # Validate manifests, skill structure, and skill routing.
 npm run validate

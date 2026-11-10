@@ -5,19 +5,19 @@ Microsoft Entra External ID integrations. The toolkit is designed as one
 umbrella plugin containing focused, team-owned Agent Skills.
 
 **Status: in development; nothing is released or supported yet.** Don't use
-these skills for customer work. Marketplace catalogs, client-specific
-manifests, and packaging automation aren't implemented yet.
+these skills for customer work. Marketplace catalogs and client-specific
+manifests aren't implemented yet.
 
 ## Skills
 
 | Skill | What it does | Status |
 | --- | --- | --- |
-| [`eeid-native-auth-migrate-v2`](skills/eeid-native-auth-migrate-v2/SKILL.md) | Migrates an app that calls the Native Auth API V1 directly, or an app on the MSAL native auth SDK V1 methods (JavaScript single-page apps, iOS and macOS apps), to Native Auth V2: sign-in, sign-up, and self-service password reset, in full or one flow at a time, with a reviewable plan before any code changes | Draft |
+| [`eeid-native-auth-migrate-v2`](.github/plugins/eeid-toolkit/skills/eeid-native-auth-migrate-v2/SKILL.md) | Migrates an app that calls the Native Auth API V1 directly, or an app on the MSAL native auth SDK V1 methods (JavaScript single-page apps, iOS and macOS apps), to Native Auth V2: sign-in, sign-up, and self-service password reset, in full or one flow at a time, with a reviewable plan before any code changes | Draft |
 
 ## Goals
 
 - Deliver product-aligned implementation, migration, and troubleshooting guidance.
-- Keep one canonical skill core with thin client-specific adapters.
+- Keep one canonical copy of each skill, installed as is by every supported agent.
 - Keep each skill independently installable, with its runtime resources bundled.
 - Preserve customer control over scope, approvals, and security-sensitive changes.
 - Support contributions from multiple teams under explicit ownership and review.
@@ -30,8 +30,8 @@ as their implementation, ownership, and evaluation coverage mature.
 Requires Node.js 22 or later and npm.
 
 ```bash
-# Install development tooling without creating a lockfile for this initial review.
-npm install --package-lock=false
+# Install development tooling from the committed lockfile.
+npm ci
 
 # Validate manifests, skill structure, and skill routing.
 npm run validate
@@ -53,8 +53,7 @@ Validation uses locally stored Agent Plugins 1.0 schemas and repository rules.
 It does not execute skills, verify product/API claims, or establish compatibility
 with every assistant. Model-based evals run a skill on a real agent and grade
 the result; they need that agent signed in and run locally, not in CI. See
-[tests/evals/README.md](tests/evals/README.md). A build command for release
-packages will be added with packaging.
+[tests/evals/README.md](tests/evals/README.md).
 
 ## Planned installation routes
 
@@ -71,11 +70,12 @@ registration will be documented once catalogs and packages are ready.
 
 ## Repository and contributions
 
-The root `plugin.json` is the portable manifest and source of the global release
-version. `skills/` contains runtime content; `tests/` contains checks and evals;
-`docs/domains/` is for team-owned domain knowledge; `packaging/` contains build
-inputs. Generated release packages
-will go under ignored `dist/`.
+The plugin lives in `.github/plugins/eeid-toolkit/`: its `plugin.json` (the
+portable manifest, which holds the plugin version), `mcp.json`, and `skills/`
+with the runtime content customers install. There is no build step; agents
+install from that folder. `tests/` contains checks and evals; `docs/domains/`
+is for team-owned domain knowledge; `packaging/schemas/` holds the manifest
+schemas used by validation.
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) for the full structure, creation rules,
 ownership, validation boundaries, and release requirements.

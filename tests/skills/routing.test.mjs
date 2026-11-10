@@ -4,12 +4,10 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readdir } from 'node:fs/promises';
-import { dirname, join } from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { join } from 'node:path';
 import { checkSkillRouting } from '../../scripts/lib/skill-routing.mjs';
+import { skillsRoot } from '../../scripts/lib/paths.mjs';
 
-const root = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
-const skillsRoot = join(root, 'skills');
 const skills = (await readdir(skillsRoot, { withFileTypes: true }))
   .filter((entry) => entry.isDirectory())
   .map((entry) => entry.name);

@@ -9,11 +9,12 @@ import { execFileSync } from 'node:child_process';
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { skillsRoot } from '../../../../scripts/lib/paths.mjs';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const name = process.argv[2];
 if (!name) throw new Error('usage: seed-plan.mjs <plan file>');
-const skillFile = join(here, '../../../../skills/eeid-native-auth-migrate-v2/SKILL.md');
+const skillFile = join(skillsRoot, 'eeid-native-auth-migrate-v2/SKILL.md');
 const version = /\n\s+version:\s*"?([^"\n]+)"?/.exec(readFileSync(skillFile, 'utf8'))?.[1];
 if (!version) throw new Error(`no metadata.version in ${skillFile}`);
 const git = (...args) => execFileSync('git', args, { encoding: 'utf8' }).trim();

@@ -3,9 +3,9 @@ import { dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Ajv2020 from 'ajv/dist/2020.js';
 import { parseDocument } from 'yaml';
+import { pluginDir, repoPath, repoRoot as root, skillsRoot } from './lib/paths.mjs';
 import { checkSkillRouting } from './lib/skill-routing.mjs';
 
-const root = dirname(dirname(fileURLToPath(import.meta.url)));
 const args = process.argv.slice(2);
 const release = args.includes('--release');
 const copyright = 'Microsoft Corporation. All rights reserved.';
@@ -19,11 +19,11 @@ async function readJson(path) {
   return JSON.parse(await readFile(path, 'utf8'));
 }
 
-async function validateJson(filename, schemaName, ajv) {
+async function validateJson(path, schemaName, ajv) {
   const schema = await readJson(join(root, 'packaging/schemas', schemaName));
-  const value = await readJson(join(root, filename));
+  const value = await readJson(path);
   const validator = ajv.compile(schema);
-  check(validator(value), `${filename}: ${ajv.errorsText(validator.errors)}`);
+  check(validator(value), `${repoPath(path)}: ${ajv.errorsText(validator.errors)}`);
   return value;
 }
 
@@ -87,7 +87,7 @@ async function countEvalCases(directory) {
 }
 
 async function validateSkill(name) {
-  const directory = join(root, 'skills', name);
+  const directory = join(skillsRoot, name);
   check(name.length <= 64 && /^eeid-[a-z0-9]+(?:-[a-z0-9]+)*$/.test(name),
     `Invalid repository skill name: ${name}`);
   const skillFile = join(directory, 'SKILL.md');
@@ -147,24 +147,31 @@ async function main() {
   }
   check(args.length === 0 || (args.length === 1 && release), 'Unknown arguments. Use --release or --help.');
   const ajv = new Ajv2020({ allErrors: true });
-  const plugin = await validateJson('plugin.json', 'plugin.schema.json', ajv);
-  await validateJson('mcp.json', 'mcp.schema.json', ajv);
+  const pluginFile = join(pluginDir, 'plugin.json');
+  const plugin = await validateJson(pluginFile, 'plugin.schema.json', ajv);
+  await validateJson(join(pluginDir, 'mcp.json'), 'mcp.schema.json', ajv);
   const packageJson = await readJson(join(root, 'package.json'));
   check(semver.test(plugin.version),
-    'plugin.json: use a numeric semantic version, optionally with a prerelease suffix.');
-  check(plugin.version === packageJson.version, 'package.json and plugin.json versions must match.');
+    `${repoPath(pluginFile)}: use a numeric semantic version, optionally with a prerelease suffix.`);
+  check(plugin.version === packageJson.version, `package.json and ${repoPath(pluginFile)} versions must match.`);
   check(plugin.license === 'MIT' && packageJson.license === 'MIT', 'Plugin and package licenses must be MIT.');
-  const skillsRoot = join(root, 'skills');
-  check(!(await lstat(skillsRoot)).isSymbolicLink(), 'skills/ must not be a symlink.');
+  for (const file of ['README.md', 'CHANGELOG.md']) {
+    check((await lstat(join(pluginDir, file)).catch(() => null))?.isFile(),
+      `${repoPath(pluginDir)}/${file} is missing.`);
+  }
+  const skillsLabel = `${repoPath(skillsRoot)}/`;
+  check(!(await lstat(skillsRoot)).isSymbolicLink(), `${skillsLabel} must not be a symlink.`);
+  check(!(await lstat(join(root, 'skills')).catch(() => null)),
+    `skills/ at the repository root is not used; skills go in ${skillsLabel}.`);
   const entries = await readdir(skillsRoot, { withFileTypes: true });
   let count = 0;
   for (const entry of entries) {
-    check(!entry.isSymbolicLink(), `Symlink is not allowed: skills/${entry.name}`);
+    check(!entry.isSymbolicLink(), `Symlink is not allowed: ${skillsLabel}${entry.name}`);
     if (entry.isDirectory()) {
       await validateSkill(entry.name);
       count++;
     } else {
-      check(entry.name === '.gitkeep', `Unexpected file in skills/: ${entry.name}`);
+      check(entry.name === '.gitkeep', `Unexpected file in ${skillsLabel}: ${entry.name}`);
     }
   }
   check(count > 0, 'No skills found.');

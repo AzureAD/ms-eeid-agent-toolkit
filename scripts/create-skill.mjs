@@ -63,7 +63,8 @@ async function main() {
   }
   console.log(`Created draft skill: ${repoPath(join(destination, 'SKILL.md'))}`);
   console.log(`Created eval folders: tests/evals/${name}/triggering and behavior`);
-  console.log('Complete the instructions and evaluations before marking it ready.');
+  console.log('Next: add rows for it to the skills tables in README.md and the plugin README,');
+  console.log('an owner in .github/CODEOWNERS, then write the skill and its evals (see CONTRIBUTING.md).');
 }
 
 main().catch((error) => {

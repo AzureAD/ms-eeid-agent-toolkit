@@ -3,7 +3,15 @@
 Microsoft Entra External ID implementation and migration guidance for AI
 coding assistants, as one plugin with focused Agent Skills.
 
-**Status: in development; nothing is released or supported yet.**
+## Install
+
+```text
+/plugin marketplace add AzureAD/ms-eeid-agent-toolkit
+/plugin install eeid-toolkit@ms-eeid-agent-toolkit
+```
+
+That's Claude Code. For GitHub Copilot CLI, Codex, and other assistants, see
+the [repository README](https://github.com/AzureAD/ms-eeid-agent-toolkit#install).
 
 ## Skills
 
@@ -11,12 +19,19 @@ coding assistants, as one plugin with focused Agent Skills.
 | --- | --- |
 | [`eeid-native-auth-migrate-v2`](skills/eeid-native-auth-migrate-v2/SKILL.md) | Migrates an app from Native Auth V1 to V2, for apps that call the API directly or use the MSAL native auth SDK (JavaScript single-page apps, iOS and macOS apps). Covers sign-in, sign-up, and self-service password reset, in full or one flow at a time, with a reviewable plan before any code changes. |
 
+Each skill has its own skill version, in its `SKILL.md`. The
+[changelog](CHANGELOG.md) lists each plugin version and the skill versions it
+contains.
+
 ## Security
 
 The skills give guidance and propose code changes in your workspace. They ask
 before changing code, don't ask for secrets, and don't log tokens, passwords,
-or one-time codes. Review every change before you use it. To report a
-security issue, see the repository's security policy.
+or one-time codes. They declare no MCP servers and send nothing anywhere on
+their own. Review every change before you use it.
+
+To report a security issue, see the
+[security policy](https://github.com/AzureAD/ms-eeid-agent-toolkit/blob/main/SECURITY.md).
 
 ## License
 

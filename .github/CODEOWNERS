@@ -1,5 +1,12 @@
 # Owners must be valid GitHub users/teams with write access to the repository.
 # The last matching pattern wins, so the default owner comes first.
 * @AzureAD/devex-ciam
+
+# Automation: workflows, Dependabot, and the release tooling.
+/.github/workflows/ @AzureAD/devex-ciam
+/.github/dependabot.yml @AzureAD/devex-ciam
+/scripts/ @AzureAD/devex-ciam
+
+# Skills and their evals: the skill owner and the team.
 /.github/plugins/eeid-toolkit/skills/eeid-native-auth-migrate-v2/ @shenj @AzureAD/devex-ciam
 /tests/evals/eeid-native-auth-migrate-v2/ @shenj @AzureAD/devex-ciam

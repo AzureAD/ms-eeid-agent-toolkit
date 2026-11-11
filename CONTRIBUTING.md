@@ -69,8 +69,10 @@ npm ci
 ├── .claude-plugin/                 # Future Claude Code marketplace catalog
 └── .github/                        # GitHub ownership, plugins, and automation
     ├── CODEOWNERS                  # Path-based review ownership
+    ├── dependabot.yml              # Weekly update PRs for npm packages and actions
     ├── plugin/                     # Future Copilot CLI marketplace catalog
-    ├── workflows/                  # Future PR and tagging automation
+    ├── workflows/                  # GitHub Actions workflows
+    │   └── pr-checks.yml           # Runs validate and test on every pull request
     └── plugins/
         └── eeid-toolkit/           # The plugin customers install, as is
             ├── plugin.json         # Portable manifest; holds the plugin version
@@ -249,8 +251,15 @@ or the GitHub Copilot CLI; see [tests/evals/README.md](tests/evals/README.md).
 They need a signed-in agent and use its plan or API budget, so they don't run
 in CI.
 
-**TBD:** a CI workflow in `.github/workflows/` that runs `npm run validate` and
-`npm test` on every pull request. Until then, run both before opening one.
+Every pull request runs `npm ci`, `npm run validate`, and `npm test` on
+GitHub Actions ([pr-checks.yml](.github/workflows/pr-checks.yml)), with
+read-only permissions and no secrets. The job summary shows each result. Run
+both commands locally first, since they're faster than waiting for CI.
+
+Workflows pin each action by full commit SHA, with the version in a comment.
+Dependabot ([dependabot.yml](.github/dependabot.yml)) opens one grouped PR a
+week for npm packages and one for actions, skipping versions released in the
+last 7 days. Review and merge them like any other PR.
 
 **TBD:** a security scan of skill content (for example for prompt-injection or
 unsafe instructions); the tool and how it runs are being investigated.
@@ -290,9 +299,9 @@ versions in the lockfile. To add or change a development dependency, run
 
 - Branch from `main`, keep each pull request focused, and describe what
   changed and how you checked it.
-- Run `npm run validate` and `npm test` before opening the pull request. For
-  a skill change, also run its evals locally on at least one agent and
-  include the summary.
+- Run `npm run validate` and `npm test` before opening the pull request; the
+  PR checks run them again. For a skill change, also run its evals locally on
+  at least one agent.
 - Raise `metadata.version` for every change to a `ready` skill (drafts stay
   at `0.1.0`).
 - Owners in `.github/CODEOWNERS` are requested for review automatically.

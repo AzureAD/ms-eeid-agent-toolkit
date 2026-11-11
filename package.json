@@ -1,6 +1,6 @@
 {
   "name": "ms-eeid-agent-toolkit",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "Portable Microsoft Entra External ID skills for AI coding assistants.",
   "type": "module",
@@ -16,7 +16,10 @@
     "skill:create": "node scripts/create-skill.mjs",
     "validate": "node scripts/validate.mjs",
     "validate:release": "node scripts/validate.mjs --release",
+    "release": "node scripts/release.mjs",
+    "release:check": "node scripts/check-release.mjs",
     "test": "node --test \"tests/tooling/*.test.mjs\" \"tests/skills/*.test.mjs\"",
+    "test:install": "node tests/packaging/install-smoke.mjs",
     "eval:agent": "node scripts/evals/run.mjs"
   },
   "devDependencies": {

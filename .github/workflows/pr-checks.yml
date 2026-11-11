@@ -1,8 +1,9 @@
 name: PR checks
 
 # Deterministic checks for every pull request: manifests, skill rules, routing,
-# and unit tests. Model-based evals don't run here; skill owners run them
-# locally (see tests/evals/README.md). Follows microsoft/skills' test-harness.yml.
+# unit tests, and the release check (versions and changelog). Model-based evals
+# don't run here; skill owners run them locally (see tests/evals/README.md).
+# Follows microsoft/skills' test-harness.yml.
 
 on:
   pull_request:
@@ -22,6 +23,8 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          # Full history, so the release check can compare with the base branch.
+          fetch-depth: 0
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
@@ -33,18 +36,35 @@ jobs:
 
       - name: Validate manifests and skills
         id: validate
-        run: npm run validate
+        env:
+          # Launch switch: when the repository variable REQUIRE_READY_SKILLS is
+          # "true", draft skills fail here, so drafts stay on branches.
+          REQUIRE_READY: ${{ vars.REQUIRE_READY_SKILLS }}
+        run: |
+          if [ "$REQUIRE_READY" = "true" ]; then
+            npm run validate:release
+          else
+            npm run validate
+          fi
 
       - name: Run unit tests and skill checks
         id: test
         if: always() && steps.validate.conclusion != 'skipped'
         run: npm test
 
+      - name: Check versions and changelog
+        id: release
+        if: always() && steps.validate.conclusion != 'skipped'
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+        run: npm run release:check -- --base "$BASE_SHA"
+
       - name: Write job summary
         if: always()
         env:
           VALIDATE: ${{ steps.validate.outcome }}
           TEST: ${{ steps.test.outcome }}
+          RELEASE: ${{ steps.release.outcome }}
         run: |
           icon() { case "$1" in success) echo "✅ passed";; failure) echo "❌ failed";; *) echo "⏭️ $1";; esac; }
           {
@@ -54,6 +74,28 @@ jobs:
             echo "| --- | --- |"
             echo "| \`npm run validate\` | $(icon "$VALIDATE") |"
             echo "| \`npm test\` | $(icon "$TEST") |"
+            echo "| \`npm run release:check\` | $(icon "$RELEASE") |"
             echo
             echo "Model-based evals don't run in CI. Skill owners run them locally."
           } >> "$GITHUB_STEP_SUMMARY"
+
+  install:
+    # Claude Code's plugin validator and the Skills CLI, run on this checkout
+    # (tests/packaging/install-smoke.mjs). Downloads both tools with npx.
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run install checks
+        run: npm run test:install

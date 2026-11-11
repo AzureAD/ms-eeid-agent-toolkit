@@ -1,0 +1,20 @@
+{
+  "name": "ms-eeid-agent-toolkit",
+  "interface": {
+    "displayName": "Microsoft Entra External ID"
+  },
+  "plugins": [
+    {
+      "name": "eeid-toolkit",
+      "source": {
+        "source": "local",
+        "path": "./.github/plugins/eeid-toolkit"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}

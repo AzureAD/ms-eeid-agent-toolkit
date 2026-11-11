@@ -1,11 +1,12 @@
 # Contributing
 
-## Overview
+This guide covers how to add and change skills, how releases work, and the
+checks every pull request runs.
 
-This project is under development. This guide describes how to contribute skills,
-documentation, and tooling, including repository structure, ownership, validation,
-and release conventions. Sections marked **TBD** describe work that isn't done
-yet; follow the rest as written.
+**We don't accept pull requests from outside the maintaining team yet.** If
+you've found a problem or have an idea, open an issue (see
+[SUPPORT.md](SUPPORT.md)). Report security issues as described in
+[SECURITY.md](SECURITY.md), not in an issue.
 
 ## Getting started
 
@@ -16,8 +17,7 @@ Prerequisites:
   (`claude`) or the GitHub Copilot CLI (`copilot`); see
   [tests/evals/README.md](tests/evals/README.md).
 
-Install the development tooling from the committed lockfile (see
-[Dependency lockfile](#dependency-lockfile)):
+Install the development tooling from the committed lockfile:
 
 ```bash
 npm ci
@@ -26,72 +26,52 @@ npm ci
 | Command | What it does |
 | --- | --- |
 | `npm run skill:create -- <name> --description "<text>"` | Create a draft skill and its eval folders from the templates |
-| `npm run validate` | Check manifests, skill rules, routing, and eval presence for ready skills |
+| `npm run validate` | Check manifests, catalogs, skill rules, routing, docs rows, and owners |
 | `npm run validate:release` | The same, and fail if any skill is still a draft |
 | `npm test` | Unit tests for `scripts/` and the deterministic checks for every skill |
+| `npm run release -- <patch\|minor\|major> --note "<text>"` | Bump versions and write the changelog entry before a PR (see [Releases](#releases)) |
+| `npm run release:check` | The PR check: versions went up and the changelog has the new plugin version |
+| `npm run test:install` | Install checks with Claude Code's validator and the Skills CLI (downloads both) |
 | `npm run eval:agent -- --agent <agent> --skill <name>` | Run a skill's model-based evals on an agent, locally ([details](tests/evals/README.md)) |
 
 ## Folder structure
 
 ```text
 .                                   # Repository root
-├── README.md                       # Project overview and installation guidance
-├── CONTRIBUTING.md                 # Contribution rules and repository conventions
-├── LICENSE                         # MIT license terms
-├── package.json                    # Development dependencies and npm commands
-├── package-lock.json               # Exact development dependency versions (npm ci)
-├── docs/                           # Human-oriented knowledge and documentation
-│   └── domains/                    # Team-owned domain knowledge areas
-├── templates/                      # Templates used by repository tooling
-│   ├── skill/                      # New-skill scaffolding templates
-│   │   └── SKILL.md.template       # Starter instructions and required metadata
-│   └── evals/                      # New-skill eval folder templates
-│       └── README.md.template      # Starter list of a skill's cases and fixtures
-├── packaging/                      # Package validation inputs
-│   └── schemas/                    # Local canonical Agent Plugins 1.0 schemas
-├── scripts/                        # Repository-level automation
-│   ├── create-skill.mjs            # Create a draft skill (and its eval folders) from the templates
-│   ├── validate.mjs                # Validate manifests, skill rules, routing, and eval presence
-│   ├── lib/paths.mjs               # Repository layout: plugin and skills folders
-│   ├── lib/skill-routing.mjs       # Routing check: links, file names, reachability from SKILL.md
-│   └── evals/                      # Eval runner and one adapter per agent (npm run eval:agent)
-├── tests/                          # Automated checks and model-based evaluations
+├── README.md                       # Project overview and installation
+├── CONTRIBUTING.md                 # This guide
+├── SECURITY.md, SUPPORT.md, CODE_OF_CONDUCT.md, LICENSE
+├── package.json, package-lock.json # Development tooling and npm commands
+├── docs/                           # Architecture note and team-owned domain knowledge
+├── templates/                      # Templates for npm run skill:create
+├── packaging/schemas/              # Agent Plugins 1.0 schemas used by validation
+├── scripts/                        # Validation, release, and eval tooling
+├── tests/
 │   ├── tooling/                    # Unit tests for scripts/ (npm test)
-│   ├── packaging/                  # Package completeness and installation checks
-│   ├── skills/                     # Deterministic checks for every skill, e.g. routing (npm test)
-│   └── evals/                      # Model-based evals, run locally
-│       ├── README.md               # How evals work and how to run them on each agent
-│       └── <skill-name>/           # Same name as the skill's folder
-│           ├── triggering/         # Should-trigger and should-not-trigger cases
-│           ├── behavior/           # What the skill does once loaded
-│           ├── fixtures/           # Synthetic customer apps the cases seed
-│           └── scripts/            # Helpers the case scaffolds call
-├── .claude-plugin/                 # Future Claude Code marketplace catalog
-└── .github/                        # GitHub ownership, plugins, and automation
-    ├── CODEOWNERS                  # Path-based review ownership
+│   ├── skills/                     # Deterministic checks for every skill (npm test)
+│   ├── packaging/                  # Install checks (npm run test:install)
+│   └── evals/<skill-name>/         # Model-based evals, run locally
+├── .claude-plugin/marketplace.json # Catalog for Claude Code
+├── .agents/plugins/marketplace.json # Catalog for Codex
+└── .github/
+    ├── CODEOWNERS                  # Review ownership
     ├── dependabot.yml              # Weekly update PRs for npm packages and actions
-    ├── plugin/                     # Future Copilot CLI marketplace catalog
-    ├── workflows/                  # GitHub Actions workflows
-    │   └── pr-checks.yml           # Runs validate and test on every pull request
-    └── plugins/
-        └── eeid-toolkit/           # The plugin customers install, as is
-            ├── plugin.json         # Portable manifest; holds the plugin version
-            ├── mcp.json            # MCP configuration; currently declares no servers
-            ├── README.md           # What the plugin does and its skills
-            ├── CHANGELOG.md        # One entry per plugin version
-            └── skills/             # Customer-installable skills
-                └── eeid-native-auth-migrate-v2/ # Native Auth V1 to V2 migration
-                    ├── SKILL.md    # Skill metadata and workflow instructions
-                    ├── references/ # Skill-local runtime guidance
-                    ├── scripts/    # Skill execution helpers, if needed
-                    └── assets/     # Customer output templates and static resources
+    ├── pull_request_template.md
+    ├── plugin/marketplace.json     # Catalog for Copilot CLI
+    ├── workflows/                  # PR checks and the tag workflow
+    └── plugins/eeid-toolkit/       # The plugin customers install, as is
+        ├── plugin.json             # Portable manifest; holds the plugin version
+        ├── .claude-plugin/plugin.json # Claude Code's manifest; same version
+        ├── mcp.json                # MCP configuration; declares no servers
+        ├── README.md, CHANGELOG.md
+        └── skills/<skill-name>/    # SKILL.md, references/, scripts/, assets/
 ```
 
 The plugin folder follows the [microsoft/skills](https://github.com/microsoft/skills)
-layout. Agents install it straight from the repository, so there is no build
-step and no generated package. Skills go only under
-`.github/plugins/eeid-toolkit/skills/`; `npm run validate` rejects a root
-`skills/` folder.
+layout. Agents install it straight from the repository: there is no build step
+and no generated package. Skills go only under
+`.github/plugins/eeid-toolkit/skills/`. See
+[docs/architecture.md](docs/architecture.md) for how the pieces fit.
 
 ## Adding a skill
 
@@ -101,215 +81,198 @@ step and no generated package. Skills go only under
    npm run skill:create -- eeid-example --description "Draft scaffold for an example capability."
    ```
 
-   The command creates
-   `.github/plugins/eeid-toolkit/skills/eeid-example/SKILL.md` with empty
-   `references/`, `scripts/`, and `assets/` directories, and
-   `tests/evals/eeid-example/` with empty `triggering/` and `behavior/`
-   folders and a README. It refuses an existing destination.
-2. Write `SKILL.md` and its references, following the rules below and
-   [Writing effective skill instructions](#writing-effective-skill-instructions).
-3. Add ownership for the skill, its docs, and its evals to `.github/CODEOWNERS`
-   (see [Documentation and ownership](#documentation-and-ownership)).
+   It creates `.github/plugins/eeid-toolkit/skills/eeid-example/` with
+   `SKILL.md` and empty `references/`, `scripts/`, and `assets/` folders, and
+   `tests/evals/eeid-example/` with empty `triggering/` and `behavior/` folders.
+2. Write `SKILL.md` and its references, following [Skill rules](#skill-rules)
+   and [Writing effective skill instructions](#writing-effective-skill-instructions).
+3. Add a row for the skill to the skills tables in [README.md](README.md) and
+   the [plugin README](.github/plugins/eeid-toolkit/README.md), and an owner
+   for its folder and its evals folder in `.github/CODEOWNERS`.
+   `npm run validate` fails until all three exist.
 4. Add triggering and behavior eval cases under `tests/evals/eeid-example/`
    (see [tests/evals/README.md](tests/evals/README.md)).
-5. Run `npm run validate` and `npm test`, and run the evals locally with
-   `npm run eval:agent` on at least one supported agent.
-6. Mark the skill `ready` (`metadata.status`, and `metadata.version` 1.0.0
-   or higher) only when it meets the readiness criteria. **TBD:** the
-   readiness criteria (eval pass thresholds per agent, a manual run against a
-   real environment where the skill needs one, owner review).
+5. Run `npm run validate`, `npm test`, and the evals you want.
+6. Run `npm run release -- minor --note "Add eeid-example."` and open the PR.
 
-Agents and installers don't read `metadata.status`, so a draft skill in this
-repository can still be installed and used. Don't point customers at a draft.
+### Drafts and ready skills
+
+A skill is `draft` or `ready` (`metadata.status`). **The skill owner decides
+when a skill is ready, and is responsible for testing it.** The repository sets
+no eval threshold: run the evals, and any manual checks against a real
+environment, that you think the skill needs. A merged `ready` skill is treated
+as fully tested.
+
+Agents and installers don't read `metadata.status`, so anything on `main` can
+be installed. Until the first public release, drafts may live on `main`. From
+then on, **drafts stay on branches**: the PR checks run
+`npm run validate:release`, which fails on a draft. A maintainer turns this on
+by setting the repository variable `REQUIRE_READY_SKILLS` to `true`.
 
 ### Skill rules
 
-- Create every new skill with `npm run skill:create`, not by hand. It sets up
-  what validation requires and what's easy to miss: a valid name, the
-  license and copyright metadata, `metadata.status: draft` and `version:
-  "0.1.0"`, the standard `## Version` section, and the skill's eval folders
-  under `tests/evals/<name>/`.
-- Use a flat `.github/plugins/eeid-toolkit/skills/<name>/SKILL.md` layout and
-  stable `eeid-` capability names.
-  Names must match the folder, be at most 64 characters, and contain lowercase
-  ASCII letters, digits, and single hyphens. Spaces are not allowed, even when
-  the name is quoted. Use `eeid-example`, not `"eeid example"`.
-- Write a specific description explaining the task and activation conditions.
-  Retain `license: MIT` and the predefined copyright metadata.
-- Give each skill its own semantic version in `metadata.version` (quoted, for
-  example `version: "0.1.0"`), separate from the plugin version. Skills are
-  installed on their own (without the plugin), and a skill records its version
-  in what it produces, so the plugin version can't identify a skill's content.
-  Draft skills stay at `0.1.0`; a skill moves to `1.0.0` or higher when it
-  becomes `ready`, and from then on every PR that changes it increases the
-  version:
-
-  | Change to a `ready` skill | Bump |
-  | --- | --- |
-  | Wording fixes, reference corrections, no behavior change | patch |
-  | New behavior, a new flow or platform, a new reference, an updated product contract | minor |
-  | Breaking changes, for example to a file format the skill produces or to code an earlier version already changed | major |
-
-  Release notes must say when a new version requires changes to work an
-  earlier version already produced. **TBD:** `npm run skill:bump` to raise a
-  skill's version, and a validator check that a changed `ready` skill's
-  version went up.
-- Every `SKILL.md` has a `## Version` section that tells the agent where to
-  find the skill's version. `npm run skill:create` adds it. If you create a
-  skill by hand, copy the section's standard text from
-  [templates/skill/SKILL.md.template](templates/skill/SKILL.md.template).
-  Add anything skill-specific (for example where the skill records the
-  version) after the standard text. Skills are installed on their own, so
-  this text lives in each skill rather than in a shared file.
-- Apart from the `## Version` section, the template's title, draft notice,
-  headings, and TODO text are authoring suggestions, not validated
-  requirements. Organize the body for the capability; required metadata and
-  the `## Version` section apply even when creating a skill manually.
-- Bundle all required runtime references, scripts, and assets inside the skill.
-  Do not depend on root docs, sibling skills, or external filesystem symlinks.
-- Link authoritative Microsoft Learn guidance and record relevant supported
-  API/SDK versions. Avoid copying large documentation bodies unnecessarily.
-- Keep the main skill independently usable. Supporting skills are optional
-  entry points, not implicitly installed dependencies.
+- Create every skill with `npm run skill:create`. It sets what validation
+  requires: a valid name, `license: MIT`, `metadata.author: Microsoft`, the
+  copyright, `metadata.status: draft`, `metadata.version: "0.1.0"`, and the
+  standard `## Version` section.
+- Names match the folder, start with `eeid-`, are at most 64 characters, and
+  use lowercase ASCII letters, digits, and single hyphens.
+- The description (at most 1,024 characters) says what the skill does and when
+  to use it. Agents use it for discovery.
+- Keep `SKILL.md` to 500 lines or fewer; validation fails above that, and warns
+  above about 5,000 tokens. Move detail into `references/`.
+- Every `SKILL.md` has a `## Version` section telling the agent where to find
+  the skill version. Copy its standard text from
+  [templates/skill/SKILL.md.template](templates/skill/SKILL.md.template) and
+  add anything skill-specific after it.
+- Bundle all runtime references, scripts, and assets inside the skill. Don't
+  depend on root docs, sibling skills, or symlinks.
+- Link authoritative Microsoft Learn guidance and record the supported API and
+  SDK versions.
 - Define prerequisites, supported scenarios, exclusions, stopping conditions,
-  approval behavior, safe validation, and a truthful final report.
-- Do not log tokens, secrets, or OTPs, silently widen approved scope, invent
-  successful checks, or request unnecessary privileges.
-- Keep customer-generated plans/reports in the customer workspace, not the
-  installed plugin. Put their templates in the skill's `assets/`.
-- Add triggering and behavior eval cases, with any fixtures they need, before
-  marking the skill `ready`; `npm run validate` fails a `ready` skill without
-  them. Add unit tests under `tests/` for any helper scripts the skill ships.
+  approvals, safe validation, and a truthful final report.
+- Don't log tokens, secrets, or one-time codes, widen approved scope, invent
+  successful checks, or ask for unnecessary privileges.
+- Keep customer-generated plans and reports in the customer's workspace. Put
+  their templates in the skill's `assets/`.
+- A `ready` skill needs at least one triggering and one behavior eval case;
+  `npm run validate` checks this. Add unit tests under `tests/` for helper
+  scripts the skill ships.
 
 ## Writing effective skill instructions
 
-The body has no mandatory headings. The starter's Instructions, Example, and
-Verification sections are optional prompts; rename, replace, or remove them to
-fit the task. The draft notice prevents accidental use of an unfinished starter;
-replace it when the skill is implemented and reviewed.
+The body has no mandatory headings apart from `## Version`. The template's
+other sections are prompts; rename, replace, or remove them.
 
-- Scope a skill to a coherent customer task. Put both what it does and when to
-  use it in the frontmatter description, which agents use for discovery.
+- Scope a skill to one coherent customer task.
 - Add knowledge the agent would otherwise lack: verified product procedures,
-  supported API/SDK versions, concrete gotchas, and relevant constraints.
-  Avoid generic background and statements such as "follow best practices."
-- Prefer concise, actionable instructions. The specification recommends keeping
-  `SKILL.md` below 500 lines and approximately 5,000 tokens; these are guidance,
-  not limits enforced by our validator. **TBD:** a validator check for the
-  `SKILL.md` size and the description length.
-- Load detailed references only when needed. Link them directly from the skill
-  and state their trigger, rather than requiring every reference on every run.
-- Match specificity to risk. Allow discretion where approaches legitimately
-  vary; define exact ordering, approvals, and stopping conditions for fragile or
-  security-sensitive actions. Don't copy another skill's workflow stages into
-  a skill that doesn't need them.
-- Include a realistic example when it clarifies expected behavior. Use an output
-  template in `assets/` only when a consistent artifact format matters.
-- Explain observable success checks, important failures, and what to report when
-  verification cannot run. Include concrete identity safeguards where applicable.
-- Evaluate representative requests and non-triggering requests on the supported
-  assistants/models. Inspect execution traces as well as final outputs, and
-  revise based on missed steps, false activation, and unnecessary work.
+  supported versions, concrete gotchas. Skip generic background.
+- Load detailed references only when needed: link them from `SKILL.md` and say
+  when to read each one.
+- Match specificity to risk: allow discretion where approaches vary, and define
+  exact order, approvals, and stopping conditions for fragile or
+  security-sensitive steps.
+- Include a realistic example when it clarifies the expected behavior.
+- Say how to check the result, and what to report when a check can't run.
+- Evaluate requests that should and shouldn't trigger the skill, read the
+  transcripts as well as the final output, and revise for missed steps, false
+  activation, and unnecessary work.
 
 Sources: [Agent Skills specification](https://agentskills.io/specification),
 [skill creator best practices](https://agentskills.io/skill-creation/best-practices),
 and [Anthropic's authoring guidance](https://platform.claude.com/docs/en/agents-and-tools/agent-skills/best-practices).
-The portable specification governs format; client-specific recommendations
-should not be treated as universal requirements.
 
-## Documentation and ownership
+## Releases
 
-Domains are knowledge areas, not one-to-one skill folders. Create domain docs
-under `docs/domains/<domain>/` with a README identifying maintainers and related
-skills. Keep docs, learning material, examples, and proposals there. Runtime
-guidance still belongs in the consuming skill. Shared-reference synchronization
-is deferred.
+Customers install from `main`, so **merging a change to the plugin folder is
+the release.** There is no release branch, build, or manual step after merge.
 
-Add ownership patterns to `.github/CODEOWNERS` for skills and their directly
-related documentation, tests, and adapters when applicable. CODEOWNERS can cover
-any repository path, not only skills. Later matching rules take precedence;
-list multiple reviewers on one rule when both are intended.
+There are two kinds of version:
 
-## Validation and evaluations
+- **The plugin version**, in `.github/plugins/eeid-toolkit/plugin.json`. The
+  release command copies it to `.claude-plugin/plugin.json`, `package.json`,
+  and `package-lock.json`. Claude Code users get an update only when it
+  changes. The catalogs carry no version.
+- **The skill version**, `metadata.version` in each skill's `SKILL.md`. A skill
+  records it in what it produces, so it identifies the skill's content even
+  when the skill is installed without the plugin. `ready` skills may stay at
+  0.x; only `metadata.status` gates a release.
 
-`npm run validate` checks the local JSON schemas, matching package/plugin versions,
-skill frontmatter, naming, MIT/copyright metadata, draft status, each skill's
-semantic `metadata.version` (at least `1.0.0` when `ready`) and `## Version`
-section, the routing check (every link and file name in a skill resolves, and
-every file under `references/`, `assets/`, and `scripts/` is reachable from
-`SKILL.md`), triggering and behavior eval cases for `ready` skills, skill-contained
-Markdown file links, and disallows symlinks within skill directories. Drafts are
-reported explicitly. `npm run validate:release` additionally rejects draft status.
-Apart from the `## Version` heading, validation does not enforce template body
-text, headings, or TODO markers; authors
-must review content readiness before marking a skill ready.
+### Before you open a PR that changes the plugin folder
 
-`npm test` runs the unit tests for `scripts/` (`tests/tooling/`) and the
-deterministic checks for every skill (`tests/skills/`). Model-based evals
-(triggering and behavior) run locally with `npm run eval:agent`, on Claude Code
-or the GitHub Copilot CLI; see [tests/evals/README.md](tests/evals/README.md).
-They need a signed-in agent and use its plan or API budget, so they don't run
-in CI.
+Run one command on your branch:
 
-Every pull request runs `npm ci`, `npm run validate`, and `npm test` on
-GitHub Actions ([pr-checks.yml](.github/workflows/pr-checks.yml)), with
-read-only permissions and no secrets. The job summary shows each result. Run
-both commands locally first, since they're faster than waiting for CI.
+```bash
+npm run release -- <patch|minor|major> --note "<what changed, for customers>"
+```
 
-Workflows pin each action by full commit SHA, with the version in a comment.
-Dependabot ([dependabot.yml](.github/dependabot.yml)) opens one grouped PR a
+Compared with `main`, it raises the skill version of each changed skill and the
+plugin version by that level, syncs the manifests, writes the
+[CHANGELOG.md](.github/plugins/eeid-toolkit/CHANGELOG.md) entry, and runs
+`npm run validate` and `npm test`. It doesn't commit, push, or run evals.
+Running it again gives the same result; run it again with a different level or
+note to replace the entry. Add `--action "<what to do>"` when work done with an
+earlier skill version needs changes, and `--dry-run` to preview.
+
+| Change | Level |
+| --- | --- |
+| Wording fixes, reference corrections, no behavior change | `patch` |
+| New behavior, flow, platform, or reference; an updated product contract; a new skill | `minor` |
+| Breaking changes, for example to a file a skill produces or to code an earlier version already changed | `major` |
+
+PRs that only change tests, scripts, or root docs don't need the command.
+
+### After merge
+
+The [tag workflow](.github/workflows/tag-release.yml) creates the tag
+`v<plugin version>` and a GitHub Release with the changelog entry as notes,
+when that version has no tag yet. Nothing else runs; if it fails, customers
+aren't affected. Fix a bad release forward with another PR and a higher
+version.
+
+### When two PRs release the same version
+
+If `main` already has your plugin version because another PR merged first:
+
+1. Merge `main` into your branch.
+2. For conflicts in `CHANGELOG.md`, the manifests, `package.json`, or
+   `package-lock.json`, take `main`'s side.
+3. Run `npm run release` again with your level and note. It moves past `main`'s
+   versions and adds your entry above `main`'s.
+
+### Renaming the plugin
+
+Avoid it. If it's ever needed, add the old name to the catalogs' `renames`
+map (as microsoft/skills does) so existing installs keep updating.
+
+## Checks on every pull request
+
+[pr-checks.yml](.github/workflows/pr-checks.yml) runs on GitHub Actions with
+read-only permissions and no secrets:
+
+- `npm run validate` (`validate:release` after launch), `npm test`, and
+  `npm run release:check`, with a job summary.
+- `npm run test:install`: Claude Code's plugin validator and the Skills CLI
+  listing, on the PR's files.
+
+Model-based evals don't run in CI: they need a signed-in agent and use its
+budget. Skill owners run them locally, and PRs don't need an eval summary.
+
+These checks cover structure, not behavior: they don't verify URLs, product or
+API claims, or tool permissions. A security scan of skill content (for example
+for prompt injection) is an open question; the tool and how it would run
+haven't been chosen. CodeQL code scanning runs from the repository settings.
+
+Workflows pin each action by full commit SHA. Dependabot opens one grouped PR a
 week for npm packages and one for actions, skipping versions released in the
 last 7 days. Review and merge them like any other PR.
 
-**TBD:** a security scan of skill content (for example for prompt-injection or
-unsafe instructions); the tool and how it runs are being investigated.
-
-`npm run validate` and `npm test` check structure, not behavior: they don't
-verify external URLs, product or API claims, tool permissions, or MCP endpoint
-connectivity. Evals and review cover what a skill does.
-
 Evals use synthetic fixtures and test accounts or endpoints only. Keep
-credentials out of the repository, and never expose secrets to pull request
-code you haven't reviewed.
+credentials out of the repository.
 
-## Packaging and releases
+## Pull requests and commits
 
-All `ready` skills ship in one plugin. Its version is in
-`.github/plugins/eeid-toolkit/plugin.json` (keep `package.json` at the same
-version); each skill also has its own version (see
-[Skill rules](#skill-rules)). During development the plugin stays at `0.1.0`.
-
-Packaging and releases aren't set up yet. **TBD**, to be added later:
-
-- A plugin manifest for each supported client, generated from `plugin.json`,
-  and a check that they stay in sync.
-- Release tooling: a command to set the plugin version, release notes listing
-  each skill and its version, a `CHANGELOG.md`, and a tagged GitHub release
-  for each reviewed release pull request.
-- Marketplace listings, once skills are ready.
-
-## Dependency lockfile
-
-`package-lock.json` is committed. Install with `npm ci`, which uses the exact
-versions in the lockfile. To add or change a development dependency, run
-`npm install <package>@<version>` and commit both `package.json` and
-`package-lock.json`.
-
-## Pull requests
-
-- Branch from `main`, keep each pull request focused, and describe what
-  changed and how you checked it.
-- Run `npm run validate` and `npm test` before opening the pull request; the
-  PR checks run them again. For a skill change, also run its evals locally on
-  at least one agent.
-- Raise `metadata.version` for every change to a `ready` skill (drafts stay
-  at `0.1.0`).
+- Branch from `main` and keep each PR focused. Fill in the
+  [PR template](.github/pull_request_template.md).
 - Owners in `.github/CODEOWNERS` are requested for review automatically.
+- PRs are squash-merged, so the PR title becomes the commit on `main`. Write it
+  in the imperative, under about 72 characters, saying what changes:
+  "Add sign-up flow to the iOS migration", not "iOS updates".
+- In the description, say why, and what you checked and didn't.
 
-**TBD:** commit message and pull request title conventions, and a pull
-request template.
+To add or change a development dependency, run
+`npm install <package>@<version>` and commit `package.json` and
+`package-lock.json` together.
 
-## Code of conduct and security
+## Documentation and ownership
 
-**TBD:** the code of conduct and how to report security issues (Microsoft's
-standard `CODE_OF_CONDUCT.md` and `SECURITY.md`).
+Team-owned knowledge (learning material, examples, proposals) goes in
+`docs/domains/<domain>/`, with a README naming its maintainers and related
+skills. Runtime guidance belongs in the skill itself.
+
+`.github/CODEOWNERS` assigns reviewers by path; the last matching rule wins.
+Every skill and its evals folder need an owner.
+
+## Code of conduct
+
+This project follows the [Microsoft Open Source Code of Conduct](CODE_OF_CONDUCT.md).

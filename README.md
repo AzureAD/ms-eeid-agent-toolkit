@@ -1,12 +1,11 @@
 # Microsoft Entra External ID Agent Toolkit
 
-Portable, Microsoft-authored guidance for AI coding assistants working on
-Microsoft Entra External ID integrations. The toolkit is designed as one
-umbrella plugin containing focused, team-owned Agent Skills.
+Microsoft-authored skills that help AI coding assistants work on Microsoft
+Entra External ID integrations. The skills ship together as one plugin,
+`eeid-toolkit`, and each skill can also be installed on its own.
 
-**Status: in development; nothing is released or supported yet.** Don't use
-these skills for customer work. Marketplace catalogs and client-specific
-manifests aren't implemented yet.
+**Status: in development.** Skills are added as they're ready; see each
+skill's status below.
 
 ## Skills
 
@@ -14,71 +13,82 @@ manifests aren't implemented yet.
 | --- | --- | --- |
 | [`eeid-native-auth-migrate-v2`](.github/plugins/eeid-toolkit/skills/eeid-native-auth-migrate-v2/SKILL.md) | Migrates an app that calls the Native Auth API V1 directly, or an app on the MSAL native auth SDK V1 methods (JavaScript single-page apps, iOS and macOS apps), to Native Auth V2: sign-in, sign-up, and self-service password reset, in full or one flow at a time, with a reviewable plan before any code changes | Draft |
 
-## Goals
+## Install
 
-- Deliver product-aligned implementation, migration, and troubleshooting guidance.
-- Keep one canonical copy of each skill, installed as is by every supported agent.
-- Keep each skill independently installable, with its runtime resources bundled.
-- Preserve customer control over scope, approvals, and security-sensitive changes.
-- Support contributions from multiple teams under explicit ownership and review.
+Install the whole plugin, or only the skills you need. Fewer skills means less
+for your assistant to choose from, so it picks the right one more reliably.
 
-Native Auth V1 to V2 migration is the first skill. Other skills will be added
-as their implementation, ownership, and evaluation coverage mature.
+### Claude Code
 
-## Development
-
-Requires Node.js 22 or later and npm.
-
-```bash
-# Install development tooling from the committed lockfile.
-npm ci
-
-# Validate manifests, skill structure, and skill routing.
-npm run validate
-
-# Run tooling unit tests and the deterministic checks for every skill.
-npm test
-
-# Run a skill's model-based evals on an agent (claude-code or copilot), locally.
-npm run eval:agent -- --agent copilot --skill eeid-native-auth-migrate-v2 --case api-trigger-upgrade-native-auth --runs 1
-
-# Create a draft skill (and its tests/evals folders) with predefined MIT/copyright metadata.
-npm run skill:create -- eeid-example --description "Draft scaffold for an example capability."
-
-# Apply release checks; this intentionally fails while draft skills remain.
-npm run validate:release
+```text
+/plugin marketplace add AzureAD/ms-eeid-agent-toolkit
+/plugin install eeid-toolkit@ms-eeid-agent-toolkit
 ```
 
-Validation uses locally stored Agent Plugins 1.0 schemas and repository rules.
-It does not execute skills, verify product/API claims, or establish compatibility
-with every assistant. Model-based evals run a skill on a real agent and grade
-the result; they need that agent signed in and run locally, not in CI. See
-[tests/evals/README.md](tests/evals/README.md).
+Update with `/plugin marketplace update ms-eeid-agent-toolkit`; Claude Code
+picks up a new plugin version when one is released. Uninstall with
+`/plugin uninstall eeid-toolkit@ms-eeid-agent-toolkit`.
 
-## Planned installation routes
+### GitHub Copilot CLI
 
-- **Skills CLI:** installs selected skill directories, including their bundled
-  references, scripts, and assets. It does not configure MCP servers or install
-  plugin-specific wrappers.
-- **Full plugin:** supplies components supported by the selected assistant,
-  including MCP configuration when applicable. Credentials and permissions may
-  still need customer setup.
+```bash
+copilot plugin marketplace add AzureAD/ms-eeid-agent-toolkit
+```
 
-The `skills` CLI is an optional external tool, not a dependency of this project.
-Do not install the current draft skills for customer work. Marketplace
-registration will be documented once catalogs and packages are ready.
+```bash
+copilot plugin install eeid-toolkit@ms-eeid-agent-toolkit
+```
 
-## Repository and contributions
+Update with `copilot plugin update eeid-toolkit`, and uninstall with
+`copilot plugin uninstall eeid-toolkit`. To stay on one release, add the
+catalog at its tag instead: `AzureAD/ms-eeid-agent-toolkit#v<version>`.
 
-The plugin lives in `.github/plugins/eeid-toolkit/`: its `plugin.json` (the
-portable manifest, which holds the plugin version), `mcp.json`, and `skills/`
-with the runtime content customers install. There is no build step; agents
-install from that folder. `tests/` contains checks and evals; `docs/domains/`
-is for team-owned domain knowledge; `packaging/schemas/` holds the manifest
-schemas used by validation.
+### Codex
 
-Read [CONTRIBUTING.md](CONTRIBUTING.md) for the full structure, creation rules,
-ownership, validation boundaries, and release requirements.
+```bash
+codex plugin marketplace add AzureAD/ms-eeid-agent-toolkit
+```
+
+Then install `eeid-toolkit` from the plugin list in Codex.
+
+### Other assistants, or one skill only (Skills CLI)
+
+The [Skills CLI](https://github.com/vercel-labs/skills) installs skills for
+Cursor, VS Code, and many other assistants. It copies only the skill folders,
+not the plugin's MCP configuration.
+
+```bash
+npx skills add AzureAD/ms-eeid-agent-toolkit --skill eeid-native-auth-migrate-v2
+```
+
+Update with `npx skills update`, and remove a skill with
+`npx skills remove eeid-native-auth-migrate-v2`. To stay on one release,
+install from its tag:
+`npx skills add https://github.com/AzureAD/ms-eeid-agent-toolkit/tree/v<version>`.
+
+### If a skill doesn't start
+
+Assistants choose a skill from your request. If it doesn't start, name it: in
+assistants that support it, type `/eeid-native-auth-migrate-v2`, or ask
+"use the eeid-native-auth-migrate-v2 skill".
+
+## Versions
+
+The plugin has a version, and each skill has its own. What changed in each
+plugin version, and the skill versions it contains, is in the
+[changelog](.github/plugins/eeid-toolkit/CHANGELOG.md). Each plugin version is
+also a [release](https://github.com/AzureAD/ms-eeid-agent-toolkit/releases)
+tagged `v<version>`.
+
+## Support and security
+
+Questions and bugs: [SUPPORT.md](SUPPORT.md). Security issues:
+[SECURITY.md](SECURITY.md); please don't report them in public issues.
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for how the repository is organized, how
+to add a skill, and how releases work.
 
 ## License
 

@@ -1,0 +1,42 @@
+name: Tag release
+
+# After a merge to main that changes the plugin folder: if the plugin version
+# in plugin.json has no tag yet, create the tag v<version> and a GitHub Release
+# whose notes are that version's CHANGELOG.md entry. Customers install from
+# main, so this only records the release; if it fails, nobody is affected.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - ".github/plugins/**"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tag-release
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Create tag and release if the plugin version is new
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version=$(jq -r .version .github/plugins/eeid-toolkit/plugin.json)
+          tag="v$version"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "Release $tag already exists; nothing to do." | tee -a "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          node scripts/release-notes.mjs "$version" > notes.md
+          gh release create "$tag" --target "$GITHUB_SHA" --title "$tag" --notes-file notes.md
+          echo "Created release $tag." | tee -a "$GITHUB_STEP_SUMMARY"

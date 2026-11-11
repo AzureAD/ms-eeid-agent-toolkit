@@ -3,9 +3,10 @@ name: eeid-native-auth-migrate-v2
 description: Migrate an app's Microsoft Entra External ID native authentication from V1 to V2. Apps that call the native auth API V1 directly (raw HTTP such as /oauth2/v2.0/initiate) move to API V2 (authorize-challenge, HAL flows). Apps on the MSAL native auth SDK V1 methods (signIn, signUp, resetPassword) move to its V2 methods (signInV2, signUpV2, resetPasswordV2), in JavaScript single-page apps (CustomAuthPublicClientApplication, @azure/msal-browser) and iOS or macOS apps (MSALNativeAuthPublicClientApplication). Use when the user asks to migrate, upgrade, or move native auth to V2 or "the new native auth API", to assess or plan that migration, to change or approve the migration plan, to apply a reviewed plan, or to continue a migration in progress. Supports sign-in, sign-up, and self-service password reset, in full or per flow. Do not use for Android native auth SDK migration, server-side code, upgrading an MSAL package on its own, Azure AD B2C migration, adding native auth to a new app, or browser-redirect MSAL flows.
 license: MIT
 metadata:
+  author: Microsoft
   copyright: Microsoft Corporation. All rights reserved.
   status: draft
-  version: "0.2.4"
+  version: "0.2.5"
 ---
 
 # Native Auth V1 → V2 migration

@@ -53,14 +53,6 @@ against it. V1 and V2 methods live in the same package and the same
   `node_modules/@azure/msal-browser/`). A missing name → **stop** and tell the
   customer this skill version doesn't cover that SDK version.
 
-**Experimental status.** In 5.29.0 every V2 method, state, result, and error
-carries the SDK's warning that it is experimental, may change without notice,
-and isn't for production use. While the planned version's typings or release
-notes still say so (if you can't tell, assume they do), the plan must say so in
-**Behavior changes users will see** and **Manual prerequisites**, and the
-customer approves it with the plan. After the install, check the installed
-typings and record the result in the report.
-
 ## References for this approach
 
 | File | Load when |
@@ -133,8 +125,7 @@ Find the V1 SDK usage:
   follow **Planning** in the shared rules. Details for this platform:
   - Supported steps: the V2 states the migrated flow handles
     (parity rule); every other state goes to the unhandled outcome.
-- **Manual prerequisites:** tenant enrolled in the V2 preview; the customer
-  accepts the experimental SDK status, while it applies; production proxy updates if the app
+- **Manual prerequisites:** production proxy updates if the app
   uses one outside this repo.
 
 ## Applying (Step 6)
@@ -180,7 +171,7 @@ Use the approach-specific checks and required tests in
 
 ## Report rows
 
-- SDK version installed, and whether the V2 APIs are experimental in it.
+- SDK version installed.
 - Manual follow-up: restart the dev proxy after proxy changes; update any
   production proxy or gateway outside this repo with the V2 paths and
   methods.

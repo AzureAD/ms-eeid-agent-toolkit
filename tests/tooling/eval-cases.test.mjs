@@ -250,32 +250,23 @@ test('open-decision approval case: the seeded workspace passes, an applied appro
   }
 });
 
-test('iOS plan graders: the SDK release decision must be open while no MSAL release has V2', async () => {
+test('iOS plan graders: the plan must move MSAL to the V2 minimum or later', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'eval-ios-'));
-  const list = graders('sdk-ios-plan-all-flows', 'plan-');
-  const pick = (name) => list.filter((grader) => grader.name === name);
+  const check = graders('sdk-ios-plan-all-flows', 'plan-sdk-version');
   try {
     await mkdir(join(dir, '.native-auth-v2-migration'), { recursive: true });
-    const plan = (decisions) => `---\napproach: sdk\n---\n\n## Decisions needed\n\n${decisions}\n\n## Previous phases\n\nNone.\n`;
-    await writeFile(join(dir, '.native-auth-v2-migration/plan.md'),
-      plan('1. MSAL for iOS with the V2 methods isn\'t released yet (2.17.1 is the latest). Wait for the release?'));
-    let results = await grade(pick('plan-decision-for-sdk-release'), dir);
-    assert.equal(results['plan-decision-for-sdk-release'].passed, true, results['plan-decision-for-sdk-release'].detail);
-
-    await writeFile(join(dir, '.native-auth-v2-migration/plan.md'), plan('None.'));
-    results = await grade(pick('plan-decision-for-sdk-release'), dir);
-    assert.equal(results['plan-decision-for-sdk-release'].passed, false);
-
-    // Whether the plan says the release isn't available is the judge's call, on the plan itself.
-    const wording = 'MSAL SDK check denied. Release availability is therefore **unverified**.';
-    await writeFile(join(dir, '.native-auth-v2-migration/plan.md'), plan(`1. ${wording}`));
-    const seen = [];
-    const judge = async (criteria, evidence) => { seen.push(evidence); return { pass: true }; };
-    const { results: judged } = await gradeRun(pick('plan-sdk-not-released'),
-      { workspace: dir, createdFiles: [], transcript: emptyTranscript }, { judge });
-    assert.equal(judged[0].passed, true, judged[0].detail);
-    assert.equal(seen.length, 3);
-    assert.ok(seen.every((evidence) => evidence.includes(wording)));
+    const planPath = join(dir, '.native-auth-v2-migration/plan.md');
+    for (const [text, expected] of [
+      ['MSAL `~> 2.16` (2.16.1) → latest 2.x (at least the minimum)', true],
+      ['Upgrade MSAL from 2.16.1 to 2.18.1', true],
+      ['Upgrade MSAL from 2.16.1 to 2.20.0', true],
+      ['Upgrade MSAL from 2.16.1 to 2.17.1', false],
+      ['Keep MSAL 2.18.0', false],
+    ]) {
+      await writeFile(planPath, `---\napproach: sdk\n---\n\n${text}\n`);
+      const results = await grade(check, dir);
+      assert.equal(results['plan-sdk-version'].passed, expected, text);
+    }
   } finally {
     await rm(dir, { recursive: true, force: true });
   }

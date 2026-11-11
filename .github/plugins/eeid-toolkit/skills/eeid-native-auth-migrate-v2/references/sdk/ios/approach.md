@@ -24,47 +24,37 @@ and gates stay in `SKILL.md`; shared procedures are in
 
 ## SDK version
 
-The guidance in this approach was written against the MSAL for iOS and
-macOS `dev` branch after the native auth V2 changes of November 2026
-(sign-in without a password parameter, sign-up email first, existing-account
-sign-up, MFA and JIT resend, and SSPR MFA completion). **No released MSAL
-version contains all of them yet:** 2.17.1 (4 November 2026) doesn't. The
-first release after 2.17.1 that includes them is the minimum version
-("the V2 release" below).
+The minimum version is **MSAL for iOS and macOS 2.18.1**, the first release
+with the complete V2 surface used here (sign-in without a password parameter,
+sign-up email first, existing-account sign-up, MFA and JIT resend, and SSPR
+MFA completion). This guide was written against it. V1 and V2 methods live in
+the same package and the same app instance.
 
 - Find the installed version: `Package.resolved` (Swift Package Manager),
   `Podfile.lock` (CocoaPods), or `Cartfile.resolved` (Carthage).
-- Find whether the V2 release exists: the MSAL repository's tags or the
+- Find the versions the project can get: the MSAL repository's tags or the
   package manager's listing (`git ls-remote --tags` on the repository the
   project already uses, or `pod trunk info MSAL`). Use the project's own
-  sources; never add a new one (SDKIOS-01).
-- **No V2 release yet** → the plan can't be applied. Put it under
-  "Decisions needed" ("MSAL for iOS with the V2 methods isn't released
-  yet"), so the plan can't be approved, and say so to the customer. Don't
-  point the app at a branch or commit.
-- **Can't check** (no network, or the command is denied) → handle it as no V2
-  release: the same entry under "Decisions needed", saying the check couldn't
-  run and that the customer must confirm a released version. Never assume a
-  version exists.
+  sources; never add a new one (SDKIOS-01). CocoaPods can lag behind the
+  repository's tags, so check the source the app really uses.
+- **The minimum isn't available from the project's source** → the plan can't
+  be applied yet. Put it under "Decisions needed" ("MSAL 2.18.1 isn't on
+  CocoaPods yet"), so the plan can't be approved, and say so to the customer.
+  Don't point the app at a branch, a commit, or a new source.
+- **Can't check** (no network, or the command is denied) → the same entry
+  under "Decisions needed", saying the check couldn't run and that the
+  customer must confirm 2.18.1 or later is available. Never assume it is.
 - **App before 2.0.0** → a major upgrade of MSAL is a separate change,
   outside this migration. **Stop** and tell the customer to upgrade first.
-- **App on 2.x before the V2 release** → the plan upgrades it to the latest
-  2.x, at least the V2 release. Keep the requirement style the app already
-  uses (for example SPM `from:` or CocoaPods `~>`); the resolved file records
-  the exact version. The upgrade is a dependency change (SEC-12): list it in the
-  plan's shared steps for approval.
-- **App on the V2 release or later** → no upgrade needed. If the version is
-  later than the V2 release, check that every V2 name this guide uses still
-  exists in the installed headers or Swift interface. A missing name →
-  **stop** and tell the customer this skill version doesn't cover that SDK
-  version.
-
-**Experimental status.** Every V2 entry method, state, delegate, and error
-currently carries the SDK's warning that it is experimental, may change
-without notice, and isn't for production use. While the planned version still
-says so (if you can't tell, assume it does), the plan must say so in **Behavior
-changes users will see** and **Manual prerequisites**, and the customer
-approves it with the plan.
+- **App on 2.x before the minimum** → the plan upgrades it to the latest
+  2.x, at least 2.18.1. Keep the requirement style the app already uses (for
+  example SPM `from:` or CocoaPods `~>`); the resolved file records the exact
+  version. The upgrade is a dependency change (SEC-12): list it in the plan's
+  shared steps for approval.
+- **App on the minimum or later (2.x)** → no upgrade needed. If the version is
+  later than 2.18.1, check that every V2 name this guide uses still exists in
+  the installed headers or Swift interface. A missing name → **stop** and tell
+  the customer this skill version doesn't cover that SDK version.
 
 ## References for this approach
 
@@ -135,8 +125,7 @@ Find the V1 SDK usage:
 - **Validation commands:** the app's own `xcodebuild` build and test
   commands (scheme and simulator destination) if the repo has them. On a
   machine without Xcode or a simulator, they are recorded as not run.
-- **Manual prerequisites:** tenant enrolled in the V2 preview; the customer
-  accepts the experimental SDK status, while it applies; resolve packages in Xcode after a
+- **Manual prerequisites:** resolve packages in Xcode after a
   version change in the project file.
 
 ## Applying (Step 6)
@@ -177,8 +166,7 @@ Use the approach-specific checks and required tests in
 
 ## Report rows
 
-- SDK version set, whether it was resolved, and whether the V2 APIs are
-  experimental in it.
+- SDK version set, and whether it was resolved.
 - Manual follow-up: resolve packages in Xcode if the version changed in the
   project file and couldn't be resolved here; run the app's tests in Xcode
   if they couldn't run here.

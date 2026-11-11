@@ -168,8 +168,6 @@ V2 state objects hold the flow's continuation token.
 - **Supported steps per flow:** record, for each flow, whether it signs the user
   in after sign-up or reset, and what sign-up does when the account exists.
 - **Behavior changes users will see:**
-  - The V2 APIs are experimental, while they are (see **SDK version** in the
-    approach guide).
   - Sign-up sends the email first and collects the password and other attributes
     after the code is verified; screens can stay the same.
   - Sign-in sends the username first and the password when the SDK asks for it;

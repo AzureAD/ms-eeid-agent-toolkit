@@ -200,13 +200,11 @@ are never added, run, or changed.
 
 ## 10. Manual prerequisites (customer)
 
-- [ ] Tenant enrolled in the Native Auth API V2 private preview.
 - [ ] Restart the dev proxy after the `cors.js` change.
 - [ ] Update any production proxy or gateway with the V2 paths, `PUT`, and `client-request-id`.
 
 ## 11. Assumptions, risks, out of scope
 
-- V2 is in private preview; the contract may change before GA.
 - After this phase no flow uses V1.
 
 ## 12. Decisions and revisions

@@ -51,7 +51,7 @@ All V2 callbacks run on the main actor.
 | `onSignInCompleted(result:)` (every delegate that has it) | `MSALNativeAuthFlowDelegate` → `onFlowCompleted(result:scenario:)` | `MSALNativeAuthUserAccountResult`, unchanged |
 | Every V1 error callback | `MSALNativeAuthFlowDelegate` → `onFlowError(error:scenario:)` | `MSALNativeAuthFlowError` |
 | `SignUpStartError.isUserAlreadyExists` | `MSALNativeAuthExistingAccountCodeRequiredDelegate`, `MSALNativeAuthExistingAccountPasswordRequiredDelegate`, or `onAuthMethodSelectionRequired` with `scenario == .signIn` after `signUpV2` | See [v2-flows.md](v2-flows.md), "Existing account" |
-| `onSignUpAttributesInvalid(attributeNames:)` | `onFlowError` with `isInvalidAttributes` (no attribute names) | — |
+| `onSignUpAttributesInvalid(attributeNames:)` | `onFlowError` with `isInvalidAttributes` (names appear only in `errorDescription`) | — |
 
 `MSALAuthMethod` (`id`, `challengeType`, `channelTargetType`, `loginHint`)
 and `MSALNativeAuthChannelType` (`isEmailType`, `isSMSType`) are the same

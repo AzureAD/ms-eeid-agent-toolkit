@@ -8,7 +8,7 @@ version, and the delegates.
 
 ### SDKIOS-01 Use the approved SDK version from the project's sources
 
-- Set the MSAL version the plan approved. Never below the V2 release, never
+- Set the MSAL version the plan approved. Never below the minimum (2.18.1), never
   a new major version, and never a branch or commit.
 - Resolve it from the package sources the project already uses (its
   package URL, `Podfile` source, or `Cartfile`). Never add a source, a fork,

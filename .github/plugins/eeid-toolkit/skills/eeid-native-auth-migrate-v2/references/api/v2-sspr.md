@@ -3,7 +3,7 @@
 Read `v2-api-core.md` first: it defines the HAL handler, the link
 allowlist, challenge/verify, finishing, and unhandled responses.
 
-Prerequisites: tenant enrolled in the V2 preview, public client, native auth
+Prerequisites: public client, native auth
 enabled, password reset enabled for the tenant.
 
 ## Step table

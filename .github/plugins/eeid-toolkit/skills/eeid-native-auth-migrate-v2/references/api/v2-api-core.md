@@ -1,7 +1,6 @@
 # Native auth API V2 — core contract (read for every V2 migration)
 
-> V2 is in **private preview**; behavior may change before GA. These V2
-> references are authoritative over any other comparison material.
+> These V2 references are authoritative over any other comparison material.
 
 ## Model
 

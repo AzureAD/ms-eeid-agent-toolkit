@@ -47,7 +47,7 @@ validation-baseline: null  # set in the pre-apply check: { <check ID>: passed | 
 | --- | --- |
 | Migrate now | sign-in, sspr |
 | Stay on V1 | sign-up — customer keeps it on V1 for now |
-| Users will notice | The V2 SDK methods are experimental (not for production) in the planned `@azure/msal-browser`. sign-in: none; the same form sends the email first and the password when the SDK asks for it. sspr: none. sign-in and sspr: an expired session shows the generic error instead of "Your session expired". |
+| Users will notice | sign-in: none; the same form sends the email first and the password when the SDK asks for it. sspr: none. sign-in and sspr: an expired session shows the generic error instead of "Your session expired". |
 | Files to change / add | 8 changed, 0 new (including 3 test files changed) |
 | Commands run on approval | `node --check cors.js`, `npm test` — twice (baseline and after) |
 | You must do manually | 4 items — section 10 |
@@ -120,7 +120,7 @@ None.
 
 | Flow | Today (V1) | After migration (V2) |
 | --- | --- | --- |
-| all | stable SDK methods | V2 SDK methods marked experimental; latest 5.x, at or above the minimum |
+| all | stable SDK methods | V2 SDK methods; latest 5.x, at or above the minimum |
 | sign-in | email and password sent together | same form; the email is sent first and the password when the SDK asks for it |
 | sign-in, sspr | expired session → "Your session expired. Start again." | the generic error (V2 has no expired-session check) |
 
@@ -201,14 +201,11 @@ are never added, run, or changed.
 
 ## 10. Manual prerequisites (customer)
 
-- [ ] Tenant enrolled in the Native Auth API V2 private preview.
-- [ ] Accept that the V2 SDK methods are experimental in the planned `@azure/msal-browser`.
 - [ ] Restart the dev proxy after the `cors.js` change.
 - [ ] Update any production proxy or gateway with `PUT` and the V2 paths.
 
 ## 11. Assumptions, risks, out of scope
 
-- V2 is in private preview and the V2 SDK methods are experimental; both may change.
 - sign-up stays on V1 until a later phase.
 
 ## 12. Decisions and revisions

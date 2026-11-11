@@ -35,7 +35,7 @@ the parent flow, or split into two components).
 
 - **Allowed:** different flows on different versions in the same app, for
   example `sign-in` + `sspr` on V2 while `sign-up` stays on V1. Confirmed by
-  the product team: V1 endpoints keep working for a tenant enrolled in V2,
+  the product team: V1 endpoints keep working for a tenant that uses V2,
   V1 automatic sign-in after V1 sign-up or reset keeps working while
   sign-in is on V2, and tokens from both versions coexist for one app
   registration.

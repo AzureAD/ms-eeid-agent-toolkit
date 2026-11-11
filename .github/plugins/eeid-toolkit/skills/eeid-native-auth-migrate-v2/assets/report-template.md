@@ -35,7 +35,6 @@ section 8, or "none">
 
 **Manual follow-up:**
 
-- [ ] Enroll the tenant in the Native Auth API V2 private preview.
 - [ ] Run the manual test script (section 7) against a test tenant.
 - [ ] Update tenant-dependent tests listed in section 6.
 - [ ] <Approach-specific items, e.g. restart the dev proxy; update the production proxy>
@@ -95,7 +94,7 @@ Notes with its cause and what was tried.
 
 ## 7. Manual test script
 
-Run against a **test tenant** enrolled in the V2 preview. Never use real
+Run against a **test tenant**. Never use real
 customer accounts.
 
 ### <flow ID>

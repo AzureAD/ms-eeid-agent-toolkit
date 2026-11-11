@@ -176,7 +176,6 @@ are never added, run, or changed.
 
 ## 10. Manual prerequisites (customer)
 
-- [ ] Tenant enrolled in the Native Auth API V2 private preview.
 - [ ] <Approach-specific items from the approach guide>
 
 ## 11. Assumptions, risks, out of scope

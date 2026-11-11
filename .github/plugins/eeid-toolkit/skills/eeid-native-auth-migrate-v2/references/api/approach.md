@@ -92,7 +92,7 @@ In addition to the V1 call sites from `references/v1-detection-patterns.md`, fin
   List each conflict in section 8 as a pre-existing finding (for example
   SEC-06). Anything else uses the
   fallback the V1 code has for that call.
-- **Manual prerequisites:** tenant enrolled in the V2 preview; public client
+- **Manual prerequisites:** public client
   with native auth enabled; production proxy updates
   if the app uses one outside this repo.
 

@@ -46,7 +46,7 @@ validation-baseline: null  # set in the pre-apply check: { <check ID>: passed | 
 | --- | --- |
 | Migrate now | sign-in, sign-up, sspr |
 | Stay on V1 | none |
-| Users will notice | The V2 SDK methods are experimental (not for production) in the planned `@azure/msal-browser`. sign-in: none; the same form sends the email first and the password when the SDK asks for it. sign-up: the form is unchanged, but the email code is sent first and the password and display name after it; signing up with an existing email may send that account a sign-in code. sspr: none. all: an expired session shows the generic error instead of "Your session expired". |
+| Users will notice | sign-in: none; the same form sends the email first and the password when the SDK asks for it. sign-up: the form is unchanged, but the email code is sent first and the password and display name after it; signing up with an existing email may send that account a sign-in code. sspr: none. all: an expired session shows the generic error instead of "Your session expired". |
 | Files to change / add | 11 changed, 0 new (including 4 test files changed) |
 | Commands run on approval | `node --check cors.js`, `npm test` — twice (baseline and after) |
 | You must do manually | 4 items — section 10 |
@@ -114,7 +114,7 @@ None.
 
 | Flow | Today (V1) | After migration (V2) |
 | --- | --- | --- |
-| all | stable SDK methods | V2 SDK methods marked experimental; latest 5.x, at or above the minimum |
+| all | stable SDK methods | V2 SDK methods; latest 5.x, at or above the minimum |
 | sign-in | email and password sent together | same form; the email is sent first and the password when the SDK asks for it |
 | sign-up | one form sends email, password, and display name, then the email code | same form; the email code is sent first, then the password and display name |
 | sign-up | existing email → "An account with this email already exists" | same message; the SDK may first send that account a sign-in code |
@@ -204,14 +204,11 @@ are never added, run, or changed.
 
 ## 10. Manual prerequisites (customer)
 
-- [ ] Tenant enrolled in the Native Auth API V2 private preview.
-- [ ] Accept that the V2 SDK methods are experimental in the planned `@azure/msal-browser`.
 - [ ] Restart the dev proxy after the `cors.js` change.
 - [ ] Update any production proxy or gateway with `PUT` and the V2 paths.
 
 ## 11. Assumptions, risks, out of scope
 
-- V2 is in private preview and the V2 SDK methods are experimental; both may change.
 - After this phase no flow uses V1.
 
 ## 12. Decisions and revisions

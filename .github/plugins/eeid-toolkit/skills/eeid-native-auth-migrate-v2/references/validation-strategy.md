@@ -143,7 +143,7 @@ use the commands it already defines.
    device, emulator) by file in the report. They likely still drive V1
    behavior and need the customer's update.
 2. **Write a manual test script** into the report for the customer to run
-   against a **test tenant** enrolled in the V2 preview. For each migrated
+   against a **test tenant**. For each migrated
    flow, include steps and expected results for:
 
 | Flow | Scenarios |

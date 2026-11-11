@@ -35,7 +35,7 @@ flow is a failure. V1 hits used only by deferred flows are expected.
 
 Check **Checks for every SDK** in [../shared-rules.md](../shared-rules.md), and:
 
-- MSAL is the approved version, at or above the V2 release, from the project's own sources; no
+- MSAL is the approved version, at or above the 2.18.1 minimum, from the project's own sources; no
   other new packages.
 - Start calls use the `…ParametersV2` types with the username and the V1
   scopes and claims; no password in sign-in or sign-up start parameters;

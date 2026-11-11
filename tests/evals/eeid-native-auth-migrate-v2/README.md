@@ -78,11 +78,11 @@ Migrate or Defer as requested; no file under `src/`, `test/`, `cors.js`, or
 | `api-plan-sspr-only` | Only forgot password | `scope` has `sspr` only; `sign-in` and `sign-up` deferred; same error codes |
 | `api-plan-sign-up-only` | Only sign-up | `scope` has `sign-up` only; others deferred; error map lists `user_already_exists`, `invalid_oob_value`; the plan notes email-first sign-up |
 | `api-plan-all-flows` | "Migrate this app", no flows named | All three flows in `scope`; `deferred: {}`; error map lists all three codes |
-| `sdk-js-plan-sign-in-only` | Only sign-in | `approach: sdk`; `scope` has sign-in only; error map lists `isUserNotFound`, `isInvalidCode`; the plan moves the SDK to at least `5.29.0` and says the V2 methods are experimental |
-| `sdk-js-plan-sign-up-only` | Only sign-up | `approach: sdk`; `scope` has `sign-up` only; error map lists `isUserAlreadyExists`, `isInvalidCode`; email-first sign-up; at least `5.29.0`; experimental |
-| `sdk-js-plan-all-flows` | "Migrate this app", no flows named | `approach: sdk`; all three flows; error map lists all three checks; at least `5.29.0`; experimental |
-| `sdk-ios-plan-sign-in-only` | Only sign-in | `approach: sdk`; `scope` has sign-in only; error map lists `isUserNotFound`, `isInvalidCode`; experimental; says no MSAL release has V2 yet and lists that under "Decisions needed" |
-| `sdk-ios-plan-all-flows` | "Migrate this app", no flows named | `approach: sdk`; all three flows; error map lists `isUserNotFound`, `isInvalidCode`, `isUserAlreadyExists`; experimental; the release decision as above |
+| `sdk-js-plan-sign-in-only` | Only sign-in | `approach: sdk`; `scope` has sign-in only; error map lists `isUserNotFound`, `isInvalidCode`; the plan moves the SDK to at least `5.29.0` |
+| `sdk-js-plan-sign-up-only` | Only sign-up | `approach: sdk`; `scope` has `sign-up` only; error map lists `isUserAlreadyExists`, `isInvalidCode`; email-first sign-up; at least `5.29.0` |
+| `sdk-js-plan-all-flows` | "Migrate this app", no flows named | `approach: sdk`; all three flows; error map lists all three checks; at least `5.29.0` |
+| `sdk-ios-plan-sign-in-only` | Only sign-in | `approach: sdk`; `scope` has sign-in only; error map lists `isUserNotFound`, `isInvalidCode`; the plan moves MSAL to at least `2.18.1` |
+| `sdk-ios-plan-all-flows` | "Migrate this app", no flows named | `approach: sdk`; all three flows; error map lists `isUserNotFound`, `isInvalidCode`, `isUserAlreadyExists`; at least `2.18.1` |
 
 `api-plan-approve-with-open-decision` checks the approval gate. It seeds the
 app and a draft sign-in + SSPR plan with one open item under "Decisions
@@ -146,10 +146,3 @@ node tests/evals/eeid-native-auth-migrate-v2/scripts/generate-graders.mjs
 commits it; each case's `scaffold.sh` calls it. `scripts/seed-plan.mjs <plan>`
 writes a plan from `fixtures/plans/` into the workspace, filling in the
 installed skill version, today's date, the baseline commit, and file hashes.
-
-The iOS plan cases expect the plan to say that no MSAL for iOS release has
-the V2 methods yet (2.17.1 is the latest), or that the check couldn't run and
-availability is unverified. When the V2 release ships, update
-`references/sdk/ios/approach.md` with its version and change
-`plan-sdk-not-released` and `plan-decision-for-sdk-release` in those cases to
-check for the version instead.

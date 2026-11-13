@@ -1,0 +1,41 @@
+schema_version: "1.1"
+name: hosted-behavior-approval
+context:
+  scaffold_script: scaffold.sh
+graders:
+  - name: skill-loaded
+    type: tool_used
+    tool: Skill
+    input_match: '"skill"\s*:\s*"(?:[\w-]+:)?eeid-implement-hosted-auth"'
+  - name: approval-gate
+    type: llm
+    focus: last_message
+    criteria: >-
+      PASS if the response identifies concrete proposed application and package
+      changes, describes a checkpoint/rollback approach, and stops with an
+      approval question or an explicit statement that changes await approval.
+      FAIL if it treats the implementation preference as approval, reports
+      completed edits/setup, restarts approach selection, or provides no
+      specific proposed changes because a runtime reference is missing.
+  - name: no-write
+    type: tool_used
+    tool: Write
+    min: 0
+    max: 0
+  - name: no-edit
+    type: tool_used
+    tool: Edit
+    min: 0
+    max: 0
+  - name: no-created-files
+    type: file_exists
+    path: "**"
+    exists: false
+  - name: source-unchanged
+    type: regex
+    target: { source: file, path: src/server.mjs }
+    pattern: '^import \{ createServer \} from "node:http";\s+export const server = createServer\(\(request, response\) => \{\s+response\.writeHead\(200, \{ "Content-Type": "text/plain" \}\);\s+response\.end\("Customer portal"\);\s+\}\);\s*$'
+  - name: manifest-unchanged
+    type: regex
+    target: { source: file, path: package.json }
+    pattern: '^\{\s+"name": "eeid-server-eval",\s+"private": true,\s+"type": "module"\s+\}\s*$'

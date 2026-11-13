@@ -1,0 +1,5 @@
+{
+  "name": "eeid-server-eval",
+  "private": true,
+  "type": "module"
+}

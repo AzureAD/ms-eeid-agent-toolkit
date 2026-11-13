@@ -1,0 +1,9 @@
+{
+  "name": "eeid-native-implementation-eval",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node --check src/native-auth.mjs && node --check src/main.mjs",
+    "test": "node --test tests/auth.test.mjs"
+  }
+}

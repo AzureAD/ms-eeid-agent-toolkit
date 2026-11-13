@@ -1,0 +1,9 @@
+{
+  "name": "eeid-web-implementation-eval",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node --check src/auth.mjs",
+    "test": "node --test tests/auth.test.mjs"
+  }
+}

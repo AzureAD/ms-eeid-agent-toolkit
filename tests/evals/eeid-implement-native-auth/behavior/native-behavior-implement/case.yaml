@@ -1,0 +1,29 @@
+schema_version: "1.1"
+name: native-behavior-implement
+context:
+  scaffold_script: scaffold.sh
+graders:
+  - name: skill-loaded
+    type: tool_used
+    tool: Skill
+    input_match: '"skill"\s*:\s*"(?:[\w-]+:)?eeid-implement-native-auth"'
+  - name: independent-build-and-tests
+    type: regex
+    target: { source: file, path: .eval-verification.json }
+    pattern: '"passed"\s*:\s*true'
+  - name: truthful-implementation-report
+    type: llm
+    focus: last_message
+    criteria: >-
+      PASS if the response reports implemented V2 sign-in and in-app forms,
+      actual build/test outcomes, memory-only public-client state and rollback,
+      while distinguishing mocked checks from unverified live tenant sign-in.
+      FAIL for stopping at a plan or redundant approval question without a
+      scope conflict, using V1/SDK recipes, switching to redirects, or claiming
+      tests/live sign-in succeeded without running them.
+  - name: no-other-skill
+    type: tool_used
+    tool: Skill
+    input_match: 'eeid-implement-(?:hosted-auth|byoux)'
+    min: 0
+    max: 0

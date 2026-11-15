@@ -26,7 +26,7 @@ Use a production session-store adapter already approved by the project. The defa
 ### Environment
 
 ```dotenv
-ENTRA_EXTERNAL_ID_AUTHORITY=https://<tenant-subdomain>.ciamlogin.com/
+ENTRA_EXTERNAL_ID_AUTHORITY=https://<tenant-subdomain>.ciamlogin.com/<tenant-id>
 ENTRA_EXTERNAL_ID_CLIENT_ID=<application-client-id>
 ENTRA_EXTERNAL_ID_CLIENT_SECRET=<secret-from-secret-store>
 ENTRA_EXTERNAL_ID_REDIRECT_URI=http://localhost:3000/auth/callback

@@ -22,12 +22,20 @@ For React:
 npm install @azure/msal-react
 ```
 
+Inspect the manifest, lockfile, and installed `@azure/msal-browser` version
+(for npm, `npm ls @azure/msal-browser @azure/msal-react`). Match configuration,
+callback APIs, and wrapper peer dependencies to that version; do not upgrade an
+existing application just to copy this sample. The sample below targets MSAL
+Browser v5. In v5, `navigateToLoginRequestUrl` belongs in the
+`handleRedirectPromise` options, not `auth`; use the installed version's types
+and migration guidance when adapting it.
+
 ## Configuration
 
 Use the build tool's public configuration mechanism. These are identifiers, not secrets:
 
 ```dotenv
-VITE_ENTRA_EXTERNAL_ID_AUTHORITY=https://<tenant-subdomain>.ciamlogin.com/
+VITE_ENTRA_EXTERNAL_ID_AUTHORITY=https://<tenant-subdomain>.ciamlogin.com/<tenant-id>
 VITE_ENTRA_EXTERNAL_ID_CLIENT_ID=<application-client-id>
 VITE_ENTRA_EXTERNAL_ID_REDIRECT_URI=http://localhost:5173/
 VITE_ENTRA_EXTERNAL_ID_POST_LOGOUT_REDIRECT_URI=http://localhost:5173/
@@ -40,11 +48,11 @@ Use the framework-specific public prefix instead of `VITE_` when applicable.
 
 ```ts
 import {
-  AccountInfo,
+  AuthError,
   InteractionRequiredAuthError,
-  LogLevel,
   PublicClientApplication,
 } from "@azure/msal-browser";
+import type { AccountInfo } from "@azure/msal-browser";
 
 const apiScope = import.meta.env.VITE_ENTRA_EXTERNAL_ID_API_SCOPE;
 
@@ -60,7 +68,6 @@ export const msal = new PublicClientApplication({
     redirectUri: import.meta.env.VITE_ENTRA_EXTERNAL_ID_REDIRECT_URI,
     postLogoutRedirectUri:
       import.meta.env.VITE_ENTRA_EXTERNAL_ID_POST_LOGOUT_REDIRECT_URI,
-    navigateToLoginRequestUrl: true,
   },
   cache: {
     cacheLocation: "sessionStorage",
@@ -68,25 +75,41 @@ export const msal = new PublicClientApplication({
   system: {
     loggerOptions: {
       piiLoggingEnabled: false,
-      logLevel: LogLevel.Warning,
-      loggerCallback(level, message, containsPii) {
-        if (!containsPii && level <= LogLevel.Warning) {
-          console.warn(message);
-        }
-      },
     },
   },
 });
 
+function authFailure(
+  stage: "initialization/callback" | "redirect initiation",
+  error: unknown,
+): Error {
+  const candidate = error instanceof AuthError ? error.errorCode : "";
+  const code =
+    candidate.match(/^(?:[a-z])[a-z0-9_]{0,79}$/)?.[0] ?? "unknown_error";
+  const message = `Authentication ${stage} failed (${code}).`;
+  console.error(message);
+  return new Error(message);
+}
+
 export async function initializeAuth(): Promise<void> {
-  await msal.initialize();
-  const result = await msal.handleRedirectPromise();
-  const account = result?.account ?? msal.getAllAccounts()[0];
-  if (account) msal.setActiveAccount(account);
+  try {
+    await msal.initialize();
+    const result = await msal.handleRedirectPromise({
+      navigateToLoginRequestUrl: true,
+    });
+    const account = result?.account ?? msal.getAllAccounts()[0];
+    if (account) msal.setActiveAccount(account);
+  } catch (error) {
+    throw authFailure("initialization/callback", error);
+  }
 }
 
 export async function signIn(): Promise<void> {
-  await msal.loginRedirect(loginRequest);
+  try {
+    await msal.loginRedirect(loginRequest);
+  } catch (error) {
+    throw authFailure("redirect initiation", error);
+  }
 }
 
 export async function signOut(): Promise<void> {
@@ -106,7 +129,11 @@ export async function getAccessToken(
     return result.accessToken;
   } catch (error) {
     if (!(error instanceof InteractionRequiredAuthError)) throw error;
-    await msal.acquireTokenRedirect({ account, scopes: [scope] });
+    try {
+      await msal.acquireTokenRedirect({ account, scopes: [scope] });
+    } catch (redirectError) {
+      throw authFailure("redirect initiation", redirectError);
+    }
     throw new Error("Redirecting for authentication");
   }
 }
@@ -120,6 +147,14 @@ import { initializeAuth } from "./auth";
 await initializeAuth();
 createRoot(document.getElementById("root")!).render(<App />);
 ```
+
+Handle rejected startup and sign-in promises in the application's error UI.
+Show the sanitized message above, including the MSAL error code, so redirect
+initiation and callback failures remain distinguishable. Use a fixed
+`unknown_error` for unrecognized failures. Never display or log the original
+exception, `errorMessage`, stack/cause, callback URL/query/hash, tokens,
+authorization codes, or raw provider responses. Do not add a logger callback
+that prints arbitrary MSAL messages, even with PII logging disabled.
 
 React applications may wrap the app after initialization:
 
@@ -178,11 +213,33 @@ Default to `sessionStorage`. Choose `localStorage` only after explaining that it
 
 ## Verification
 
-1. Verify the app registration platform is SPA and implicit grants are disabled.
-2. Test first load, login redirect, callback, protected deep link, refresh, logout, provider error, expired token, and interaction-required fallback.
-3. Test multiple accounts/tabs according to the product requirement.
-4. Test wrong API origin, audience, and scope.
-5. Inspect built JavaScript and source maps for secret-like values.
-6. Run existing type, lint, unit, component, and browser tests.
+1. Follow `tenant-and-registration.md` to validate discovery using the final application authority. In a development-only diagnostic in the running app, reuse the same `msal` instance as sign-in and run the browser fetch below. Inspect environment substitution and request overrides; do not replace the authority with a separately typed value.
+2. Verify the app registration platform is SPA and implicit grants are disabled.
+3. Test first load, login redirect, callback, protected deep link, refresh, logout, provider error, expired token, and interaction-required fallback. Force both `loginRedirect` rejection and `handleRedirectPromise` rejection; check the UI and logs retain only the stage and sanitized code, never sensitive error fields.
+4. Test multiple accounts/tabs according to the product requirement.
+5. Test wrong API origin, audience, and scope.
+6. Inspect built JavaScript and source maps for secret-like values.
+7. Run the project's typecheck against the installed MSAL declarations, plus existing lint, unit, component, and browser tests. A bundler-only build is not a typecheck. If there is no typecheck script, use the project's TypeScript compiler with `--noEmit` and its app configuration (or `checkJs` for JavaScript). Fix unsupported options; do not hide them with casts, suppressions, or a dependency downgrade. If typechecking cannot run, report SDK compatibility as unverified, not passed.
+
+```ts
+const authority = msal.getConfiguration().auth.authority.replace(/\/+$/, "");
+const discoveryUrl = `${authority}/v2.0/.well-known/openid-configuration`;
+const response = await fetch(discoveryUrl, {
+  credentials: "omit",
+  redirect: "error",
+});
+console.info({ authority, discoveryUrl, status: response.status });
+if (response.status !== 200) {
+  throw new Error(`Authority discovery failed (HTTP ${response.status}).`);
+}
+const metadata = await response.json();
+```
+
+Check `metadata` as specified in the tenant reference without logging the whole
+document. A failed fetch, CORS error, invalid JSON, or unexpected tenant metadata
+blocks this check. Remove temporary diagnostics after verification; do not
+export authentication objects on `window` or disable browser security.
 
 Learn more: [Sign users in from a single-page application](https://learn.microsoft.com/entra/identity-platform/quickstart-single-page-app-sign-in).
+
+Version guidance: [Migrate from MSAL Browser v4 to v5](https://learn.microsoft.com/entra/msal/javascript/browser/v4-migration).

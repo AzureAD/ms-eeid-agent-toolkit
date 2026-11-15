@@ -28,7 +28,7 @@ belong to the same version.
 2. **Confirm the approach contract before implementation choice.** Use Microsoft-hosted sign-up/sign-in with authorization-code redirects and the repository's public/confidential client boundary. Support standard branding only for this launch; do not offer Custom HTML, hosted custom content, or a Bring your own UX handoff.
 3. **Implement or plan at the application gate.** Read the browser SPA or matching server-framework reference below. Use existing authentication conventions and keep credentials confined to confidential servers.
 4. **Offer branding at the approach-setup gate.** Read the branding reference, collect the user's standard brand inputs, and provide exact manual upload/configuration instructions. Skip package generation if branding is declined or the user selected a dry run.
-5. **Verify at the final gate.** Check login redirect, callback, protected deep links, session restoration, API token acquisition, logout, selected journeys, and any branding fallback.
+5. **Verify at the final gate.** Validate discovery against the final runtime authority using the tenant reference, including a browser fetch for SPAs. Require the SPA reference's installed-MSAL typecheck and sanitized redirect/callback diagnostics. Check login redirect, callback, protected deep links, session restoration, API token acquisition, logout, selected journeys, and any branding fallback. Report blocked checks explicitly.
 
 ## Reference
 

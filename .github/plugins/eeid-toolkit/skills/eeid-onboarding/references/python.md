@@ -25,7 +25,7 @@ Do not use Flask's client-side signed cookie to hold tokens. Configure Flask-Ses
 ### Environment
 
 ```dotenv
-ENTRA_EXTERNAL_ID_AUTHORITY=https://<tenant-subdomain>.ciamlogin.com/
+ENTRA_EXTERNAL_ID_AUTHORITY=https://<tenant-subdomain>.ciamlogin.com/<tenant-id>
 ENTRA_EXTERNAL_ID_CLIENT_ID=<application-client-id>
 ENTRA_EXTERNAL_ID_CLIENT_SECRET=<secret-from-secret-store>
 ENTRA_EXTERNAL_ID_REDIRECT_URI=http://localhost:5000/auth/callback

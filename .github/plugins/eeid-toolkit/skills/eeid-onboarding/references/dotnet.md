@@ -28,7 +28,7 @@ Tracked `appsettings.json`:
 ```json
 {
   "AzureAd": {
-    "Authority": "https://<tenant-subdomain>.ciamlogin.com/",
+    "Authority": "https://<tenant-subdomain>.ciamlogin.com/<tenant-id>",
     "TenantId": "<tenant-id>",
     "ClientId": "<application-client-id>",
     "CallbackPath": "/signin-oidc",
@@ -132,7 +132,7 @@ Registration: a separate API app with an exposed delegated scope.
 ```json
 {
   "AzureAd": {
-    "Authority": "https://<tenant-subdomain>.ciamlogin.com/",
+    "Authority": "https://<tenant-subdomain>.ciamlogin.com/<tenant-id>",
     "TenantId": "<tenant-id>",
     "ClientId": "<api-application-client-id>",
     "Audience": "api://<api-application-client-id>"

@@ -4,9 +4,11 @@ Changes to the eeid-toolkit plugin, newest first. Each entry is one plugin
 version and lists every skill that changed, with its skill version.
 
 
-## 0.2.0 - 2026-11-13
+## 0.2.0 - 2026-11-15
 
-Add Web and Native V2 onboarding skills and evals; omit Go implementation guidance.
+Add hosted and native authentication onboarding skills with tenant-qualified authorities, final runtime discovery checks, MSAL version validation, and safe redirect diagnostics.
+
+**Action needed for work done with an earlier version:** Recheck application authority discovery and MSAL type compatibility; retain only sanitized authentication error codes in diagnostics.
 
 | Skill | Skill version |
 | --- | --- |

@@ -15,15 +15,44 @@ Ask for the tenant ID. When authenticated access is available:
 
 1. Read the tenant organization and verified domains from Microsoft Graph.
 2. Identify the initial `<subdomain>.onmicrosoft.com` domain.
-3. Derive `<subdomain>` and verify that this metadata endpoint responds:
+3. Derive `<subdomain>` and use the tenant-qualified authority:
+
+```text
+https://<subdomain>.ciamlogin.com/<tenant-id>
+```
+
+Verify discovery returns HTTP 200 and an OpenID configuration JSON document:
 
 ```text
 https://<subdomain>.ciamlogin.com/<tenant-id>/v2.0/.well-known/openid-configuration
 ```
 
-4. Show the resolved tenant ID, subdomain, authority, and issuer for confirmation.
+4. Check the returned issuer and authorization, token, and signing-key endpoints belong to the intended tenant and trusted identity service. Show the resolved tenant ID, subdomain, authority, and returned issuer for confirmation; do not guess the issuer from the authority.
 
 If resolution is unavailable or multiple domains are ambiguous, ask the user for the external-tenant subdomain. Do not ask them to classify the tenant type.
+
+### Validate the final application authority
+
+After implementation and environment substitution, read the authority actually
+passed to the authentication library, including any per-request override.
+Derive its discovery URL by trimming trailing slashes and appending
+`/v2.0/.well-known/openid-configuration`; fetch it and repeat the status and
+metadata checks above. Do not validate a separate hard-coded tenant URL while
+the application uses another authority.
+
+Do not replace a validated tenant-qualified authority with
+`https://<subdomain>.ciamlogin.com/`. Root discovery can return HTTP 400,
+`invalid_tenant` (`AADSTS90002`), even when tenant-qualified discovery returns
+HTTP 200. This is not a reason to bypass authority or issuer validation.
+
+For browser applications, also require a browser `fetch` from the running app's
+origin using the final MSAL configuration, as shown in `spa-hosted.md`. A
+successful command-line request does not verify browser access or CORS.
+Recheck after changing tenant or environment configuration. On failure, stop
+live sign-in verification and report only the authority, discovery URL, HTTP
+status, and sanitized error code, not the raw response. If network or browser
+access is unavailable, record that check as blocked rather than passed; a dry
+run must carry these checks into its execution plan.
 
 Learn more: [Find external tenant details](https://learn.microsoft.com/entra/external-id/customers/how-to-create-external-tenant-portal#get-the-external-tenant-details).
 

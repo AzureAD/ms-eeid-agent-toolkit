@@ -25,7 +25,7 @@ For an already authenticated project, preserve working conventions and state wha
 - Match redirect URIs exactly, including scheme, host, port, path, and trailing slash.
 - Register browser code as SPA, server code as Web/confidential, and native code as public client.
 - Never place a client secret in browser, mobile, desktop, or distributed CLI code.
-- Use `https://<subdomain>.ciamlogin.com/`; do not add a B2C policy path or `p=` parameter.
+- Use the confirmed tenant-qualified authority `https://<subdomain>.ciamlogin.com/<tenant-id>` consistently in application configuration and examples. Follow `tenant-and-registration.md` to validate discovery against the final runtime authority; do not substitute the host root or add a B2C policy path or `p=` parameter.
 - Use maintained libraries for PKCE, state, nonce, token signature, issuer, audience, lifetime, and scope validation.
 - Keep secrets, tokens, codes, cookies, and assertions out of source control, output, plans, and logs.
 

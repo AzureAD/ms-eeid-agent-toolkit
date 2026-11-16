@@ -37,25 +37,37 @@ together.
 
 #### GitHub Copilot CLI
 
-Run these commands in your terminal:
+1. Add the catalog. Run this command in your terminal:
 
-```bash
-copilot plugin marketplace add AzureAD/ms-eeid-agent-toolkit
-copilot plugin install eeid-toolkit@ms-eeid-agent-toolkit
-```
+   ```bash
+   copilot plugin marketplace add AzureAD/ms-eeid-agent-toolkit
+   ```
+
+1. Install the plugin:
+
+   ```bash
+   copilot plugin install eeid-toolkit@ms-eeid-agent-toolkit
+   ```
 
 #### Claude Code
 
-Run these commands in a Claude Code session:
+Run these commands one at a time in a Claude Code session:
 
-```text
-/plugin marketplace add AzureAD/ms-eeid-agent-toolkit
-/plugin install eeid-toolkit@ms-eeid-agent-toolkit
-```
+1. Add the catalog:
+
+   ```text
+   /plugin marketplace add AzureAD/ms-eeid-agent-toolkit
+   ```
+
+1. Install the plugin:
+
+   ```text
+   /plugin install eeid-toolkit@ms-eeid-agent-toolkit
+   ```
 
 #### Codex
 
-1. Run this command in your terminal:
+1. Add the catalog. Run this command in your terminal:
 
    ```bash
    codex plugin marketplace add AzureAD/ms-eeid-agent-toolkit
@@ -66,20 +78,26 @@ Run these commands in a Claude Code session:
 
 #### Other agents
 
-Use the [Skills CLI](https://github.com/vercel-labs/skills) to install all the
+Use the [Skills CLI](https://github.com/vercel-labs/skills) to install the
 toolkit's skills for Cursor, GitHub Copilot in Visual Studio Code, and other
 agents. It copies the skill folders only, not the plugin's configuration.
 
-```bash
-npx skills add AzureAD/ms-eeid-agent-toolkit --all
-```
-
-To install all the skills for one agent only, name it with `--agent`. For
-example, for Cursor:
+Install all the skills for your user account:
 
 ```bash
-npx skills add AzureAD/ms-eeid-agent-toolkit --skill '*' --agent cursor
+npx skills add AzureAD/ms-eeid-agent-toolkit --skill '*' -g
 ```
+
+The command asks which agents to install to. To skip the question, name the
+agent with `--agent`, for example `--agent cursor`.
+
+- `-g` installs the skills for your user account, so they work in every
+  project. To install them for one project only, for example to commit them
+  with it, leave out `-g` and run the command in the project's root folder.
+- Don't use `--all`. It installs to every agent the Skills CLI supports,
+  without asking.
+- Use either the plugin or the Skills CLI for an agent, not both, or the agent
+  sees each skill twice.
 
 If you install skills one at a time, install `eeid-onboarding`,
 `eeid-implement-hosted-auth`, and `eeid-implement-native-auth` together.
@@ -87,7 +105,7 @@ If you install skills one at a time, install `eeid-onboarding`,
 own:
 
 ```bash
-npx skills add AzureAD/ms-eeid-agent-toolkit --skill eeid-native-auth-migrate-v2
+npx skills add AzureAD/ms-eeid-agent-toolkit --skill eeid-native-auth-migrate-v2 -g
 ```
 
 ## Use a skill
@@ -112,16 +130,18 @@ skill".
 | --- | --- | --- |
 | GitHub Copilot CLI | `copilot plugin update eeid-toolkit` | `copilot plugin uninstall eeid-toolkit` |
 | Claude Code | `/plugin marketplace update ms-eeid-agent-toolkit` (Claude Code picks up a new plugin version when one is released) | `/plugin uninstall eeid-toolkit@ms-eeid-agent-toolkit` |
-| Skills CLI | `npx skills update` | `npx skills remove <skill>` |
+| Skills CLI | `npx skills update -g` | `npx skills remove <skill> -g` |
 
-In Codex, manage the plugin from the `/plugins` list.
+In Codex, manage the plugin from the `/plugins` list. For skills you installed
+with the Skills CLI for one project, leave out `-g` and run the command in that
+project's root folder.
 
 To stay on one release, install from its tag:
 
 - GitHub Copilot CLI: add the catalog as
   `AzureAD/ms-eeid-agent-toolkit#v<version>`.
 - Skills CLI:
-  `npx skills add https://github.com/AzureAD/ms-eeid-agent-toolkit/tree/v<version>`.
+  `npx skills add https://github.com/AzureAD/ms-eeid-agent-toolkit/tree/v<version> --skill '*' -g`.
 
 ## Versions
 

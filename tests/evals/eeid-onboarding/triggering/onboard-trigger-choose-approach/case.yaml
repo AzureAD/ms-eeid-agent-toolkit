@@ -1,0 +1,16 @@
+schema_version: "1.1"
+name: onboard-trigger-choose-approach
+graders:
+  - name: skill-loaded
+    type: tool_used
+    tool: Skill
+    input_match: '"skill"\s*:\s*"(?:[\w-]+:)?eeid-onboarding"'
+  - name: useful-decisioning
+    type: llm
+    focus: last_message
+    criteria: >-
+      PASS if the response starts helping the customer choose an External ID
+      authentication approach through a recommendation, comparison, or one
+      focused requirements question, limited to Web/Microsoft-hosted and Native,
+      without claiming implementation. FAIL for offering BYOUX, Custom HTML,
+      an empty response, an unrelated answer, or a completion claim.

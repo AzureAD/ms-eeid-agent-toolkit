@@ -1,0 +1,44 @@
+schema_version: "1.1"
+name: native-behavior-implement
+context:
+  scaffold_script: scaffold.sh
+graders:
+  - name: skill-loaded
+    type: tool_used
+    tool: Skill
+    input_match: '"skill"\s*:\s*"(?:[\w-]+:)?eeid-implement-native-auth"'
+  - name: build-executed
+    type: tool_used
+    tool: Bash
+    input_match: '\bnpm\s+run\s+build\b'
+  - name: tests-executed
+    type: tool_used
+    tool: Bash
+    input_match: '\bnpm\s+test\b'
+  - name: implementation-validation
+    type: llm
+    focus: trace
+    criteria: >-
+      PASS if tool output shows successful npm run build and npm test after
+      implementing V2 sign-in and the in-app form, and changes stay within
+      the approved src/native-auth.mjs and src/main.mjs files. Tests and
+      package scripts must remain unchanged. FAIL for command invocation
+      without successful output, fabricated results, unimplemented stubs, or
+      changing tests/scripts to force a pass. These are mocked checks, not
+      live tenant verification.
+  - name: truthful-implementation-report
+    type: llm
+    focus: last_message
+    criteria: >-
+      PASS if the response reports implemented V2 sign-in and in-app forms,
+      actual build/test outcomes, memory-only public-client state and rollback,
+      while distinguishing mocked checks from unverified live tenant sign-in.
+      FAIL for stopping at a plan or redundant approval question without a
+      scope conflict, using V1/SDK recipes, switching to redirects, or claiming
+      tests/live sign-in succeeded without running them.
+  - name: no-other-skill
+    type: tool_used
+    tool: Skill
+    input_match: 'eeid-implement-(?:hosted-auth|byoux)'
+    min: 0
+    max: 0

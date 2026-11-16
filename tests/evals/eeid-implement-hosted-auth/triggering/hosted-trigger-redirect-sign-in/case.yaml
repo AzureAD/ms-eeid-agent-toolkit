@@ -1,0 +1,16 @@
+schema_version: "1.1"
+name: hosted-trigger-redirect-sign-in
+graders:
+  - name: skill-loaded
+    type: tool_used
+    tool: Skill
+    input_match: '"skill"\s*:\s*"(?:[\w-]+:)?eeid-implement-hosted-auth"'
+  - name: relevant-next-step
+    type: llm
+    focus: last_message
+    criteria: >-
+      PASS if the response acknowledges the selected Microsoft-hosted approach
+      and offers a relevant implementation next step, focused missing-input
+      question, or truthful missing-bundled-reference blocker. FAIL if it
+      restarts selection among approaches, substitutes embedded forms or BYOUX,
+      claims completed authentication, or provides no useful response.

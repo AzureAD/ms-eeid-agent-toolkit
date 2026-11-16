@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "tenant": {
+    "tenantId": "00000000-0000-0000-0000-000000000000",
+    "subdomain": "contosocustomers"
+  },
+  "applications": [
+    {
+      "key": "api",
+      "displayName": "Contoso Customer API",
+      "platform": "api",
+      "exposeApi": {
+        "identifierUri": "auto",
+        "scope": {
+          "value": "access_as_user",
+          "adminConsentDisplayName": "Access Contoso Customer API as the signed-in user",
+          "adminConsentDescription": "Allows the application to access the Contoso Customer API as the signed-in user",
+          "userConsentDisplayName": "Access Contoso Customer API",
+          "userConsentDescription": "Allows this application to access the Contoso Customer API on your behalf"
+        }
+      }
+    },
+    {
+      "key": "web",
+      "displayName": "Contoso Customer Web",
+      "platform": "web",
+      "redirectUris": [
+        "http://localhost:3000/auth/callback"
+      ],
+      "logoutUrl": "http://localhost:3000/",
+      "apiAccess": [
+        {
+          "applicationKey": "api",
+          "scopeValue": "access_as_user"
+        }
+      ],
+      "credential": {
+        "create": false,
+        "displayName": "onboard-to-eeid",
+        "expiresInDays": 180,
+        "keyVaultName": "contoso-secrets",
+        "secretName": "contoso-customer-web-client-secret"
+      }
+    }
+  ],
+  "userFlow": {
+    "displayName": "Contoso sign up and sign in",
+    "identityProviderIds": [
+      "EmailPassword-OAUTH"
+    ],
+    "applicationKeys": [
+      "web"
+    ],
+    "collectDisplayName": true
+  }
+}

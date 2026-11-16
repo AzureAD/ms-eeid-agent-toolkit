@@ -1,0 +1,15 @@
+schema_version: "1.1"
+name: native-trigger-in-app-forms
+graders:
+  - name: skill-loaded
+    type: tool_used
+    tool: Skill
+    input_match: '"skill"\s*:\s*"(?:[\w-]+:)?eeid-implement-native-auth"'
+  - name: relevant-next-step
+    type: llm
+    focus: last_message
+    criteria: >-
+      PASS if the response preserves in-app SDK authentication and offers a
+      relevant implementation next step, focused missing-input question, or
+      truthful missing-bundled-reference blocker. FAIL for redirect/BYOUX
+      substitution, a claimed completed integration, or an empty response.

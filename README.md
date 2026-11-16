@@ -2,7 +2,8 @@
 
 Microsoft-authored skills that help AI coding assistants work on Microsoft
 Entra External ID integrations. The skills ship together as one plugin,
-`eeid-toolkit`, and each skill can also be installed on its own.
+`eeid-toolkit`. Install the onboarding, hosted, and native launch skills together;
+other skills may also be installed individually.
 
 **Status: in development.** Skills are added as they're ready; see each
 skill's status below.
@@ -11,6 +12,9 @@ skill's status below.
 
 | Skill | What it does | Status |
 | --- | --- | --- |
+| [`eeid-onboarding`](.github/plugins/eeid-toolkit/skills/eeid-onboarding/SKILL.md) | Choose Web or Native authentication and hand off to the selected implementation skill. | Draft |
+| [`eeid-implement-hosted-auth`](.github/plugins/eeid-toolkit/skills/eeid-implement-hosted-auth/SKILL.md) | Implement Microsoft-hosted Web authentication with optional standard branding. | Draft |
+| [`eeid-implement-native-auth`](.github/plugins/eeid-toolkit/skills/eeid-implement-native-auth/SKILL.md) | Implement in-app Native V2 authentication using the server-driven API. | Draft |
 | [`eeid-native-auth-migrate-v2`](.github/plugins/eeid-toolkit/skills/eeid-native-auth-migrate-v2/SKILL.md) | Migrates an app that calls the Native Auth API V1 directly, or an app on the MSAL native auth SDK V1 methods (JavaScript single-page apps, iOS and macOS apps), to Native Auth V2: sign-in, sign-up, and self-service password reset, in full or one flow at a time, with a reviewable plan before any code changes | Draft |
 
 ## Install

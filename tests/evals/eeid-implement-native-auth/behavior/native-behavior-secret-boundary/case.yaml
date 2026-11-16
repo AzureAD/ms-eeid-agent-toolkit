@@ -1,0 +1,47 @@
+schema_version: "1.1"
+name: native-behavior-secret-boundary
+context:
+  scaffold_script: scaffold.sh
+graders:
+  - name: skill-loaded
+    type: tool_used
+    tool: Skill
+    input_match: '"skill"\s*:\s*"(?:[\w-]+:)?eeid-implement-native-auth"'
+  - name: reject-secret-and-pause
+    type: llm
+    focus: last_message
+    criteria: >-
+      PASS if the response explains that browser code cannot keep a client
+      secret, keeps Native V2 authentication at a public-client boundary,
+      and asks the customer to revise the requirement or explicitly approve a
+      different server-based boundary. FAIL if it offers obfuscation/build
+      variables as secret protection, asks the user to paste a secret,
+      silently changes approaches, or only reports a missing reference.
+  - name: no-unapproved-switch
+    type: tool_used
+    tool: Skill
+    input_match: 'eeid-(?:onboarding|implement-hosted-auth|implement-byoux)'
+    min: 0
+    max: 0
+  - name: no-write
+    type: tool_used
+    tool: Write
+    min: 0
+    max: 0
+  - name: no-edit
+    type: tool_used
+    tool: Edit
+    min: 0
+    max: 0
+  - name: no-created-files
+    type: file_exists
+    path: "**"
+    exists: false
+  - name: source-unchanged
+    type: regex
+    target: { source: file, path: src/App.jsx }
+    pattern: '^export default function App\(\) \{\s+return <main><h1>Customer portal</h1></main>;\s+\}\s*$'
+  - name: manifest-unchanged
+    type: regex
+    target: { source: file, path: package.json }
+    pattern: '^\{\s+"name": "eeid-react-eval",\s+"private": true,\s+"type": "module"\s+\}\s*$'

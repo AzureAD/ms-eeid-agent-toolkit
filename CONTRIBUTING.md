@@ -125,8 +125,10 @@ by setting the repository variable `REQUIRE_READY_SKILLS` to `true`.
   the skill version. Copy its standard text from
   [templates/skill/SKILL.md.template](templates/skill/SKILL.md.template) and
   add anything skill-specific after it.
-- Bundle all runtime references, scripts, and assets inside the skill. Don't
-  depend on root docs, sibling skills, or symlinks.
+- Bundle runtime references, scripts, and assets inside the skill. The
+  onboarding, hosted, and native launch skills are an explicit three-skill
+  bundle with shared references; install and evaluate them together. Other
+  skills must not depend on sibling skills, root docs, or symlinks.
 - Link authoritative Microsoft Learn guidance and record the supported API and
   SDK versions.
 - Define prerequisites, supported scenarios, exclusions, stopping conditions,

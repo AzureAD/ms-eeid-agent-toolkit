@@ -1,0 +1,18 @@
+schema_version: "1.1"
+name: onboard-no-trigger-copy-edit
+graders:
+  - name: skill-not-loaded
+    type: tool_used
+    tool: Skill
+    input_match: '"skill"\s*:\s*"(?:[\w-]+:)?eeid-onboarding"'
+    min: 0
+    max: 0
+    arm: both
+  - name: requested-rewrite
+    type: llm
+    focus: last_message
+    criteria: >-
+      PASS if the response supplies a clear rewritten sentence preserving the
+      three named approaches and the External ID context, without beginning
+      onboarding or asking implementation questions. FAIL if it does not
+      provide the rewrite or starts a setup workflow.

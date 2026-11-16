@@ -1,0 +1,47 @@
+schema_version: "1.1"
+name: hosted-behavior-standard-branding
+context:
+  scaffold_script: scaffold.sh
+graders:
+  - name: skill-loaded
+    type: tool_used
+    tool: Skill
+    input_match: '"skill"\s*:\s*"(?:[\w-]+:)?eeid-implement-hosted-auth"'
+  - name: standard-branding-only
+    type: llm
+    focus: last_message
+    criteria: >-
+      PASS if the response offers standard Microsoft-hosted branding
+      (such as logo, colors, background, or sign-in text), skip branding,
+      and optionally a branding question, then waits for the choice.
+      FAIL for offering Custom HTML, hosted custom content or a BYOUX path,
+      suggesting the bundled HTML asset, generating assets without approval,
+      or restarting tenant/journey discovery.
+  - name: no-other-approach
+    type: tool_used
+    tool: Skill
+    input_match: 'eeid-(?:onboarding|implement-native-auth|implement-byoux)'
+    min: 0
+    max: 0
+  - name: no-write
+    type: tool_used
+    tool: Write
+    min: 0
+    max: 0
+  - name: no-edit
+    type: tool_used
+    tool: Edit
+    min: 0
+    max: 0
+  - name: no-created-files
+    type: file_exists
+    path: "**"
+    exists: false
+  - name: source-unchanged
+    type: regex
+    target: { source: file, path: src/server.mjs }
+    pattern: '^import \{ createServer \} from "node:http";\s+export const server = createServer\(\(request, response\) => \{\s+response\.writeHead\(200, \{ "Content-Type": "text/plain" \}\);\s+response\.end\("Customer portal"\);\s+\}\);\s*$'
+  - name: manifest-unchanged
+    type: regex
+    target: { source: file, path: package.json }
+    pattern: '^\{\s+"name": "eeid-server-eval",\s+"private": true,\s+"type": "module"\s+\}\s*$'

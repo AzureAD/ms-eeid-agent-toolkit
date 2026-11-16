@@ -1,3 +1,5 @@
+import { createLaunchAdapter, launchSkills } from './lib/launch-bundle.mjs';
+import { copilotHome } from './adapters/copilot.mjs';
 // Runs a skill's eval cases (the `claude plugin eval` layout) on an agent
 // through an adapter and writes the same report for every agent.
 //
@@ -195,7 +197,10 @@ async function main() {
     console.log(USAGE);
     return;
   }
-  const adapter = ADAPTERS[options.agent];
+  const baseAdapter = ADAPTERS[options.agent];
+  const adapter = launchSkills.includes(options.skill) && baseAdapter.name === 'copilot'
+    ? createLaunchAdapter(baseAdapter, { skillsRoot, home: copilotHome() })
+    : baseAdapter;
   if (options.listModels) {
     console.log((await adapter.listModels()).join('\n'));
     return;

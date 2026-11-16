@@ -1,0 +1,55 @@
+schema_version: "1.1"
+name: native-behavior-dry-run
+context:
+  scaffold_script: scaffold.sh
+graders:
+  - name: skill-loaded
+    type: tool_used
+    tool: Skill
+    input_match: '"skill"\s*:\s*"(?:[\w-]+:)?eeid-implement-native-auth"'
+  - name: public-client-plan
+    type: llm
+    focus: last_message
+    criteria: >-
+      PASS if the response gives concrete files/tasks for in-app forms and
+      V2 state/action dispatch and a shared HAL handler; public-client
+      configuration with no secret; preview enrollment as an unverified
+      prerequisite; manual tenant steps; and tests for chosen journeys.
+      It must use authorize-challenge and authorization-code exchange,
+      not V1 continuation-token grants or SDK state recipes, and distinguish
+      unrun tenant/live checks. FAIL for fabricated SDK names,
+      redirect substitution, added MFA/password reset, completed-check claims,
+      or only reporting a missing shared workflow instead of a usable plan.
+  - name: email-first-sign-up
+    type: llm
+    focus: last_message
+    criteria: >-
+      PASS if sign-up starts with username and continuationToken only,
+      verifies the email OTP before requested attributes/password, supports
+      repeated collectAttributes with only requested fields, reuses verified
+      email, and treats challenge at sign-up start as existing-account outcome
+      without following its challenge links or disclosing method hints.
+      FAIL for password in start, treating that challenge as MFA, or
+      silently converting it into sign-in with the same continuation token.
+  - name: no-write
+    type: tool_used
+    tool: Write
+    min: 0
+    max: 0
+  - name: no-edit
+    type: tool_used
+    tool: Edit
+    min: 0
+    max: 0
+  - name: no-created-files
+    type: file_exists
+    path: "**"
+    exists: false
+  - name: source-unchanged
+    type: regex
+    target: { source: file, path: src/App.jsx }
+    pattern: '^export default function App\(\) \{\s+return <main><h1>Customer portal</h1></main>;\s+\}\s*$'
+  - name: manifest-unchanged
+    type: regex
+    target: { source: file, path: package.json }
+    pattern: '^\{\s+"name": "eeid-react-eval",\s+"private": true,\s+"type": "module"\s+\}\s*$'

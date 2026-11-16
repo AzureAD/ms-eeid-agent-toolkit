@@ -1,0 +1,53 @@
+schema_version: "1.1"
+name: onboard-behavior-excluded-paths
+context:
+  scaffold_script: scaffold.sh
+graders:
+  - name: skill-loaded
+    type: tool_used
+    tool: Skill
+    input_match: '"skill"\s*:\s*"(?:[\w-]+:)?eeid-onboarding"'
+  - name: excluded-paths-stay-excluded
+    type: llm
+    focus: last_message
+    criteria: >-
+      PASS if the response explicitly says BYOUX/Custom authentication pages
+      and Custom HTML are outside this onboarding launch, offers only Web
+      (Microsoft-hosted with standard branding) or Native as supported paths,
+      and waits for a supported choice. FAIL for BYOUX handoff, instructions
+      to invoke it as a workaround, loading its contract, generating HTML,
+      treating server-side code as proof BYOUX is required, or silently choosing Web.
+  - name: no-excluded-or-unconfirmed-handoff
+    type: tool_used
+    tool: Skill
+    input_match: 'eeid-implement-(?:hosted-auth|native-auth|byoux)'
+    min: 0
+    max: 0
+  - name: no-write
+    type: tool_used
+    tool: Write
+    min: 0
+    max: 0
+  - name: no-excluded-reference-read
+    type: tool_used
+    tool: Read
+    input_match: '(?:eeid-implement-byoux|byo-ux[.]md|hosted-custom-html[.]html)'
+    min: 0
+    max: 0
+  - name: no-edit
+    type: tool_used
+    tool: Edit
+    min: 0
+    max: 0
+  - name: no-created-files
+    type: file_exists
+    path: "**"
+    exists: false
+  - name: source-unchanged
+    type: regex
+    target: { source: file, path: src/server.mjs }
+    pattern: '^import \{ createServer \} from "node:http";\s+export const server = createServer\(\(request, response\) => \{\s+response\.writeHead\(200, \{ "Content-Type": "text/plain" \}\);\s+response\.end\("Customer portal"\);\s+\}\);\s*$'
+  - name: manifest-unchanged
+    type: regex
+    target: { source: file, path: package.json }
+    pattern: '^\{\s+"name": "eeid-server-eval",\s+"private": true,\s+"type": "module"\s+\}\s*$'

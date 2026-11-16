@@ -1,0 +1,53 @@
+schema_version: "1.1"
+name: native-behavior-v2-sspr-jit
+context:
+  scaffold_script: scaffold.sh
+graders:
+  - name: skill-loaded
+    type: tool_used
+    tool: Skill
+    input_match: '"skill"\s*:\s*"(?:[\w-]+:)?eeid-implement-native-auth"'
+  - name: sspr-update-poll-completion
+    type: llm
+    focus: last_message
+    criteria: >-
+      PASS if the plan uses PUT update with continuationToken and newPassword,
+      polls via latest returned token/link using POST, waits 1.5 seconds
+      between polls with at most 5 attempts when no policy exists, and stops
+      on error/exhaustion without password replay. It must distinguish reset
+      completion from follow-up sign-in, and for reset-only mode end without
+      MFA/JIT or token exchange. FAIL for POST update, unbounded/busy polling,
+      inventing poll_interval, or claiming the password is unchanged on follow-up failure.
+  - name: jit-is-not-an-mfa-code-shortcut
+    type: llm
+    focus: last_message
+    criteria: >-
+      PASS if the plan selects returned enrollment methods, sends email or
+      phoneNumber plus channel sms with continuationToken to enroll, always
+      requires activate with otp even for the verified email, and dispatches
+      the activation response through the parent journey so another multiFactor
+      challenge is handled before token exchange. FAIL for preverified bypass,
+      assuming activation always completes, hard-coded method URLs, or
+      automatically retrying activation.
+  - name: no-write
+    type: tool_used
+    tool: Write
+    min: 0
+    max: 0
+  - name: no-edit
+    type: tool_used
+    tool: Edit
+    min: 0
+    max: 0
+  - name: no-created-files
+    type: file_exists
+    path: "**"
+    exists: false
+  - name: source-unchanged
+    type: regex
+    target: { source: file, path: src/App.jsx }
+    pattern: '^export default function App\(\) \{\s+return <main><h1>Customer portal</h1></main>;\s+\}\s*$'
+  - name: manifest-unchanged
+    type: regex
+    target: { source: file, path: package.json }
+    pattern: '^\{\s+"name": "eeid-react-eval",\s+"private": true,\s+"type": "module"\s+\}\s*$'

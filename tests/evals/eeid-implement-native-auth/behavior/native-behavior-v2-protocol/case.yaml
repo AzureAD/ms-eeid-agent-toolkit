@@ -1,0 +1,55 @@
+schema_version: "1.1"
+name: native-behavior-v2-protocol
+context:
+  scaffold_script: scaffold.sh
+graders:
+  - name: skill-loaded
+    type: tool_used
+    tool: Skill
+    input_match: '"skill"\s*:\s*"(?:[\w-]+:)?eeid-implement-native-auth"'
+  - name: oauth-v2-contract
+    type: llm
+    focus: last_message
+    criteria: >-
+      PASS if the plan accepts the entry 401 when continuation_token exists;
+      starts form-encoded authorize-challenge with client_id and scope
+      (optional claims), no response_type; uses JSON continuationToken for
+      linked calls; resumes at the configured authorize-challenge with only
+      continuation_token at continue; and exchanges code using authorization_code.
+      It must not follow _links.continue or retry the failed code.
+      FAIL for V1 grants/endpoints or platform-specific SDK recipes.
+  - name: hal-link-and-error-guardrails
+    type: llm
+    focus: last_message
+    criteria: >-
+      PASS if the plan rebases relative/template links from /api/ or /oauth2/
+      with query dc=X preserved; rejects absolute links even on the tenant
+      host and scheme-relative links without requests; ignores self and
+      unrelated relations; rotates token/link sets including failure replacements;
+      stops for unknown actions or missing required links; distinguishes body-based
+      HAL/OAuth errors; checks invalid_grant plus web_redirect_required at
+      both authorization calls; and restarts browser authentication without
+      forwarding a continuation token. FAIL for guessed URLs, stale token
+      reuse, blind link following, or automatic verification replay.
+  - name: no-write
+    type: tool_used
+    tool: Write
+    min: 0
+    max: 0
+  - name: no-edit
+    type: tool_used
+    tool: Edit
+    min: 0
+    max: 0
+  - name: no-created-files
+    type: file_exists
+    path: "**"
+    exists: false
+  - name: source-unchanged
+    type: regex
+    target: { source: file, path: src/App.jsx }
+    pattern: '^export default function App\(\) \{\s+return <main><h1>Customer portal</h1></main>;\s+\}\s*$'
+  - name: manifest-unchanged
+    type: regex
+    target: { source: file, path: package.json }
+    pattern: '^\{\s+"name": "eeid-react-eval",\s+"private": true,\s+"type": "module"\s+\}\s*$'

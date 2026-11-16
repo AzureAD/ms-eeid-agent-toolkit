@@ -1,0 +1,52 @@
+schema_version: "1.1"
+name: onboard-behavior-native-handoff
+context:
+  scaffold_script: scaffold.sh
+graders:
+  - name: onboarding-loaded
+    type: tool_used
+    tool: Skill
+    input_match: '"skill"\s*:\s*"(?:[\w-]+:)?eeid-onboarding"'
+  - name: selected-skill-loaded
+    type: tool_used
+    tool: Skill
+    input_match: '"skill"\s*:\s*"(?:[\w-]+:)?eeid-implement-native-auth"'
+  - name: no-unselected-skill
+    type: tool_used
+    tool: Skill
+    input_match: 'eeid-implement-(?:hosted-auth|byoux)'
+    min: 0
+    max: 0
+  - name: preserved-native-plan
+    type: llm
+    focus: last_message
+    criteria: >-
+      PASS if the response produces concrete Native V2 sign-in implementation
+      tasks and tests, public-client/no-secret configuration, HAL state/action
+      handling, authorize-challenge and code exchange, manual tenant steps,
+      and unknown preview enrollment as a blocker to live use.
+      It must preserve the supplied scope and remain a dry run.
+      FAIL for restarting approach selection, invented SDK APIs, redirects,
+      added journeys, or tenant/live success claims.
+  - name: no-write
+    type: tool_used
+    tool: Write
+    min: 0
+    max: 0
+  - name: no-edit
+    type: tool_used
+    tool: Edit
+    min: 0
+    max: 0
+  - name: no-created-files
+    type: file_exists
+    path: "**"
+    exists: false
+  - name: source-unchanged
+    type: regex
+    target: { source: file, path: src/App.jsx }
+    pattern: '^export default function App\(\) \{\s+return <main><h1>Customer portal</h1></main>;\s+\}\s*$'
+  - name: manifest-unchanged
+    type: regex
+    target: { source: file, path: package.json }
+    pattern: '^\{\s+"name": "eeid-react-eval",\s+"private": true,\s+"type": "module"\s+\}\s*$'

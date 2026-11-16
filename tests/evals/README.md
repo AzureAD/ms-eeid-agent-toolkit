@@ -3,8 +3,9 @@
 Model-based evals for the skills in `.github/plugins/eeid-toolkit/skills/`. Each eval case is a folder of
 plain files (a prompt, a scaffold that seeds a fixture app, and graders) that
 any supported agent can run. A run starts a fresh, isolated session of the
-agent with only the skill under test installed, seeds an empty workspace,
-sends the prompt, and grades what the agent did.
+agent with only the skill under test installed (or the launch bundle described
+below), seeds an empty workspace, sends the prompt, and grades what the agent
+did.
 
 Evals call a model with your own sign-in for that agent, so they run
 **locally, not in CI**. CI runs the deterministic checks instead:
@@ -27,6 +28,8 @@ Every skill needs triggering and behavior cases before it's marked `ready`;
 ```text
 tests/evals/
 ├── README.md                  # this file
+├── fixtures/<app>/            # shared launch-bundle fixtures
+├── scripts/                   # shared launch-bundle scaffold helpers
 └── <skill-name>/              # same name as the skill's folder
     ├── README.md              # this skill's cases and fixtures
     ├── triggering/<case>/     # should-trigger and should-not-trigger cases
@@ -90,15 +93,41 @@ including VS Code's integrated terminal.
    npm run eval:agent -- --agent copilot --skill eeid-native-auth-migrate-v2
    ```
 
-   This takes much longer. For `eeid-native-auth-migrate-v2`, 36 cases run
-   3 times each (108 agent sessions, each plan case several minutes), and its
-   12 migrate cases (`*-migrate-*`) run once each: the six full migrations
-   can take an hour or more each, and the six SDK version cases stop early. Every run uses your plan or API budget for that agent. To
+   This takes much longer. For `eeid-native-auth-migrate-v2`, 27 cases run
+   3 times each (81 agent sessions, each plan case several minutes), and its
+   13 migrate cases (`*-migrate-*`) run once each: the six full migrations
+   can take an hour or more each, and the seven SDK version cases stop early.
+   Every run uses your plan or API budget for that agent. To
    leave the long cases out, select cases by name instead (see
    [Selecting cases](#selecting-cases)).
 
 The runner sets up each run, gives the agent only the permissions the case
 needs, and grades the result; you only choose the agent.
+
+### Onboarding launch bundle
+
+The onboarding, hosted, and native skills share runtime references and must
+be installed together. For these three suites, the Copilot adapter installs
+only `eeid-onboarding`, `eeid-implement-hosted-auth`, and
+`eeid-implement-native-auth`; baseline runs install none. BYOUX is excluded.
+
+Run each suite with the existing command:
+
+```bash
+npm run eval:agent -- --agent copilot --skill eeid-onboarding
+npm run eval:agent -- --agent copilot --skill eeid-implement-hosted-auth
+npm run eval:agent -- --agent copilot --skill eeid-implement-native-auth
+```
+
+Their 22 cases cover launch choices, exclusions, implementation handoffs,
+approval gates, and Web/Native V2 implementation. The two approved
+implementation cases ask the agent to run the fixture build and mocked
+acceptance tests without changing tests or package scripts. Standard tool-use
+and transcript graders check command execution, successful output, and approved
+implementation scope; the runner does not rerun checks or generate a separate
+verification file. These do not verify live tenant sign-in.
+Use Copilot for this bundle; the Claude Code adapter's single-skill
+installation does not satisfy its shared-reference contract.
 
 ### Options
 
@@ -145,8 +174,8 @@ For `eeid-native-auth-migrate-v2`:
 
 | Cases | Selection |
 | --- | --- |
-| One approach: raw API, JS SDK, or iOS SDK | `--case 'api-*'`, `--case 'sdk-js-*'`, `--case 'sdk-ios-*'` |
-| Should-trigger cases | `--case 'api-trigger-*'`, `--case 'sdk-js-trigger-*'`, `--case 'sdk-ios-trigger-*'` |
+| One approach: raw API, JS SDK, iOS SDK, or Android SDK | `--case 'api-*'`, `--case 'sdk-js-*'`, `--case 'sdk-ios-*'`, `--case 'sdk-android-*'` |
+| Should-trigger cases | `--case 'api-trigger-*'`, `--case 'sdk-js-trigger-*'`, `--case 'sdk-ios-trigger-*'`, `--case 'sdk-android-trigger-*'` |
 | Should-not-trigger cases | `--case '*no-trigger-*'` |
 | Plan cases (stop at approval) | `--case '*-plan-*'` (or `'api-plan-*'`, `'sdk-js-plan-*'`, `'sdk-ios-plan-*'`, `'sdk-android-plan-*'`) |
 | Migrate cases (some long) | `--case '*-migrate-*'` (or `'api-migrate-*'`, `'sdk-js-migrate-*'`, `'sdk-ios-migrate-*'`, `'sdk-android-migrate-*'`) |

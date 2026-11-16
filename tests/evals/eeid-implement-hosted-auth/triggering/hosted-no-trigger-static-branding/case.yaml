@@ -1,0 +1,17 @@
+schema_version: "1.1"
+name: hosted-no-trigger-static-branding
+graders:
+  - name: skill-not-loaded
+    type: tool_used
+    tool: Skill
+    input_match: '"skill"\s*:\s*"(?:[\w-]+:)?eeid-implement-hosted-auth"'
+    min: 0
+    max: 0
+    arm: both
+  - name: supplies-css
+    type: llm
+    focus: last_message
+    criteria: >-
+      PASS if the response supplies a valid CSS approach for horizontally
+      centering the logo without starting tenant or authentication setup.
+      FAIL for no CSS, unrelated guidance, or an authentication workflow.

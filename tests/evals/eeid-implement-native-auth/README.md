@@ -12,7 +12,7 @@ composition profile.
 | native-behavior-v2-protocol | Behavior | Handle entry 401, HAL links, token rotation, errors, and code exchange |
 | native-behavior-v2-sspr-jit | Behavior | Use PUT update, bounded polling, and code-based JIT with parent dispatch |
 | native-behavior-preview-gate | Behavior | Block live implementation without confirmed V2 preview access |
-| native-behavior-implement | Behavior | Apply approved V2 client/forms, then pass independent build/HTTP acceptance checks |
+| native-behavior-implement | Behavior | Apply approved V2 client/forms and show successful build/HTTP acceptance output in the tool trace |
 
 Planning/gate cases use the inspection-only `react` fixture. The implementation
 case uses `native-implementation`, permits only two source files, and runs

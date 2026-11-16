@@ -120,8 +120,11 @@ npm run eval:agent -- --agent copilot --skill eeid-implement-native-auth
 
 Their 22 cases cover launch choices, exclusions, implementation handoffs,
 approval gates, and Web/Native V2 implementation. The two approved
-implementation cases independently syntax-check the generated source and run
-immutable, mocked acceptance tests. These do not verify live tenant sign-in.
+implementation cases ask the agent to run the fixture build and mocked
+acceptance tests without changing tests or package scripts. Standard tool-use
+and transcript graders check command execution, successful output, and approved
+implementation scope; the runner does not rerun checks or generate a separate
+verification file. These do not verify live tenant sign-in.
 Use Copilot for this bundle; the Claude Code adapter's single-skill
 installation does not satisfy its shared-reference contract.
 

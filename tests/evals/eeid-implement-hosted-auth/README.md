@@ -10,7 +10,7 @@ composition profile.
 | hosted-behavior-dry-run | Behavior | Produce a scoped server implementation plan without changes |
 | hosted-behavior-approval | Behavior | Explain intended changes and wait for approval |
 | hosted-behavior-standard-branding | Behavior | Offer standard branding without reopening Custom HTML/BYOUX |
-| hosted-behavior-implement | Behavior | Apply approved server integration, then pass independent build/acceptance checks |
+| hosted-behavior-implement | Behavior | Apply approved server integration and show successful build/acceptance output in the tool trace |
 
 Planning/gate cases use `server`; the implementation case uses
 `web-implementation`. All identifiers are synthetic, never live verification

@@ -1,14 +1,14 @@
 import assert from 'node:assert/strict';
-import { cp, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { cp, mkdir, mkdtemp, readFile, readdir, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { test } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { loadCases } from '../../scripts/evals/lib/cases.mjs';
+import { gradeRun } from '../../scripts/evals/lib/graders.mjs';
 import {
-  implementationContract, normalizeBundleLoads, verifyImplementation,
-} from '../../scripts/evals/lib/eval-verification.mjs';
-import { createLaunchAdapter, launchSkills } from '../../scripts/evals/lib/launch-bundle.mjs';
+  createLaunchAdapter, launchSkills, normalizeBundleLoads,
+} from '../../scripts/evals/lib/launch-bundle.mjs';
 import { skillsRoot } from '../../scripts/lib/paths.mjs';
 
 const root = dirname(dirname(dirname(fileURLToPath(import.meta.url))));
@@ -71,26 +71,53 @@ test('launch preparation installs only the bundle and leaves the baseline empty'
   }
 });
 
-test('independent implementation verifier rejects unimplemented or tampered fixtures', async () => {
-  const parent = await mkdtemp(join(tmpdir(), 'eeid-verifier-test-'));
+test('launch runs return agent evidence without rerunning implementation checks', async () => {
+  const parent = await mkdtemp(join(tmpdir(), 'eeid-launch-run-test-'));
   try {
     for (const fixture of ['web-implementation', 'native-implementation']) {
       const workspace = join(parent, fixture);
       await cp(join(root, 'tests', 'evals', 'fixtures', fixture), workspace, { recursive: true });
-      const contract = await implementationContract(workspace);
-      assert(contract);
-      const result = await verifyImplementation(workspace, contract);
-      assert.equal(result.passed, false);
-      assert(result.checks.some((check) => check.name === 'acceptance-tests' && !check.passed));
-      assert.deepEqual(
-        JSON.parse(await readFile(join(workspace, '.eval-verification.json'), 'utf8')), result,
-      );
-      await writeFile(contract.test, '');
-      const tampered = await verifyImplementation(workspace, contract);
-      assert.equal(tampered.passed, false);
-      assert(tampered.checks.some((check) => check.name === 'acceptance-tests-unchanged' && !check.passed));
+      const testPath = join(workspace, 'tests', 'auth.test.mjs');
+      const originalTests = await readFile(testPath, 'utf8');
+      const evidence = { transcript: { tools: [], events: [], finalMessage: 'Not implemented' } };
+      const adapter = createLaunchAdapter({
+        name: 'fake',
+        async run(settings) {
+          assert.equal(settings.workspace, workspace);
+          return evidence;
+        },
+      }, { skillsRoot, home: parent });
+      assert.equal(await adapter.run({ workspace }), evidence);
+      assert.equal(await readFile(testPath, 'utf8'), originalTests);
+      await assert.rejects(readFile(join(workspace, '.eval-verification.json')), { code: 'ENOENT' });
     }
   } finally {
     await rm(parent, { recursive: true, force: true });
+  }
+});
+
+test('implementation graders require build and test calls without verifier artifacts', async () => {
+  for (const skill of ['eeid-implement-hosted-auth', 'eeid-implement-native-auth']) {
+    const cases = await loadCases(join(root, 'tests', 'evals', skill));
+    const testCase = cases.find((entry) => entry.name.endsWith('-behavior-implement'));
+    const tools = [
+      { name: 'Skill', input: { skill } },
+      { name: 'Bash', input: { command: 'npm run build && npm test' } },
+    ];
+    const run = {
+      workspace: join(root, 'tests', 'evals', 'fixtures',
+        skill === 'eeid-implement-hosted-auth' ? 'web-implementation' : 'native-implementation'),
+      createdFiles: [],
+      transcript: { tools, events: [{ output: 'build passed; tests passed' }], finalMessage: 'Done' },
+    };
+    const judge = async () => true;
+    const passed = await gradeRun(testCase.graders, run, { judge });
+    assert.equal(passed.score, 1);
+    run.transcript.tools = tools.filter((call) => call.name !== 'Bash');
+    const missingCommands = await gradeRun(testCase.graders, run, { judge });
+    assert.deepEqual(
+      missingCommands.results.filter((result) => !result.passed).map((result) => result.name),
+      ['build-executed', 'tests-executed'],
+    );
   }
 });

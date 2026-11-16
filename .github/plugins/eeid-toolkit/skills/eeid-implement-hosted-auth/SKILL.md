@@ -5,7 +5,7 @@ license: MIT
 metadata:
   author: Microsoft
   copyright: Microsoft Corporation. All rights reserved.
-  status: draft
+  status: ready
   version: "0.1.0"
 ---
 

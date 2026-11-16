@@ -1,6 +1,6 @@
 # Native V2 API contract
 
-V2 is a private preview. These language-neutral references adapt the
+V2 is a public preview. These language-neutral references adapt the
 `eeid-native-auth-migrate-v2\references\api\v2-*.md` contracts for new
 implementations, not migration parity. They are bundled here so implementation
 does not depend on another checkout. Do not replace them with public V1

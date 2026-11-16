@@ -11,9 +11,9 @@
 /.github/plugins/eeid-toolkit/skills/eeid-native-auth-migrate-v2/ @shenj @AzureAD/devex-ciam
 /tests/evals/eeid-native-auth-migrate-v2/ @shenj @AzureAD/devex-ciam
 
-/.github/plugins/eeid-toolkit/skills/eeid-onboarding/ @AzureAD/devex-ciam
-/tests/evals/eeid-onboarding/ @AzureAD/devex-ciam
-/.github/plugins/eeid-toolkit/skills/eeid-implement-hosted-auth/ @AzureAD/devex-ciam
-/tests/evals/eeid-implement-hosted-auth/ @AzureAD/devex-ciam
-/.github/plugins/eeid-toolkit/skills/eeid-implement-native-auth/ @AzureAD/devex-ciam
-/tests/evals/eeid-implement-native-auth/ @AzureAD/devex-ciam
+/.github/plugins/eeid-toolkit/skills/eeid-onboarding/ @cangokdere @AzureAD/devex-ciam
+/tests/evals/eeid-onboarding/ @cangokdere @AzureAD/devex-ciam
+/.github/plugins/eeid-toolkit/skills/eeid-implement-hosted-auth/ @cangokdere @AzureAD/devex-ciam
+/tests/evals/eeid-implement-hosted-auth/ @cangokdere @AzureAD/devex-ciam
+/.github/plugins/eeid-toolkit/skills/eeid-implement-native-auth/ @cangokdere @AzureAD/devex-ciam
+/tests/evals/eeid-implement-native-auth/ @cangokdere @AzureAD/devex-ciam

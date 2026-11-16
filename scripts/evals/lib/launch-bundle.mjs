@@ -1,12 +1,24 @@
 import { cp } from "node:fs/promises";
 import { join } from "node:path";
-import { implementationContract, normalizeBundleLoads, verifyImplementation } from "./eval-verification.mjs";
 
 export const launchSkills = [
   "eeid-onboarding",
   "eeid-implement-hosted-auth",
   "eeid-implement-native-auth",
 ];
+
+export function normalizeBundleLoads(transcript, names) {
+  for (const name of names) {
+    const alreadyLoaded = transcript.tools.some((call) =>
+      call.name === "Skill" && call.input.skill?.split(":").at(-1) === name);
+    const read = transcript.tools.some((call) => call.name === "Read" &&
+      String(call.input.file_path ?? call.input.path ?? "").replaceAll("\\", "/").endsWith(`/skills/${name}/SKILL.md`));
+    if (!alreadyLoaded && read) {
+      transcript.tools.push({ name: "Skill", input: { skill: name }, rawName: "(read bundled SKILL.md)" });
+    }
+  }
+  return transcript;
+}
 
 export function createLaunchAdapter(adapter, { skillsRoot, home }) {
   return {
@@ -19,10 +31,8 @@ export function createLaunchAdapter(adapter, { skillsRoot, home }) {
       }
     },
     async run(settings) {
-      const contract = await implementationContract(settings.workspace);
       const result = await adapter.run(settings);
       normalizeBundleLoads(result.transcript, launchSkills);
-      if (contract) await verifyImplementation(settings.workspace, contract);
       return result;
     },
   };

@@ -1,6 +1,6 @@
 ---
 managed-by: eeid-native-auth-migrate-v2   # Load this skill before changing or applying this plan.
-skill-version: "{{SKILL_VERSION}}"   # a different installed version restarts the migration
+skill-version: "{{SKILL_VERSION}}"   # a different installed major or minor version restarts the migration
 app-root: .
 approach: api            # api | sdk (sdk not supported yet)
 phase: 1

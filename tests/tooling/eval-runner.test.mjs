@@ -43,7 +43,7 @@ test('splits front matter from the body', () => {
 
 test('loads every case in the native auth suite with its settings and graders', async () => {
   const cases = await loadCases(evalDir);
-  assert.equal(cases.length, 49);
+  assert.equal(cases.length, 51);
   const plan = cases.find((testCase) => testCase.name === 'api-plan-sign-in-sspr');
   assert.equal(plan.path, 'behavior/api-plan-sign-in-sspr');
   assert.ok(plan.scaffoldScript.endsWith('scaffold.sh'));
@@ -56,11 +56,11 @@ test('loads every case in the native auth suite with its settings and graders', 
 test('selects cases by tag and by name glob', async () => {
   const cases = await loadCases(evalDir);
   assert.equal(selectCases(cases, { tags: ['triggering'] }).length, 22);
-  assert.equal(selectCases(cases, { tags: ['behavior'] }).length, 27);
+  assert.equal(selectCases(cases, { tags: ['behavior'] }).length, 29);
   for (const testCase of cases) assert.equal(testCase.tags.length, 1, `${testCase.name} has exactly one tag, its type`);
   // Approach prefixes: api-* (raw API), sdk-js-* (MSAL JS SDK), sdk-ios-* (MSAL iOS/macOS SDK); no-trigger-* are shared.
-  assert.equal(selectCases(cases, { caseGlob: 'api-*' }).length, 13);
-  assert.equal(selectCases(cases, { caseGlob: 'api-plan-*' }).length, 6);
+  assert.equal(selectCases(cases, { caseGlob: 'api-*' }).length, 15);
+  assert.equal(selectCases(cases, { caseGlob: 'api-plan-*' }).length, 8);
   assert.equal(selectCases(cases, { caseGlob: 'sdk-js-*' }).length, 13);
   assert.equal(selectCases(cases, { caseGlob: 'no-trigger-*' }).length, 5);
   assert.equal(selectCases(cases, { caseGlob: '*no-trigger-*' }).length, 11);
@@ -68,7 +68,7 @@ test('selects cases by tag and by name glob', async () => {
   assert.equal(selectCases(cases, { caseGlob: 'sdk-js-trigger-*' }).length, 2);
   assert.equal(selectCases(cases, { caseGlob: '*-migrate-*' }).length, 13);
   assert.equal(selectCases(cases, { caseGlob: '*-install-fails' }).length, 3);
-  assert.equal(selectCases(cases, { caseGlob: '*-resume-*' }).length, 4);
+  assert.equal(selectCases(cases, { caseGlob: '*-resume-*' }).length, 5);
   assert.equal(selectCases(cases, { caseGlob: 'sdk-js-plan-*' }).length, 4);
   assert.equal(selectCases(cases, { caseGlob: 'sdk-ios-*' }).length, 9);
   assert.equal(selectCases(cases, { caseGlob: 'sdk-ios-trigger-*' }).length, 2);

@@ -43,8 +43,9 @@ them for security, validate them, and write a migration report.
    change, including the customer's own edits to `plan.md`, updates the
    notes in the same revision (**Working notes** in the lifecycle
    reference).
-   **Never continue a plan made by a different skill version**; restart it
-   (see **Version change → restart**).
+   **Never continue a plan made by a different major or minor skill
+   version**; restart it (see **Version change → restart**). A plan from
+   another patch of the same major and minor version continues.
 6. Treat continuation tokens, codes, passwords, OTPs, and tokens as secrets.
    Never write them to logs, URLs, or migration documents.
 7. **Never report a check you didn't run.** Every validation result is
@@ -90,8 +91,11 @@ Look for `.native-auth-v2-migration/plan.md` and read its front matter:
 
 Before following the table:
 
-1. Compare the plan's `skill-version` with yours. If the plan isn't
-   `reported` and the versions differ, go to **Version change → restart**.
+1. Compare the plan's `skill-version` with yours by their first two
+   numbers (major and minor; `0.3.0` and `0.3.2` match, `0.3.0` and `0.4.0`
+   don't). If the plan isn't `reported` and they differ, go to **Version
+   change → restart**. If only the patch number differs, continue the plan
+   as it is.
 2. Check that the front matter is complete and `status` is one of the values
    above. If not (for example a hand edit broke it), **stop**: describe what
    is wrong and ask the customer how to proceed. Never guess the state.
@@ -107,8 +111,8 @@ Before following the table:
 
 ## Version change → restart
 
-A plan whose `skill-version` differs from yours and whose status isn't
-`reported` can't be continued. Follow **Version change → restart** in
+A plan whose `skill-version` has a different major or minor number from
+yours, and whose status isn't `reported`, can't be continued. Follow **Version change → restart** in
 [references/migration-lifecycle.md](references/migration-lifecycle.md):
 stop and explain, offer to reinstall the plan's version, revert the
 migration's code changes only with explicit approval, archive the plan, and
@@ -320,5 +324,6 @@ Stop and explain, without changing code, when:
 - a requested split would mix V1 and V2 inside one flow;
 - the plan is stale, the customer hasn't approved the current revision, or
   decisions are still open;
-- the plan was made by a different skill version (restart instead);
+- the plan was made by a different major or minor skill version (restart
+  instead);
 - you find a V1 pattern the references don't cover — list it and ask.

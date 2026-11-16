@@ -321,6 +321,40 @@ test('open-decision approval case: the seeded workspace passes, an applied appro
   }
 });
 
+test('version-change cases: the plan is seeded from another patch or minor skill version', async () => {
+  const skillText = await readFile(join(skillsRoot, 'eeid-native-auth-migrate-v2/SKILL.md'), 'utf8');
+  const installed = /\n\s+version:\s*"?(\d+)\.(\d+)\.(\d+)/.exec(skillText).slice(1).map(Number);
+  for (const [name, change] of [['api-plan-resume-patch-version', 'patch'], ['api-plan-restart-minor-version', 'minor']]) {
+    const workspace = await seededWorkspace(name);
+    const fileChecks = byName.get(name).graders.filter((grader) => grader.type !== 'llm' && grader.type !== 'tool_used');
+    try {
+      const plan = await readFile(join(workspace.workspace, '.native-auth-v2-migration/plan.md'), 'utf8');
+      const seeded = /\nskill-version:\s*"(\d+)\.(\d+)\.(\d+)"/.exec(plan).slice(1).map(Number);
+      assert.equal(seeded[0], installed[0], `${name}: same major`);
+      if (change === 'patch') {
+        assert.equal(seeded[1], installed[1], `${name}: same minor`);
+        assert.notEqual(seeded[2], installed[2], `${name}: another patch`);
+      } else {
+        assert.notEqual(seeded[1], installed[1], `${name}: another minor`);
+      }
+
+      // As seeded (a run that changed nothing): every file check passes.
+      let results = await grade(fileChecks, workspace.workspace, await workspace.createdFiles());
+      for (const [check, result] of Object.entries(results)) assert.equal(result.passed, true, `${name}/${check}: ${result.detail}`);
+
+      // A run that changed code fails; a patch run that archived the plan fails.
+      await appendFile(join(workspace.workspace, 'src/config.js'), '\n// V2\n');
+      await mkdir(join(workspace.workspace, '.native-auth-v2-migration/phases/2026-11-16-sign-in-sspr-restarted'), { recursive: true });
+      await writeFile(join(workspace.workspace, '.native-auth-v2-migration/phases/2026-11-16-sign-in-sspr-restarted/plan.md'), plan);
+      results = await grade(fileChecks, workspace.workspace, await workspace.createdFiles());
+      assert.equal(results['gen-file-unchanged-src-config-js'].passed, false, `${name}: code change`);
+      if (change === 'patch') assert.equal(results['plan-not-archived'].passed, false, `${name}: archived`);
+    } finally {
+      await workspace.dispose();
+    }
+  }
+});
+
 test('iOS plan graders: the plan must move MSAL to the V2 minimum or later', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'eval-ios-'));
   const check = graders('sdk-ios-plan-all-flows', 'plan-sdk-version');

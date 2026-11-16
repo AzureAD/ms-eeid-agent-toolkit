@@ -265,3 +265,17 @@ test('rule: symlinks are not allowed in a skill or in skills/', async () => {
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test('package-lock.json downloads only from the public npm registry', async () => {
+  const lock = (resolved) => ({
+    name: 'sample', lockfileVersion: 3, requires: true,
+    packages: { '': { name: 'sample' }, 'node_modules/yaml': { version: '2.8.3', resolved, integrity: 'sha512-x' } },
+  });
+  assert.deepEqual(await errorsFor((files) => {
+    files['package-lock.json'] = lock('https://registry.npmjs.org/yaml/-/yaml-2.8.3.tgz');
+  }), []);
+  const errors = await errorsFor((files) => {
+    files['package-lock.json'] = lock('https://feed.example.com/npm/registry/yaml/-/yaml-2.8.3.tgz');
+  });
+  assert.ok(errors.some((e) => e.startsWith('package-lock.json: yaml downloads from feed.example.com')), errors.join('\n'));
+});

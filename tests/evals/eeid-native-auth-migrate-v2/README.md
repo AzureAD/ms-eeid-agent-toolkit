@@ -99,6 +99,16 @@ prompt approves it anyway. Checks: the plan stays `status: draft` with
 original and no file is added (generated `gen-file-` checks), and the final
 message asks for the decision (judge).
 
+Two cases check the skill version rule: a plan restarts only when the major
+or minor skill version differs. Both seed the same draft sign-in + SSPR plan
+with `seed-plan.mjs --plan-version`, and the prompt asks to pick up the
+migration. In both, every app file stays the original and no file is added.
+
+| Case | Plan made by | Checks |
+| --- | --- | --- |
+| `api-plan-resume-patch-version` | Another patch of the installed skill version (`--plan-version patch`) | The plan continues: still `draft`, revision 1, nothing archived under `phases/`; the final message asks for approval and doesn't restart (judge) |
+| `api-plan-restart-minor-version` | Another minor skill version (`--plan-version minor`) | The old plan is never approved; the final message explains the restart and offers reinstalling the plan's version (judge) |
+
 ### Full-migration cases
 
 Each case seeds its approach's fixture and a complete plan (from
@@ -181,7 +191,9 @@ installed skill version, today's date, the baseline commit, and file hashes,
 and writes its working notes (`<plan>.working-notes.md` next to it) as
 `working-notes.md` with the plan's revision. With `--waiting "<error>"` it writes the plan as a run leaves it when the SDK
 install failed: approved, `applying`, and the first shared step unticked with
-the waiting note. `scripts/customer-install.mjs <js|ios>` simulates the
+the waiting note. With `--plan-version <patch|minor>` it records
+a skill version that differs from the installed one only in the patch
+number, or in the minor number. `scripts/customer-install.mjs <js|ios>` simulates the
 customer installing the minimum SDK version: it edits the dependency files
 (and writes a minimal `package-lock.json` for JS) and commits them, without
 downloading anything.

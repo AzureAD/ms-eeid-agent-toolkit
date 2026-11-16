@@ -192,6 +192,24 @@ export const FULL_CASES = {
     newTests: false,
     report: false,
   },
+  // A plan from another patch version continues; one from another minor
+  // version restarts. Neither changes code or writes a report.
+  'behavior/api-plan-resume-patch-version': {
+    fixture: 'spa-js-v1',
+    changed: [],
+    removed: [],
+    required: [],
+    newTests: false,
+    report: false,
+  },
+  'behavior/api-plan-restart-minor-version': {
+    fixture: 'spa-js-v1',
+    changed: [],
+    removed: [],
+    required: [],
+    newTests: false,
+    report: false,
+  },
 };
 
 const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');

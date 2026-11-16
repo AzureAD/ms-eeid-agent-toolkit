@@ -286,11 +286,16 @@ When the customer starts it:
 
 ## Version change → restart
 
-A different skill version may change the V2 mapping, SDK interfaces,
-or rules, so a plan or code made with another version can't be
-trusted. Don't re-check or patch the plan; restart the migration. This
-applies to every difference (patch, minor, or major) on a plan whose status
-isn't `reported`.
+A different major or minor skill version may change the V2 mapping, SDK
+interfaces, or rules, so a plan or code made with it can't be trusted.
+Don't re-check or patch the plan; restart the migration. This applies when
+the major or minor number differs (for example `0.3.0` and `0.4.0`, in
+either direction) on a plan whose status isn't `reported`.
+
+A patch release only corrects wording or references and doesn't change
+behavior, so a plan whose `skill-version` differs only in the patch number
+(for example `0.3.0` and `0.3.2`) continues where it left off. Leave its
+`skill-version` as it is; the report records the version that wrote it.
 
 1. **Stop and explain**, for example: *"This plan was made with version
    0.3.0 of the migration skill; the installed version is 0.4.0. To be safe,

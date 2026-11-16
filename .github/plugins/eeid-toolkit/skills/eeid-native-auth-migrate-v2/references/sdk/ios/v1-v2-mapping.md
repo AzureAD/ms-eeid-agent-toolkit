@@ -33,6 +33,9 @@ All V2 callbacks run on the main actor.
 - `SignUpParametersV2.attributes`: profile attributes the V1 form collected
   before the code. The SDK keeps them and submits them when the service
   first asks for attributes. Never put `email` or `password` in them.
+  The flat username (alias) attribute is
+  `flatusername` in V1 and `username` in V2: rename the key. It is a
+  profile attribute, not the sign-in identifier.
 
 ## Delegates, states, and callbacks
 
@@ -51,7 +54,7 @@ All V2 callbacks run on the main actor.
 | `onSignInCompleted(result:)` (every delegate that has it) | `MSALNativeAuthFlowDelegate` → `onFlowCompleted(result:scenario:)` | `MSALNativeAuthUserAccountResult`, unchanged |
 | Every V1 error callback | `MSALNativeAuthFlowDelegate` → `onFlowError(error:scenario:)` | `MSALNativeAuthFlowError` |
 | `SignUpStartError.isUserAlreadyExists` | `MSALNativeAuthExistingAccountCodeRequiredDelegate`, `MSALNativeAuthExistingAccountPasswordRequiredDelegate`, or `onAuthMethodSelectionRequired` with `scenario == .signIn` after `signUpV2` | See [v2-flows.md](v2-flows.md), "Existing account" |
-| `onSignUpAttributesInvalid(attributeNames:)` | `onFlowError` with `isInvalidAttributes` (no attribute names) | — |
+| `onSignUpAttributesInvalid(attributeNames:)` | `onFlowError` with `isInvalidAttributes` (names appear only in `errorDescription`) | — |
 
 `MSALAuthMethod` (`id`, `challengeType`, `channelTargetType`, `loginHint`)
 and `MSALNativeAuthChannelType` (`isEmailType`, `isSMSType`) are the same
@@ -85,6 +88,21 @@ Detail and UI rules: [v2-errors.md](v2-errors.md).
   `challengeTypes`, so leave it as it is even when every flow is on V2.
 - `requestInterceptor`, the tenant, client ID, and redirect URI apply to
   V2 too.
+- **Tenant ID** (**Tenant ID in the service path** in
+  [../../flows-and-scope.md](../../flows-and-scope.md)):
+  - `init(clientId:tenantSubdomain:challengeTypes:)`: MSAL builds the
+    tenant domain path itself, so the app has no tenant ID. Add `tenantId`
+    next to the client ID, set the same way (a Swift constant, an
+    `Info.plist` key, or an `.xcconfig` setting in every build
+    configuration). Build the config with
+    `init(clientId:authority:challengeTypes:)` and
+    `MSALCIAMAuthority(url: https://{tenantSubdomain}.ciamlogin.com/{tenantId})`;
+    the subdomain stays for the host. Objective-C:
+    `initWithClientId:authority:challengeTypes:` and `initWithURL:error:`.
+  - `init(clientId:authority:challengeTypes:)`: check the authority URL.
+    The tenant ID goes in that URL; don't add a separate constant.
+  - Keep `challengeTypes` and every other setting. If the app builds the
+    config in more than one place, change each one the same way.
 - Tokens after V2 sign-in are the same as after V1:
   `MSALNativeAuthUserAccountResult` (`account`, `getAccessToken`,
   `signOut()`). Leave that code unchanged.
@@ -97,7 +115,8 @@ Detail and UI rules: [v2-errors.md](v2-errors.md).
 - **Delegate conformance is the step list.** The object driving a migrated
   flow adopts `MSALNativeAuthFlowDelegate` and exactly the per-state
   delegates its table in [v2-flows.md](v2-flows.md) lists. Don't adopt a
-  delegate for a step the V1 UI never handled.
+  delegate for a step the V1 UI never handled, except the recognize-only
+  delegates in **Finish after sign-up or reset** there.
 - **Shared objects.** If one view controller or view model drives flows on
   different versions, it can conform to both V1 and V2 protocols; keep V1
   and V2 states in separate properties, and use `scenario` plus the flow

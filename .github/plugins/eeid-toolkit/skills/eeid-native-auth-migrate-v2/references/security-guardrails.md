@@ -19,7 +19,7 @@ Use these rules in two places:
 | What | Any rule broken by code the migration added or changed, or a protection the migration removed or weakened | Rules already broken in code the migration didn't change |
 | Where | `git diff <baseline commit>` plus new files | Only the files in the plan's inventory and shared auth code (HTTP client, config, token storage, auth UI). Not a whole-app audit. |
 | Action | **Fix**, re-check, and count the fix for the report's audit line. Don't list fixed ones as findings. | **Report only.** Never change them, even when the fix looks trivial. |
-| Can't fix | Within `max-fix-attempts` from the plan's `validation-settings`, or because the fix needs work outside the plan → report as an **unresolved introduced finding** under "Action required". Never hide it. | — |
+| Can't fix | Within `max-fix-attempts` from the plan's `validation-settings`, or because the fix needs work outside the plan → report as an **unresolved introduced finding** under "Actions for you". Never hide it. | — |
 
 **Classifying a finding:**
 
@@ -231,7 +231,8 @@ Sources: RFC 9700 §2.3 (privilege restriction).
 
 ## 4. Review method
 
-1. Re-read the plan, this file, and the approach's security reference.
+1. Re-read the plan and its working notes (including "Security notes"),
+   this file, and the approach's security reference.
 2. List the migration's changes: `git diff <baseline commit>` and new files
    (`git status --porcelain`). Files in `dirty-files` and the
    `.native-auth-v2-migration/` folder aren't part of the introduced scope.
@@ -258,7 +259,7 @@ Sources: RFC 9700 §2.3 (privilege restriction).
    limit; see the fix loop in `validation-strategy.md`). Count fixed
    findings for the audit line; don't list them. A finding you can't fix, or whose
    fix needs work outside the plan, is an **unresolved introduced finding**:
-   keep it for the report's "Action required" and propose a plan change if
+   keep it for the report's "Actions for you" and propose a plan change if
    one would fix it.
 7. Record pre-existing findings in the inventoried files; never change
    their code.
@@ -272,8 +273,8 @@ Sources: RFC 9700 §2.3 (privilege restriction).
 - Record the audit line: "N issues in the migration's own changes were found
   and fixed during review."
 - For each unresolved introduced finding and each pre-existing finding:
-  rule ID, severity, `file:line`, what is wrong (one sentence), and the
-  recommended fix.
+  severity, `file:line`, what is wrong (one sentence), and the recommended
+  fix. Use the rule ID to classify it, but don't write it in the report.
 
 ## Sources
 

@@ -35,7 +35,7 @@ the parent flow, or split into two components).
 
 - **Allowed:** different flows on different versions in the same app, for
   example `sign-in` + `sspr` on V2 while `sign-up` stays on V1. Confirmed by
-  the product team: V1 endpoints keep working for a tenant enrolled in V2,
+  the product team: V1 endpoints keep working for a tenant that uses V2,
   V1 automatic sign-in after V1 sign-up or reset keeps working while
   sign-in is on V2, and tokens from both versions coexist for one app
   registration.
@@ -47,6 +47,51 @@ the parent flow, or split into two components).
 - V1 sign-up's automatic sign-in (`grant_type=continuation_token` on
   `/oauth2/v2.0/token`) stays V1 while sign-up stays V1. When sign-up moves
   to V2, the V2 sign-up journey ends with authorization code + token exchange.
+
+## Tenant ID in the service path
+
+V2 steps accept a flow's continuation token only when the URL path names the
+tenant by its ID (GUID): `https://{subdomain}.ciamlogin.com/{tenant-id}/...`.
+Under the tenant domain (`{subdomain}.onmicrosoft.com`), the first call after
+the flow starts fails with `AADSTS55200` ("The continuation_token is
+invalid"). Starting a flow, the token endpoint, and every V1 endpoint accept
+both forms, so moving to the tenant ID doesn't affect flows that stay on V1.
+
+**Check** the setting the approach guide names (the one whose URL reaches the
+service), in every environment or build configuration the app defines. Read
+the first path segment after the host. Only a GUID (8-4-4-4-12 hex digits)
+passes. A domain, a `{tenant}` placeholder, or no path (MSAL then adds the
+domain itself) doesn't.
+
+**When it isn't the tenant ID:**
+
+- **A setting in the repo** (the approach guide says which): if the repo
+  already has the tenant ID (config, environment files, docs), use it, say
+  in the plan where it came from, and list the change. Otherwise add a
+  "Decisions needed" item:
+  - **Give the tenant ID** (suggested): it's on the tenant's overview page
+    in the Microsoft Entra admin center. The plan puts it in the URL path as
+    the approach guide says.
+  - **Keep the domain:** no change; V2 flows fail with `AADSTS55200` until
+    the service accepts the domain form.
+
+  Never guess the tenant ID or look it up from the service.
+- **A proxy or gateway the migration can't check** (production proxies, and
+  any outside the repo): always add a "Risks and actions for you" item, and
+  an item in the report's "Actions for you", that it must forward to
+  `https://{subdomain}.ciamlogin.com/{tenant-id}`.
+
+**Where the tenant ID goes:** in the setting that names the tenant today, set
+the way the app sets it (a literal, an environment variable, a config key, a
+build setting), in every environment or build configuration. Don't add a new
+configuration mechanism, don't put it in flow code, and use made-up values
+in tests. The approach guide gives the setting for each platform.
+
+**Say why.** Wherever the plan, the report, or the app's docs (README, setup
+steps) mention the tenant ID change, a tenant ID left for the developer to
+fill in, or the proxy target, add the reason in one plain sentence: V2
+sign-in, sign-up, and password reset fail with `AADSTS55200` unless the
+service URL uses the tenant ID.
 
 ## Parity rule (methods, sub-flows, and UI features)
 
@@ -73,6 +118,15 @@ migration keeps the app's behavior, not the service's full feature set:
   screen didn't have) isn't part of the
   migration. If the customer asks, it's a separate change after the
   migration.
+- **No improvements.** Change only what the move to V2 needs: replace what
+  the V1 code did with its V2 equivalent, and add the code V2 requires
+  (next bullet). Never add what the V1 app didn't have, even when V2 makes
+  it easy: input limits or autofill, button guards or debouncing, new
+  screens, links, timers, or messages, friendlier error text, or data the
+  V1 UI didn't show (such as masked hints). An improvement you notice goes
+  in the report under "Suggestions for later", not in the plan. Security
+  fixes to the migration's own code aren't improvements: the security
+  review still makes them.
 - **Handle invisible differences in code.** A V2 difference the user
   doesn't need to act on (for example V2 asking for sign-up values after
   the email code) is handled in code, without a new screen or an extra
@@ -95,7 +149,8 @@ buffered password, one more screen)?"*
   the customer didn't choose.
 - The plan can't be approved until the customer answers (golden rule 1).
   Record the answer under "Decisions and revisions" and plan the chosen
-  behavior; a V2-native choice is also a behavior change (section 5).
+  behavior; a V2-native choice is also a behavior change (section 3).
 
-Record the supported steps per flow in the plan's scope table, and every
-step that goes to the unhandled outcome as a behavior change.
+Record the supported steps per flow in `working-notes.md`
+("Supported steps"), and what users see when V2 asks for a step that goes
+to the unhandled outcome in "What users will notice".

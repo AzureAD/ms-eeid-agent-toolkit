@@ -1,5 +1,7 @@
 ---
 type: "regex"
 target: {"source": "file", "path": ".native-auth-v2-migration/report.md"}
-pattern: "^(?=[\\s\\S]*\\|\\s*A1\\s*\\|)(?=[\\s\\S]*\\|\\s*A2\\s*\\|)(?=[\\s\\S]*\\|\\s*A3\\s*\\|)(?=[\\s\\S]*\\|\\s*A4\\s*\\|)(?=[\\s\\S]*\\|\\s*A5\\s*\\|)(?=[\\s\\S]*\\|\\s*A6\\s*\\|)(?=[\\s\\S]*\\|\\s*A7\\s*\\|)(?=[\\s\\S]*\\|\\s*B1\\s*\\|)(?=[\\s\\S]*\\|\\s*C1\\s*\\|)(?=[\\s\\S]*\\|\\s*D\\s*\\|)"
+pattern: "(?:^|\\n)[ \\t]*[-*][ \\t]*\\**Code checks\\b(?:[^\\n]|\\n[ \\t]+)*?\\b(?:passed|failed)\\b"
+flags: "i"
 ---
+The report's validation section has the code checks line (only planned files changed, no V1 left), with its result.

@@ -14,7 +14,7 @@ has the rules for retrying and showing errors.
 | `isInvalidPassword` | Wrong password at sign-in, or a password that fails policy at sign-up or reset | Sign-in: V1 `isInvalidCredentials` / wrong-password message. Sign-up and reset: V1 password-policy message. Retry on the same state |
 | `isInvalidCode` | Wrong or expired first-factor code (sign-in, sign-up email, reset) | V1 `isInvalidCode` message; retry or resend on the same state |
 | `isInvalidChallenge` | Wrong or expired MFA or registration code | V1 MFA / registration code message; retry or resend |
-| `isInvalidAttributes` | The service rejected non-password attributes (names aren't given) | V1 attribute-validation message |
+| `isInvalidAttributes` | The service rejected non-password attributes (names appear only in `errorDescription`; don't parse it) | V1 attribute-validation message |
 | `isInvalidInput` | Registration input was invalid (unoffered method, blank contact) | V1 `RegisterStrongAuthChallengeError.isInvalidInput` message |
 | `isInvalidUsername` | The SDK's local check rejected the username | V1 invalid-username message |
 | `isNotImplemented` | The service asked for a step whose delegate the app didn't adopt | Generic error; the step isn't supported (parity) |
@@ -29,8 +29,9 @@ retry or resend uses the state the app kept.
 
 ## Showing errors
 
-Follow **Errors** in the shared file. Never log states, parameters, passwords,
-codes, or the error's description together with user input (SEC-01).
+Follow **Errors** in the shared file. The error's description is
+`errorDescription`. Never log states, parameters, passwords, codes, or the
+error's description together with user input (SEC-01).
 
 ## V1 checks with no V2 equivalent
 

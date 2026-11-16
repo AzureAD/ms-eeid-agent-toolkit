@@ -21,7 +21,7 @@ flows are expected. `CustomAuthAccountData` methods (`getAccessToken`,
 Check **Checks for every SDK** in [../shared-rules.md](../shared-rules.md), and:
 
 - `@azure/msal-browser` is the approved version, at or above the minimum,
-  and the lockfile matches (unless the install failed and the report says so); no
+  and the lockfile matches (whoever installed it); no
   other new packages; no registry override (`--registry`, `.npmrc` change).
 - Start calls pass `username` and the V1 scopes and claims; `signInV2` and
   `signUpV2` never get a password; `signUpV2` `attributes` never contain

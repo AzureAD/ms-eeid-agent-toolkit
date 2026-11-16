@@ -16,55 +16,54 @@ and gates stay in `SKILL.md`; shared procedures are in
 ## Where this approach applies
 
 - **Native iOS and macOS apps** (also iPadOS and visionOS) using MSAL from
-  Swift or Objective-C, with any UI layer: UIKit, SwiftUI, or AppKit. The
-  V2 names are the same from Objective-C.
+  Swift or Objective-C, with any UI layer: UIKit, SwiftUI, or AppKit.
+- **Objective-C:** in MSAL 2.18.1, `signUpV2`, `resetPasswordV2`, the delegates,
+  states, and `MSALNativeAuthFlowError` work from Objective-C, but
+  `signInV2` and `MSALNativeAuthSignInParametersV2` don't, and the properties
+  of `MSALAuthMethod` (`challengeType`, `channelTargetType`, `loginHint`) can't
+  be read. For an Objective-C flow that needs them, plan a small Swift file
+  with `@objc` functions that make only those calls through the public API
+  (for example, start `signInV2` with a username, or pick a method from
+  `authMethods` by type). Everything else stays in Objective-C. List the
+  file in the plan's files to change, and recheck it on a later MSAL version,
+  which may expose these names directly.
 - **Not** cross-platform apps that call native auth from JavaScript or Dart
-  (React Native, Flutter, .NET MAUI), and not Android: their SDKs aren't
-  covered by this guide. Report what you found and **stop**.
+  (React Native, Flutter, .NET MAUI): their SDKs aren't covered by this
+  guide. Android has its own guide, `references/sdk/android/approach.md`. Report what you found and **stop**.
 
 ## SDK version
 
-The guidance in this approach was written against the MSAL for iOS and
-macOS `dev` branch after the native auth V2 changes of November 2026
-(sign-in without a password parameter, sign-up email first, existing-account
-sign-up, MFA and JIT resend, and SSPR MFA completion). **No released MSAL
-version contains all of them yet:** 2.17.1 (4 November 2026) doesn't. The
-first release after 2.17.1 that includes them is the minimum version
-("the V2 release" below).
+Follow **SDK version** in [../shared-rules.md](../shared-rules.md). The
+details for this platform:
 
-- Find the installed version: `Package.resolved` (Swift Package Manager),
+- **Minimum: MSAL for iOS and macOS 2.18.1**, the first release with the
+  complete V2 surface used here (sign-in without a password parameter,
+  sign-up email first, existing-account sign-up, MFA and JIT resend, and
+  SSPR MFA completion). This guide was written against it. V1 and V2 methods
+  live in the same package and the same app instance.
+- **Installed version:** `Package.resolved` (Swift Package Manager),
   `Podfile.lock` (CocoaPods), or `Cartfile.resolved` (Carthage).
-- Find whether the V2 release exists: the MSAL repository's tags or the
-  package manager's listing (`git ls-remote --tags` on the repository the
-  project already uses, or `pod trunk info MSAL`). Use the project's own
-  sources; never add a new one (SDKIOS-01).
-- **No V2 release yet** → the plan can't be applied. Put it under
-  "Decisions needed" ("MSAL for iOS with the V2 methods isn't released
-  yet"), so the plan can't be approved, and say so to the customer. Don't
-  point the app at a branch or commit.
-- **Can't check** (no network, or the command is denied) → handle it as no V2
-  release: the same entry under "Decisions needed", saying the check couldn't
-  run and that the customer must confirm a released version. Never assume a
-  version exists.
-- **App before 2.0.0** → a major upgrade of MSAL is a separate change,
-  outside this migration. **Stop** and tell the customer to upgrade first.
-- **App on 2.x before the V2 release** → the plan upgrades it to the latest
-  2.x, at least the V2 release. Keep the requirement style the app already
-  uses (for example SPM `from:` or CocoaPods `~>`); the resolved file records
-  the exact version. The upgrade is a dependency change (SEC-12): list it in the
-  plan's shared steps for approval.
-- **App on the V2 release or later** → no upgrade needed. If the version is
-  later than the V2 release, check that every V2 name this guide uses still
-  exists in the installed headers or Swift interface. A missing name →
-  **stop** and tell the customer this skill version doesn't cover that SDK
-  version.
-
-**Experimental status.** Every V2 entry method, state, delegate, and error
-currently carries the SDK's warning that it is experimental, may change
-without notice, and isn't for production use. While the planned version still
-says so (if you can't tell, assume it does), the plan must say so in **Behavior
-changes users will see** and **Manual prerequisites**, and the customer
-approves it with the plan.
+- **Lookup:** the source the app really uses: `git ls-remote --tags` on
+  the MSAL repository the project already references, or `pod trunk info
+  MSAL` (SDKIOS-01). CocoaPods can lag behind the repository's tags.
+- **Install:** set the version in the dependency manager's file
+  (`Package.swift`, the Xcode project's package reference, `Podfile`, or
+  `Cartfile`; in an Xcode project file, change only the MSAL package
+  reference's `requirement`), then resolve it with the project's own tooling
+  (`xcodebuild -resolvePackageDependencies`, `pod install`, or `carthage
+  update MSAL`). Resolving packages in Xcode is the customer's way to do it.
+- **Minimum OS:** 2.18.1 supports iOS 17 and macOS 14 and later (MSAL
+  2.11.0 supported iOS 16). The SDK's minimum is in `Package.swift`
+  (`platforms:`) or `MSAL.podspec` (`deployment_target`) at the version's
+  tag in the repository the project uses (or `pod spec cat MSAL
+  --version=<version>`). The app's is the lowest
+  `IPHONEOS_DEPLOYMENT_TARGET` / `MACOSX_DEPLOYMENT_TARGET` across every
+  target and build configuration in `project.pbxproj`, `platforms:` in the
+  app's own `Package.swift`, or `platform :ios` in the `Podfile`. Raising it
+  changes those settings.
+- **V2 names:** in the installed headers or Swift interface.
+- **Major version:** 2. An app on 1.x → **stop** (step 4 of
+  **SDK version** in the shared rules).
 
 ## References for this approach
 
@@ -73,7 +72,7 @@ approves it with the plan.
 | [../shared-rules.md](../shared-rules.md) | Planning, applying, security review, and validating (always; read it first) |
 | [v1-v2-mapping.md](v1-v2-mapping.md) | Inventory, planning, and applying (always) |
 | [v2-flows.md](v2-flows.md) | Planning, applying, and validating (always) |
-| [v2-errors.md](v2-errors.md) | Planning (error handling map), applying, and validating (always) |
+| [v2-errors.md](v2-errors.md) | Planning (error mapping), applying, and validating (always) |
 | [validation-sdk-ios.md](validation-sdk-ios.md) | Planning (tests to add) and validating |
 | [security-sdk-ios.md](security-sdk-ios.md) | Applying (rules for the code you write) and the security review |
 
@@ -121,13 +120,15 @@ Find the V1 SDK usage:
 
 ## Planning (Step 3)
 
-- **Application profile rows:** Integration = "MSAL native auth SDK V1 for
-  iOS/macOS", UI layer, dependency manager, SDK version (installed →
-  planned), test target.
-- **Shared implementation steps:** SDK version (see **SDK version**); no new
-  client or HTTP code; configuration stays the same (see
-  [v1-v2-mapping.md](v1-v2-mapping.md), "Configuration").
-- **Scopes, supported steps, behavior changes, and the error handling map:**
+- **What we found:** App = platform and UI layer; Native auth today =
+  "MSAL native auth SDK V1 for iOS/macOS" with the dependency manager and
+  the SDK version (installed → planned).
+- **Shared files to change:** SDK version (see **SDK version**); no new
+  client or HTTP code; configuration stays the same except the tenant ID
+  (see [v1-v2-mapping.md](v1-v2-mapping.md), "Configuration"); the Swift bridge
+  for Objective-C sign-in, if the app needs one (see **Where this approach
+  applies**).
+- **Scopes, supported steps, behavior changes, and the error mapping:**
   follow **Planning** in the shared rules. Details for this platform:
   - Supported steps: the V2 per-state delegates the migrated flow
     adopts (parity rule); the SDK reports any other state as an error with
@@ -135,22 +136,16 @@ Find the V1 SDK usage:
 - **Validation commands:** the app's own `xcodebuild` build and test
   commands (scheme and simulator destination) if the repo has them. On a
   machine without Xcode or a simulator, they are recorded as not run.
-- **Manual prerequisites:** tenant enrolled in the V2 preview; the customer
-  accepts the experimental SDK status, while it applies; resolve packages in Xcode after a
-  version change in the project file.
+- **Risks and actions for you:** the SDK install if the customer does it
+  (**SDK version** in the shared rules).
 
 ## Applying (Step 6)
 
 Follow "Code-change patterns" in [v1-v2-mapping.md](v1-v2-mapping.md):
 
-1. Set the SDK version the plan approved in the dependency manager's file
-   (`Package.swift`, the project's package reference, `Podfile`, or
-   `Cartfile`) and resolve it with the project's own tooling and sources
-   (SDKIOS-01). In an Xcode project file, change only the MSAL package
-   reference's `requirement`. If resolving fails or isn't possible here,
-   don't stop: keep the edited version, tick the step with a note, and list
-   "resolve packages and re-run the tests" as manual follow-up; the outcome
-   is at best **Complete with failures**.
+1. The SDK step, as **While applying** under **SDK version** in the shared
+   rules says: install from the project's sources (SDKIOS-01), and stop before any other change if
+   the install fails.
 2. Keep the one `MSALNativeAuthPublicClientApplication` and its
    configuration. Deferred flows keep calling the V1 methods on it.
 3. Replace each migrated flow's V1 start call with the V2 start call. Make
@@ -162,8 +157,10 @@ Follow "Code-change patterns" in [v1-v2-mapping.md](v1-v2-mapping.md):
    retry on it.
 5. Keep the UI, screens, and navigation; map V1 callback parameters to V2
    state properties (`sentTo`, `codeLength`, `channel`, `attributes`,
-   `authMethods`).
-6. Replace V1 error checks with the V2 checks from the error handling map.
+   `authMethods`). Map only what
+   the V1 code read; a field it didn't use (for example the code length)
+   stays unused (**No improvements** in [../../flows-and-scope.md](../../flows-and-scope.md)).
+6. Replace V1 error checks with the V2 checks from the error mapping.
 
 ## Security review (Step 7)
 
@@ -177,8 +174,5 @@ Use the approach-specific checks and required tests in
 
 ## Report rows
 
-- SDK version set, whether it was resolved, and whether the V2 APIs are
-  experimental in it.
-- Manual follow-up: resolve packages in Xcode if the version changed in the
-  project file and couldn't be resolved here; run the app's tests in Xcode
-  if they couldn't run here.
+- SDK version installed (**SDK version** in the shared rules).
+- Actions for you: run the app's tests in Xcode if they couldn't run here.

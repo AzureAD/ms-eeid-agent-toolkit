@@ -30,7 +30,8 @@ Apply the parity rule (`references/flows-and-scope.md`): only method types
 the V1 sign-in UI handled are **usable**.
 
 - Start (step 2):
-  - One usable method → challenge it without asking the user.
+  - One usable method → do what the V1 UI did: if it showed its choice even
+    for one method, show it; otherwise challenge it without asking.
   - More than one, and the V1 UI let the user choose (for example a "send me
     a code instead" option) → show that choice with the masked `hint`s.
   - More than one, and the V1 UI had no choice → use the first usable type

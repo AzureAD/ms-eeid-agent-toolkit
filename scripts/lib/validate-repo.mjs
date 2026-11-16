@@ -14,6 +14,7 @@ export const SEMVER = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)(?:-[0-9A-Za-z-]
 // and about 5,000 tokens; we enforce the line count and warn on length.
 export const MAX_SKILL_LINES = 500;
 export const WARN_SKILL_CHARS = 20000;
+export const PUBLIC_REGISTRY = 'https://registry.npmjs.org/';
 export const MAX_DESCRIPTION = 1024;
 
 async function exists(path) {
@@ -220,6 +221,19 @@ export async function validateRepository({ root, release = false } = {}) {
         check(JSON.stringify(claude[field]) === JSON.stringify(plugin[field]),
           `${rel(paths.claudeManifest)}: ${field} must match ${rel(paths.pluginManifest)}. Run npm run release to sync them.`);
       }
+    }
+  }
+
+  // The lockfile downloads packages from the public npm registry only, so a
+  // fresh clone, CI, and Dependabot can install them, and no private feed
+  // name ships with the repository.
+  if (await exists(paths.packageLock)) {
+    const lock = await validateJson(paths.packageLock);
+    for (const [name, entry] of Object.entries(lock?.packages ?? {})) {
+      if (typeof entry?.resolved !== 'string' || entry.resolved.startsWith('file:')) continue;
+      check(entry.resolved.startsWith(PUBLIC_REGISTRY),
+        `package-lock.json: ${name.replace(/^node_modules\//, '')} downloads from ${new URL(entry.resolved).host}; ` +
+        `use ${PUBLIC_REGISTRY} (install with --registry=${PUBLIC_REGISTRY}, or replace the host in "resolved").`);
     }
   }
 

@@ -22,6 +22,7 @@ export function layout(root = repoRoot) {
     changelog: join(pluginDir, 'CHANGELOG.md'),
     pluginReadme: join(pluginDir, 'README.md'),
     packageJson: join(root, 'package.json'),
+    packageLock: join(root, 'package-lock.json'),
     rootReadme: join(root, 'README.md'),
     codeowners: join(root, '.github/CODEOWNERS'),
     // Marketplace catalogs, one per agent that reads its own location.

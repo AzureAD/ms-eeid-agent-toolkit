@@ -49,7 +49,9 @@ Enrollment methods have no `id` or `hint`:
 - A method with a missing `type` or a missing `enroll` link can't be used;
   skip it. A `phone` method without `"sms"` in `channels` (including an
   empty or missing `channels`) isn't usable for an SMS-only V1 UI; skip it.
-- One usable method → use it. More than one → the V1 method choice UI.
+- One usable method → do what the V1 UI did: show its choice if it showed
+  one even for one method, otherwise use it. More than one → the V1 method
+  choice UI.
 
 ## No preverified shortcut
 

@@ -69,8 +69,20 @@ to every caller.
 - **Already V2:** `signInV2(`, `signUpV2(`, `resetPasswordV2(`,
   `…ParametersV2`, `MSALNativeAuthFlowDelegate`, `MSALNativeAuthFlowError`.
 
+## Native auth SDK — Android (`approach: sdk`)
+
+- `INativeAuthPublicClientApplication` and
+  `PublicClientApplication.createNativeAuthPublicClientApplication` (Kotlin or
+  Java), with `com.microsoft.identity.client:msal` in the Gradle files.
+- V1 calls: `signIn(`, `signUp(`, `resetPassword(` on that instance, with
+  `NativeAuthSignInParameters` (and the sign-up and reset equivalents) or
+  positional arguments, and V1 results such as `SignInResult.CodeRequired`,
+  `SignUpResult.CodeRequired`, `ResetPasswordStartResult.CodeRequired`. Flow
+  IDs: `signIn` → `sign-in`, `signUp` → `sign-up`, `resetPassword` → `sspr`.
+- **Already V2:** `signInV2(`, `signUpV2(`, `resetPasswordV2(`,
+  `…ParametersV2`, `NativeAuthResultV2`, `NativeAuthErrorV2`, `…StateV2`
+  classes.
+
 ## Native auth SDK — other platforms (out of scope → stop)
 
-- Android: `INativeAuthPublicClientApplication`,
-  `PublicClientApplication.createNativeAuthPublicClientApplication`,
-  `NativeAuth*`.
+- React Native, Flutter, and .NET MAUI wrappers around native auth.

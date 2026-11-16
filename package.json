@@ -1,6 +1,6 @@
 {
   "name": "ms-eeid-agent-toolkit",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "private": true,
   "description": "Portable Microsoft Entra External ID skills for AI coding assistants.",
   "type": "module",

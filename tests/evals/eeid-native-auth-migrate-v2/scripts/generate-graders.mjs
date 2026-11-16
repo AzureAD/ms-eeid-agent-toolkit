@@ -3,7 +3,8 @@
 // sync when those files change:
 //   - plan cases: the plan follows the skill's plan template (front matter
 //     fields, sections matched by number and first word, no placeholder text
-//     left) and its scope table marks each flow as requested;
+//     left) and its scope table marks each flow as requested; its working
+//     notes follow the working-notes template and carry the plan's revision;
 //   - full-migration cases: every fixture file is either unchanged or changed
 //     as the seeded plan says (compared by content, whatever tool the agent
 //     used), new files are only those the plan allows, and the report follows
@@ -33,11 +34,15 @@ export const PLAN_CASES = {
   'behavior/sdk-js-plan-sign-up-only': { migrate: ['sign-up'], defer: ['sign-in', 'sspr'] },
   'behavior/sdk-ios-plan-all-flows': { migrate: ['sign-in', 'sign-up', 'sspr'], defer: [] },
   'behavior/sdk-ios-plan-sign-in-only': { migrate: ['sign-in'], defer: ['sign-up', 'sspr'] },
+  'behavior/sdk-android-plan-all-flows': { migrate: ['sign-in', 'sign-up', 'sspr'], defer: [] },
+  'behavior/sdk-android-plan-sign-in-only': { migrate: ['sign-in'], defer: ['sign-up', 'sspr'] },
 };
 
 // Full-migration cases: what the seeded plan changes. Every other fixture
 // file must stay exactly as it was. `removed` files are deleted by the plan
-// and not checked. `required` files are new files the plan adds; `allowedNew`
+// and not checked; `mayChange` files may change or not and aren't checked
+// either (for example the dependency file a failed SDK install may already
+// have edited). `required` files are new files the plan adds; `allowedNew`
 // lists other new files that are fine (regex, for example the lockfile an
 // install writes). `newTests: false` allows no new test files and
 // `report: false` skips the report checks (for cases that stop before
@@ -83,8 +88,121 @@ export const FULL_CASES = {
     required: [],
     allowedNew: ['package-lock\\.json'],
   },
+  // Source only, never built. The customer installed MSAL 2.18.1 before the
+  // run (customer-install.mjs), so the Podfile and Podfile.lock differ from
+  // the fixture but the plan has no SDK step.
+  'behavior/sdk-ios-migrate-all-flows': {
+    fixture: 'ios-swift-sdk-v1',
+    changed: [
+      'Podfile', 'Podfile.lock', 'ContosoAuth/Configuration.swift', 'ContosoAuth/Auth/NativeAuthClient.swift', 'ContosoAuth/Auth/SignInCoordinator.swift', 'ContosoAuth/Auth/SignUpCoordinator.swift',
+      'ContosoAuth/Auth/ResetPasswordCoordinator.swift',
+    ],
+    removed: [],
+    required: [],
+    newTests: false,
+  },
+  // The SDK install fails right after approval: the run stops before any
+  // other change. The dependency file may already carry the new version.
+  'behavior/sdk-js-migrate-install-fails': {
+    fixture: 'spa-js-sdk-v1',
+    changed: [],
+    removed: [],
+    required: [],
+    mayChange: ['package.json'],
+    newTests: false,
+    report: false,
+  },
+  // The customer says the SDK is installed, but it is still the old version:
+  // nothing changes.
+  'behavior/sdk-js-migrate-resume-still-old': {
+    fixture: 'spa-js-sdk-v1',
+    changed: [],
+    removed: [],
+    required: [],
+    newTests: false,
+    report: false,
+  },
+  // The SDK install fails right after approval: the run stops before any
+  // other change. The dependency file may already carry the new version.
+  'behavior/sdk-ios-migrate-install-fails': {
+    fixture: 'ios-swift-sdk-v1',
+    changed: [],
+    removed: [],
+    required: [],
+    mayChange: ['Podfile'],
+    newTests: false,
+    report: false,
+  },
+  // The customer says the SDK is installed, but it is still the old version:
+  // nothing changes.
+  'behavior/sdk-ios-migrate-resume-still-old': {
+    fixture: 'ios-swift-sdk-v1',
+    changed: [],
+    removed: [],
+    required: [],
+    newTests: false,
+    report: false,
+  },
+  // The SDK install fails right after approval: the run stops before any
+  // other change. The dependency file may already carry the new version.
+  'behavior/sdk-android-migrate-all-flows': {
+    fixture: 'android-kotlin-sdk-v1',
+    changed: [
+      'app/build.gradle', 'app/src/main/res/raw/auth_config_native_auth.json',
+      'app/src/main/java/com/contoso/auth/SignInRepository.kt', 'app/src/main/java/com/contoso/auth/SignUpRepository.kt',
+      'app/src/main/java/com/contoso/auth/ResetPasswordRepository.kt',
+    ],
+    removed: [],
+    required: [],
+    newTests: false,
+  },
+  'behavior/sdk-android-migrate-install-fails': {
+    fixture: 'android-kotlin-sdk-v1',
+    changed: [],
+    removed: [],
+    required: [],
+    mayChange: ['app/build.gradle'],
+    newTests: false,
+    report: false,
+  },
+  // The customer says the SDK is installed, but it is still the old version:
+  // nothing changes.
+  'behavior/sdk-android-migrate-resume-still-old': {
+    fixture: 'android-kotlin-sdk-v1',
+    changed: [],
+    removed: [],
+    required: [],
+    newTests: false,
+    report: false,
+  },
+  // The customer installed the SDK (customer-install.mjs changes package.json
+  // and adds package-lock.json); the run resumes and finishes.
+  'behavior/sdk-js-migrate-resume-installed': {
+    fixture: 'spa-js-sdk-v1',
+    changed: ['package.json', 'cors.js', 'src/auth/errors.js', 'src/auth/signIn.js', 'src/auth/resetPassword.js', 'test/fakeSdk.js', 'test/signIn.test.js', 'test/resetPassword.test.js'],
+    removed: [],
+    required: [],
+  },
   // An approval with a decision still open: nothing may change, no report.
   'behavior/api-plan-approve-with-open-decision': {
+    fixture: 'spa-js-v1',
+    changed: [],
+    removed: [],
+    required: [],
+    newTests: false,
+    report: false,
+  },
+  // A plan from another patch version continues; one from another minor
+  // version restarts. Neither changes code or writes a report.
+  'behavior/api-plan-resume-patch-version': {
+    fixture: 'spa-js-v1',
+    changed: [],
+    removed: [],
+    required: [],
+    newTests: false,
+    report: false,
+  },
+  'behavior/api-plan-restart-minor-version': {
     fixture: 'spa-js-v1',
     changed: [],
     removed: [],
@@ -164,17 +282,25 @@ async function listFiles(root) {
 
 export async function buildGraders() {
   const planTemplate = templateParts(await readFile(join(skillDir, 'assets/plan-template.md'), 'utf8'));
+  const notesTemplate = templateParts(await readFile(join(skillDir, 'assets/working-notes-template.md'), 'utf8'));
   const reportTemplate = templateParts(await readFile(join(skillDir, 'assets/report-template.md'), 'utf8'));
   const byCase = {};
 
   for (const [casePath, spec] of Object.entries(PLAN_CASES)) {
     const plan = `${MIGRATION_FOLDER}/plan.md`;
-    const graders = templateGraders('plan', plan, planTemplate);
+    const notes = `${MIGRATION_FOLDER}/working-notes.md`;
+    const graders = {
+      ...templateGraders('plan', plan, planTemplate),
+      ...templateGraders('notes', notes, notesTemplate),
+    };
+    graders['gen-notes-plan-revision'] = grader({
+      type: 'regex', target: { source: 'file', path: notes }, pattern: '(?:^|\\n)plan-revision:\\s*1\\b',
+    }, 'The working notes carry the plan\'s revision (1 for a new plan).');
     for (const [flows, decision] of [[spec.migrate, 'Migrate'], [spec.defer, 'Defer']]) {
       for (const flow of flows) {
         graders[`gen-plan-scope-table-${flow}`] = grader({
           type: 'regex', target: { source: 'file', path: plan },
-          pattern: `(?:^|\\n)\\|\\s*\`?${escapeRegExp(flow)}\`?\\s*\\|[^\\n]*\\|\\s*\\**${decision}\\**\\s*\\|`,
+          pattern: `(?:^|\\n)\\|\\s*\`?${escapeRegExp(flow)}\`?[^|\\n]*\\|(?:[^\\n]*\\|)?\\s*\\**${decision}\\**\\s*\\|`,
         });
       }
     }
@@ -184,12 +310,13 @@ export async function buildGraders() {
   for (const [casePath, spec] of Object.entries(FULL_CASES)) {
     const fixtureDir = join(evalDir, 'fixtures', spec.fixture);
     const files = await listFiles(fixtureDir);
-    for (const path of [...spec.changed, ...spec.removed]) {
+    const unchecked = [...spec.removed, ...(spec.mayChange ?? [])];
+    for (const path of [...spec.changed, ...unchecked]) {
       if (!files.includes(path)) throw new Error(`${casePath}: ${path} isn't in fixtures/${spec.fixture}`);
     }
     const graders = {};
     for (const path of files) {
-      if (spec.removed.includes(path)) continue;
+      if (unchecked.includes(path)) continue;
       const original = await readFile(join(fixtureDir, path), 'utf8');
       const exact = `^${escapeRegExp(original)}$`;
       if (spec.changed.includes(path)) {

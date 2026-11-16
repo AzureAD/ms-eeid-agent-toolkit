@@ -3,7 +3,7 @@
 Read `v2-api-core.md` first: it defines the HAL handler, the link
 allowlist, challenge/verify, finishing, and unhandled responses.
 
-Prerequisites: tenant enrolled in the V2 preview, public client, native auth
+Prerequisites: public client, native auth
 enabled, password reset enabled for the tenant.
 
 ## Step table
@@ -32,7 +32,8 @@ step 3 → unhandled response. Offer it only where the V1 UI offered resend.
 
 Apply the parity rule (`references/flows-and-scope.md`): only method types
 the V1 reset UI handled are usable (V1 reset used email codes). One usable
-method → challenge it without asking. More than one, and the V1 UI offered a
+method → do what the V1 UI did: show its choice if it showed one even for
+one method, otherwise challenge it without asking. More than one, and the V1 UI offered a
 choice → show it with the masked `hint`s. None usable (for example only
 `sms` for an email-only V1 app) → unhandled response.
 

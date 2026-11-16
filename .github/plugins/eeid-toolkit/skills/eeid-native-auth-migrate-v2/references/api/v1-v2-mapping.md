@@ -10,7 +10,7 @@ references win.
 | Driver | Client-driven: client sends `challenge_type`, errors drive steps | Server-driven: `state`, `action`, `_links` drive steps; the client handles only the steps in the flow's step table |
 | Entry point | `/oauth2/v2.0/initiate`, `/signup/v1.0/start`, `/resetpassword/v1.0/start` | `/oauth2/v2.0/authorize-challenge` (401 with journey links) |
 | URLs | Fixed endpoint per call | Two configured endpoints (`authorize-challenge`, `token`); every other URL is a link from the latest response |
-| URL host path | `/{subdomain}.onmicrosoft.com/...` | Same base URL: `/{subdomain}.onmicrosoft.com/...` or `/{tenant-GUID}/...` |
+| URL host path | `/{subdomain}.onmicrosoft.com/...` or `/{tenant-GUID}/...` | `/{tenant-GUID}/...` (**Tenant ID** in `approach.md`) |
 | Encoding | Form-encoded everywhere | Form for OAuth calls; JSON for every link |
 | Token field | `continuation_token` | `continuation_token` (OAuth) / `continuationToken` (JSON) |
 | `client_id` | On every request | Only on the first `authorize-challenge` and on `/token` |
@@ -105,9 +105,12 @@ an MSAL SDK into the app.
    handling, show the app's existing generic error.
 5. **Keep the UI.** Same pages, routes, and form fields. Map
    `challenge_target_label` → `hint`, `code_length` → `codeLength`. Handle
-   only the methods and steps the V1 UI handled (parity rule).
-6. **Config:** reuse the app's existing base URL (domain or GUID form) for
-   every environment it defines. Add only the `authorize-challenge` path;
+   only the methods and steps the V1 UI handled (parity rule). Sign-up
+   attribute names stay the same except the flat username (alias):
+   `flatusername` in V1, `username` in V2's `collectAttributes`.
+6. **Config:** reuse the app's existing base URL for every environment it
+   defines, with the tenant ID in its path (**Tenant ID** in
+   [approach.md](approach.md)). Add only the `authorize-challenge` path;
    `/token` usually exists already. Keep V1 endpoint constants while any
    flow stays on V1. Remove them only when no V1 flow remains.
 7. **Pages reading token fields:** V2 token responses may omit `scope`; make
@@ -244,8 +247,8 @@ V2 needs these proxy changes:
   another port).
 - Allow headers: `Content-Type, client-request-id`; allow `PUT` (password
   update). Expose `x-ms-request-id` if the app reads it.
-- The proxy target keeps the app's existing tenant path
-  (`{subdomain}.onmicrosoft.com` or the GUID).
+- The proxy target uses the tenant ID path (**Tenant ID** in
+  [approach.md](approach.md)).
 - The link resolver rebases links onto the proxy base. With a proxy base of
   `/api`, V2 native auth calls become `{proxy}/api/api/v2.0/...` — expected,
   not a bug. Keep the query string (for example `?dc=…`).

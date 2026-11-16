@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: api-plan-resume-patch-version
+context:
+  scaffold_script: scaffold.sh

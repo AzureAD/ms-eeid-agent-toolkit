@@ -1,8 +1,8 @@
 ---
 managed-by: eeid-native-auth-migrate-v2   # Load this skill before changing or applying this plan.
-skill-version: "<metadata.version of the skill>"   # a different installed version restarts the migration
+skill-version: "<metadata.version of the skill>"   # a different installed major or minor version restarts the migration
 app-root: <path to the app root, relative to the workspace>
-approach: api            # api | sdk (sdk: JavaScript single-page apps, iOS and macOS apps)
+approach: api            # api | sdk (sdk: JavaScript single-page apps, iOS, macOS, and Android apps)
 phase: 1
 status: draft            # draft | approved | applying | applied | reviewed | validated | reported
 revision: 1
@@ -13,7 +13,7 @@ baseline:
   commit: <git rev-parse HEAD or "none">
   files:
     <path>: <git hash-object>
-dirty-files: []          # files with uncommitted changes when planned; the migration never edits them (excluded from check A1)
+dirty-files: []          # files inside app-root with uncommitted changes when planned; the migration never edits them (excluded from check A1)
 validation-settings:     # you may edit these before approving
   max-fix-attempts: 5            # per failure (each failing test or error)
   command-timeout-minutes: 30    # per build/test command
@@ -24,169 +24,135 @@ validation-baseline: null  # set in the pre-apply check: { <check ID>: passed | 
 
 > Review this plan. Reply **"approved"** to apply it, or tell the assistant
 > what to change. Code is not changed until you approve this revision, and
-> the plan can't be approved while "Decisions needed" has open items.
+> the plan can't be approved while "Decisions needed" has open items. The
+> assistant's notes for applying it are in `working-notes.md`; you don't need
+> to review them.
+
+<Write for the app's developer, as references/writing-guide.md says. Sections
+1–6 hold only what helps them approve: no unchanged items, rule IDs, or check
+IDs. Everything the assistant needs while applying goes in working-notes.md.>
 
 ## At a glance
 
 | Item | Value |
 | --- | --- |
-| Migrate now | <sign-in, sspr> |
-| Stay on V1 | <sign-up — reason> |
-| Users will notice | <per migrated flow: behavior changes, or "none"> |
-| Files to change / add | <N changed, M new (including K test files)> |
-| Commands run on approval | <`npm run typecheck`, `npm test -- --watchAll=false` — twice (baseline and after)> |
-| You must do manually | <N items — section 10> |
+| Migrate now | <sign-in, sspr (password reset)> |
+| Stay on V1 | <sign-up — reason, or "none"> |
+| Users will notice | <N changes — section 3, or "nothing"> |
+| Files | <N changed, M new (including K test files)> |
+| Commands run on approval | <`npm run typecheck`, `npm test -- --watchAll=false` — before and after the change> |
 | Decisions needed | <N — see below, or "none"> |
 
 ## Decisions needed
 
-<Remove this section's items as the customer answers them; record each
-answer under "Decisions and revisions". Write "None." when empty.>
+<Each open question: the options, what each changes, and which you suggest.
+Remove an item once answered and record the answer under "Decisions and
+revisions". Write "None." when empty. Examples:>
 
-- [ ] <e.g. Tests: this project has no test framework. Introduce <framework>
-  (adds <dependencies> and `<test command>`) or skip tests?>
-- [ ] <e.g. `src/auth/signin.ts` has your uncommitted changes and this plan
-  changes it. Commit or stash them, then tell me to continue.>
-- [ ] <e.g. V2-native option. Sign-up: keep the one-screen form (suggested;
-  the password stays in memory until V2 asks for it after the email code),
-  or ask for the password after the code (no buffered password, one more
-  screen)?>
+- [ ] <**Tests.** This app has no test framework. Choose one:
+  **Add Vitest** (adds `vitest`, `jsdom`, and a `test` script; tests for
+  each migrated flow) or **skip tests** (only the build runs; you test the
+  flows by hand).>
+- [ ] <**Uncommitted changes.** `src/auth/signin.ts` has your uncommitted
+  changes and this plan changes it. Commit or stash them, then tell me to
+  continue.>
+- [ ] <**Sign-up form.** Keep the one-screen form (suggested; the password
+  stays in memory until V2 asks for it after the email code), or ask for the
+  password on a new screen after the code?>
+- [ ] <**Tenant ID.** V2 steps reject the tenant domain
+  (`contoso.onmicrosoft.com`) in the service URL with `AADSTS55200`. Give
+  the tenant ID (suggested; it's on the tenant's overview page in the
+  Microsoft Entra admin center) and the plan puts it in
+  `Configuration.swift`, or keep the domain and V2 flows fail until the
+  service accepts it.>
+- [ ] <**SDK install.** This migration needs `@azure/msal-browser` 5.29.0 or
+  later, and the version check couldn't run here. Run
+  `npm install @azure/msal-browser@^5.29.0` and tell me when it's done, or
+  say you'll install it before applying.>
 
 ## Previous phases
 
-<"None." or each earlier phase folder with its skill version and outcome, e.g.
-- `phases/2026-10-27-sign-in-sspr/` — skill 0.3.0, sign-in and sspr migrated.
-- `phases/2026-11-03-sign-up-restarted/` — skill 0.3.0, restarted after the
-  skill was updated to 0.4.0; code changes reverted.>
-<If an earlier phase used a different skill version, add a risk in section 11:
-the code it migrated may need changes; check the release notes.>
+<"None." or one line per earlier phase folder, e.g.
+- `phases/2026-10-27-sign-in-sspr/` — skill 0.3.0, sign-in and sspr migrated.>
 
-## 1. Application profile
+## 1. What we found
 
-| Item | Detected |
+Check that this matches your app.
+
+| Item | Found |
 | --- | --- |
-| Platform | <e.g. Web SPA (React 19, TypeScript, react-router)> |
-| Integration | <from the approach guide, e.g. Raw native auth API V1 (no SDK)> |
-| <Approach-specific rows> | <e.g. HTTP layer, dev/CORS proxy, production proxy> |
-| Tenant and endpoint config | <file where base URL, tenant, and client ID are set> |
-| Scopes requested today | <e.g. `openid offline_access api://…/read` — kept unchanged> |
-| Token storage | <e.g. sessionStorage via src/auth/tokenStore.ts — unchanged> |
-| Flows found | <sign-in (password + MFA email OTP), sign-up (password + email OTP), sspr (email OTP)> |
+| App | <e.g. React 19 single-page app, TypeScript> |
+| Native auth today | <e.g. raw native auth API V1 calls in `src/auth/api.ts` / MSAL JS V1 methods, `@azure/msal-browser` 5.20.0> |
+| Flows | <one line per flow with the steps the app has screens for, e.g. sign-in: password, MFA by email code> |
+| Config | <file with the tenant, client ID, and base URL; proxy if any> |
 
 ## 2. Scope
 
-| Flow | Methods and sub-flows the V1 UI handles | Other V2 steps (→ unhandled outcome) | Decision | Reason |
-| --- | --- | --- | --- | --- |
-| sign-in | <password, MFA (email OTP)> | <SMS, JIT registration> | Migrate | |
-| sign-up | <email OTP, password, dynamic attributes; no sign-in after sign-up> | <JIT registration> | Defer | <customer keeps it on V1> |
-| sspr | <email OTP; sign-in after reset> | <SMS> | Migrate | |
-
-<Decision is Migrate, Defer, or Already on V2 (left unchanged). A flow that
-already mixes V1 and V2 calls must be migrated in this phase.>
-
-## 3. V1 inventory
-
-| File | Line(s) | Flow | Kind | Shared? | V1 usage |
-| --- | --- | --- | --- | --- | --- |
-| | | | <endpoint / response field / error code / UI / config> | <no / with sign-up> | |
-
-## 4. Coexistence notes
-
-<Shared code and how flows that stay on V1 keep working. Confirm no flow
-mixes V1 and V2, including MFA and JIT inside each flow.>
-
-## 5. Behavior changes users will see
-
-| Flow | Today (V1) | After migration (V2) |
+| Flow | Decision | Reason |
 | --- | --- | --- |
-| <sign-up> | <one form sends email, password, and attributes, then OTP> | <same form; email sent first, code verified, then password and attributes; service may ask for extra attributes> |
-| <sign-in> | <users without an MFA method register it in the app (V1 JIT)> | <unchanged, V2 JIT registration — or: sent to web fallback if V1 had no JIT> |
-| <all> | <browser fallback continues the flow> | <browser fallback restarts sign-in> |
+| <sign-in> | <Migrate / Defer / Already on V2> | <requested / customer keeps it on V1 / already on V2> |
 
-## 6. Error handling map
+<A flow that already mixes V1 and V2 calls must be migrated in this phase.>
 
-| Flow | V1 error the UI handles | V2 condition | UI message (unchanged unless noted) |
-| --- | --- | --- | --- |
-| <sign-in> | <`user_not_found`> | <`invalidRequest` + `userNotFound` / AADSTS50034> | <"User not found" — unchanged (V1 conflict); finding in section 8> |
-| <sign-up> | <`user_already_exists`> | <sign-up start returns `action: challenge`> | <"An account with this email already exists" — unchanged> |
+## 3. What users will notice
 
-<V2 conditions come from the approach's error reference. Anything not
-mapped uses the app's existing generic error.>
+<One numbered entry per change a user can see, including messages that
+change or go away and steps the app has no screen for. Today and After say
+what the user sees, in plain words. "None." if users notice nothing.>
 
-## 7. Implementation steps
+**<1. Short title> (<flow>)**
+- *Example:* <who does what>
+- *Today:* <what they see with V1>
+- *After:* <what they see with V2>
 
-Tick items as they are applied (`[x]`). Note any deviation under the item.
+## 4. Files that will change
+
+Ticked as they're applied. A deviation is noted under its item.
 
 ### Shared
-- [ ] <from the approach guide, e.g. add V2 client; config; dev proxy>
+- [ ] <SDK approach, when the SDK changes: `package.json` — `@azure/msal-browser`
+  5.20.0 → 5.29.0. A failed install is noted here as "Waiting for the
+  customer to install: <error>".>
+- [ ] <`path` — what changes, in one line>
 
 ### <flow ID>
-- [ ] <file: change>
+- [ ] <`path` — what changes, in one line>
 
 ### Tests
-- [ ] <test file: update / add — what it covers>
+- [ ] <`test file` — added / updated: what it covers>
 
-## 8. Security considerations
+<When a flow stays on V1, end with one line saying how it keeps working,
+e.g. "sign-up stays on V1: it keeps using the V1 client, which isn't
+changed.">
 
-New code follows the skill's security guardrails. After applying, a security
-review fixes any issue in the migration's own changes and reports issues
-already in the inventoried code, without changing that code.
+## 5. Checks run when you approve
 
-Rules that matter most for this app:
+Run twice: before any change, and after. A failure the migration causes is
+fixed up to `max-fix-attempts` times; each command may run up to
+`command-timeout-minutes` (edit `validation-settings` in the front matter to
+change these).
 
-| Rule | How this migration meets it |
+| Check | Command |
 | --- | --- |
-| <e.g. SEC-03 Flow state where V1 kept it> | <V2 continuation token and links kept in the same in-memory flow state as V1; token storage unchanged> |
-| <e.g. SEC-06 No account enumeration> | <Sign-in and reset messages keep V1 wording (V1 conflict); unknown-user disclosure reported below; no new disclosure> |
-| <e.g. API-01 Validated links> | <All V2 links go through `resolveLink`> |
+| <Build and type-check> | `<npm run build>` |
+| <Unit tests> | `<npm test -- --watchAll=false>` |
 
-Known pre-existing concerns seen during inventory: <list, or "none"; they are
-reported, not fixed>.
+<Say if the project has no build or test command: the migration won't
+create one.> Tests that need a real tenant are never run or changed
+(<list them, or "none found">); the report ends with a manual test script.
 
-## 9. Validation approach
+## 6. Risks and actions for you
 
-> **Approving this plan also runs the commands below**, twice: once before
-> any change (baseline) and once after the migration. A failure caused by the
-> migration is fixed and re-checked up to `max-fix-attempts` times; each
-> command may run up to `command-timeout-minutes`. Edit
-> `validation-settings` in the front matter to change these limits.
+<Only what the migration itself could break, or what it needs the developer
+to do, each with what to do. Not general setup or testing they already know.
+"None." when empty. E.g.
+- **Production proxy.** If the app runs behind a gateway outside this repo,
+  it must forward the V2 endpoints (`/oauth2/v2.0/authorize-challenge`, …).
+- [ ] **SDK install.** Install `@azure/msal-browser` 5.29.0 or later before
+  approving; the migration checks it first.>
 
-| ID | Check | Command |
-| --- | --- | --- |
-| A1–A7 | Scope and V2 contract checks | search and `git diff` (no command to approve) |
-| B1 | <Type-check / build> | `<e.g. npm run typecheck>` |
-| C1 | <Unit tests> | `<e.g. npm test -- --watchAll=false>` |
-| D | Tests that need a real tenant | Not run — manual script in the report |
-
-<If the project defines no build or test commands, say so. The migration
-won't create any; only the A checks and the manual script apply.>
-
-### Tests
-
-Only unit and component tests with a mocked service boundary are added or
-changed. Tests that need a real tenant (end-to-end, UI, device, emulator)
-are never added, run, or changed.
-
-| Item | Detail |
-| --- | --- |
-| Test framework | <e.g. Vitest (package.json) / XCTest target `AppTests` / JUnit — or "none found" (see Decisions needed)> |
-| Tests to update | <test files that assert V1 behavior for migrated flows, or "none"> |
-| Tests to add | <new test files and what they cover, from the approach's required tests> |
-| Tenant-dependent tests (not run or changed) | <e.g. e2e/signin.spec.ts — or "none found"> |
-
-## 10. Manual prerequisites (customer)
-
-- [ ] Tenant enrolled in the Native Auth API V2 private preview.
-- [ ] <Approach-specific items from the approach guide>
-
-## 11. Assumptions, risks, out of scope
-
-- <...>
-
-## 12. Decisions and revisions
+## Decisions and revisions
 
 | # | Date | Decision or change | Customer's words | Revision |
 | --- | --- | --- | --- | --- |
 | 1 | <date> | Migration requested → scope <flow IDs> | "<request>" | 1 |
-| 2 | <date> | <e.g. Tests: introduce Vitest> | "<answer>" | 1 → 2 |
-| 3 | <date> | Revision 2 approved | "<approval>" | 2 |

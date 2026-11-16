@@ -61,9 +61,10 @@ cases run in an empty workspace.
 
 ## Behavior (`behavior/`)
 
-Two kinds of case per approach: plan cases (`*-plan-*`) and full-migration
-cases (`*-migrate-*`). `--tag behavior` runs all of them; to leave the long
-full-migration runs out, use `--case '*-plan-*'`.
+Three kinds of case: plan cases (`*-plan-*`), full-migration cases
+(`*-migrate-*`), and SDK version cases (`*-install-fails`, `*-resume-*`).
+`--tag behavior` runs all of them; to leave the long full-migration runs out,
+use `--case '*-plan-*'`.
 
 ### Plan cases
 
@@ -72,9 +73,10 @@ the skill fires; `plan.md` is created as a draft with the approach and a
 skill version; the plan follows the skill's plan template (every front
 matter field; every section, matched by its number and the first word of its
 title; no placeholder text left); the plan's scope table marks each flow
-Migrate or Defer as requested; no file under `src/`, `test/`, `cors.js`, or
-`package.json` is edited or written; the final message stops for approval
-(judge).
+Migrate or Defer as requested; no app source file or dependency file is
+edited or written; the final message stops for approval (judge). The
+all-flows plan cases also check that the plan asks for the tenant ID, because
+each fixture's authority uses the tenant domain.
 
 | Case | Request | Extra checks |
 | --- | --- | --- |
@@ -131,10 +133,10 @@ The score is the weighted share of passed checks, grouped by name prefix:
 | --- | --- |
 | `process-` | The plan was approved at revision 1, ends `reported`, keeps its scope, has every implementation step ticked, and records a validation baseline |
 | `gen-file-` | Every fixture file is either exactly the original (files the plan doesn't change) or changed (files it does), compared by content, whatever tool the agent used; the plan's new files exist and no other new file appears outside `test/` and the migration folder (SDK cases also allow `package-lock.json`) |
-| `v1-`, `v2-` | API: no V1 calls left in migrated flows' files; V1 kept where a flow stays on V1; migrated flows use the V2 client; the config has `authorize-challenge`; the proxy allows `PUT` and `client-request-id`. SDK: migrated flows call the V2 methods and not the V1 start calls; no password passed to `signInV2` or `signUpV2`; the held sign-in password goes to `submitPassword`; existing-account states handled; `signIn()` after sign-up and reset as V1 did; `@azure/msal-browser` at or above `5.29.0`; `isBrowserRequired` handled; the proxy allows `PUT` |
+| `v1-`, `v2-` | API: no V1 calls left in migrated flows' files; V1 kept where a flow stays on V1; migrated flows use the V2 client; the config has `authorize-challenge`; the proxy allows `PUT` and `client-request-id` and uses the tenant ID. SDK, every platform: migrated flows call the V2 methods and not the V1 start calls; no password passed at the start; the password goes to `submitPassword`; existing-account results handled; `signIn()` after sign-up and reset as V1 did; browser-required handled; the tenant ID is used. JS also: `@azure/msal-browser` at or above `5.29.0`, `challengeTypes` removed, and the proxy allows `PUT` and uses the tenant ID. iOS and Android also: the password is held until asked for, a retry reuses the same state, MFA and JIT steps aren't completed silently, and the authority uses the tenant ID |
 | `tests-` | The tests ran at least twice (baseline and after); no test is skipped, focused, or left as todo |
 | `security-` | The report has the security review's audit line; migrated files don't log, store, or serialize flow state |
-| `report-`, `gen-report-` | `report.md` follows the report template (every section, matched by number and first word; no placeholder text left), has an outcome, the code checks line, unit tests passed, and "not committed" |
+| `report-`, `gen-report-` | `report.md` follows the report template (every section, matched by number and first word; no placeholder text left), has an outcome, the code checks line, and "not committed". JS and API cases record unit tests as passed; iOS and Android cases record the build and unit tests as not run |
 | `critical-` | No `git commit` or `git push` |
 
 ### SDK version cases
@@ -181,22 +183,22 @@ node tests/evals/eeid-native-auth-migrate-v2/scripts/generate-graders.mjs
 | `spa-js-v1` | Plain-JavaScript SPA calling the V1 raw API through a local dev proxy (`cors.js`). Password and email OTP sign-in, one-screen sign-up with automatic sign-in, SSPR with polling and automatic sign-in. No dependencies; `npm test` runs `node --test` (12 tests). |
 | `spa-js-sdk-v1` | Plain-JavaScript SPA on the MSAL JS native auth SDK V1 methods (`@azure/msal-browser` `^5.20.0`, `CustomAuthPublicClientApplication`) through a local dev proxy. One-screen sign-in (email and password) with email OTP, one-screen sign-up with automatic sign-in, SSPR with automatic sign-in. Only `src/auth/msalApp.js` imports the SDK; the flows take the app instance as a parameter, and the tests use a fake SDK (`test/fakeSdk.js`), so `npm test` needs no install (13 tests). Plain JavaScript keeps the fixture framework-neutral, like the SDK. |
 | `ios-swift-sdk-v1` | Source files of a UIKit app on the MSAL for iOS native auth V1 methods (`MSALNativeAuthPublicClientApplication`, CocoaPods `MSAL` 2.16.1): one-screen sign-in (email and password) with email code, one-screen sign-up with automatic sign-in, SSPR with automatic sign-in, an `AuthMessages` test file. No Xcode project; never built, so evals need no Xcode. |
-| `android-kotlin-sdk-v1` | Source files of a Kotlin app on the MSAL for Android native auth V1 methods (`INativeAuthPublicClientApplication`, Maven `msal` 8.5.0): one-screen sign-in (email and password), one-screen sign-up with automatic sign-in, SSPR with automatic sign-in. No Gradle wrapper, so it is never built |
-
+| `android-kotlin-sdk-v1` | Source files of a Kotlin app on the MSAL for Android native auth V1 methods (`INativeAuthPublicClientApplication`, Maven `msal` 8.5.0): a root `settings.gradle` with one `app` module, one-screen sign-in (email and password), one-screen sign-up with automatic sign-in, SSPR with automatic sign-in, an `AuthMessages` test file. No Gradle wrapper, so it is never built. |
 
 `scripts/seed-fixture.sh <fixture>` copies a fixture into the workspace and
 commits it; each case's `scaffold.sh` calls it. `scripts/seed-plan.mjs <plan>`
 writes a plan from `fixtures/plans/` into the workspace, filling in the
 installed skill version, today's date, the baseline commit, and file hashes,
 and writes its working notes (`<plan>.working-notes.md` next to it) as
-`working-notes.md` with the plan's revision. With `--waiting "<error>"` it writes the plan as a run leaves it when the SDK
-install failed: approved, `applying`, and the first shared step unticked with
-the waiting note. With `--plan-version <patch|minor>` it records
-a skill version that differs from the installed one only in the patch
-number, or in the minor number. `scripts/customer-install.mjs <js|ios>` simulates the
-customer installing the minimum SDK version: it edits the dependency files
-(and writes a minimal `package-lock.json` for JS) and commits them, without
-downloading anything.
+`working-notes.md` with the plan's revision. With `--waiting "<error>"` it
+writes the plan as a run leaves it when the SDK install failed: approved,
+`applying`, and the first shared step unticked with the waiting note. With
+`--plan-version <patch|minor>` it records a skill version that differs from
+the installed one only in the patch number, or in the minor number.
+`scripts/customer-install.mjs <js|ios|android>` simulates the customer
+installing the minimum SDK version: it edits the dependency files (and writes
+a minimal `package-lock.json` for JS) and commits them, without downloading
+anything.
 
 ## Network and commands
 

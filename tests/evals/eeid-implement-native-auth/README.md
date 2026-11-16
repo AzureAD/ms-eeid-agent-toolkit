@@ -1,7 +1,7 @@
 # Evals: eeid-implement-native-auth
 
-See the shared eval README for execution and the explicit three-skill launch
-composition profile.
+Cases for `eeid-implement-native-auth`. How to run them, and why this skill is installed together
+with the rest of the onboarding skill group: [../README.md](../README.md).
 
 | Case | Type | Expected behavior |
 | --- | --- | --- |

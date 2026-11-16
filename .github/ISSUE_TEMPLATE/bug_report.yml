@@ -6,8 +6,8 @@ body:
     id: skill
     attributes:
       label: Skill and skill version
-      description: The skill name, and `metadata.version` from its SKILL.md.
-      placeholder: eeid-native-auth-migrate-v2 0.2.5
+      description: The skill name, and `metadata.version` from its SKILL.md (or the plugin version, if that's what you have).
+      placeholder: eeid-native-auth-migrate-v2 0.3.0
     validations:
       required: true
   - type: input

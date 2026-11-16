@@ -1,0 +1,11 @@
+name: Question
+description: A question about using one of the skills.
+labels: [question]
+body:
+  - type: textarea
+    id: question
+    attributes:
+      label: Your question
+      description: Name the skill and the agent you use. Remove secrets, tokens, tenant IDs, and personal data first.
+    validations:
+      required: true

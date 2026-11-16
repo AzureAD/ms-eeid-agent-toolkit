@@ -12,6 +12,7 @@
 import { execFile, spawn } from 'node:child_process';
 import { cp, mkdir, rm, writeFile } from 'node:fs/promises';
 import { homedir } from 'node:os';
+import { agentEnv } from '../lib/env.mjs';
 import { join } from 'node:path';
 
 const SAFE_COMMANDS = ['git', 'node', 'npm', 'ls', 'cat', 'head', 'tail', 'wc', 'find', 'grep', 'rg', 'pwd', 'diff', 'mkdir'];
@@ -170,7 +171,7 @@ export const copilotAdapter = {
       ...permissionArgs(allowedTools),
     ];
     if (options.model) args.push('--model', options.model);
-    const env = { ...process.env, COPILOT_HOME: copilotHome(), COPILOT_AUTO_UPDATE: 'false', NO_COLOR: '1' };
+    const env = agentEnv({ COPILOT_HOME: copilotHome(), COPILOT_AUTO_UPDATE: 'false', NO_COLOR: '1' });
 
     return new Promise((resolve) => {
       const child = spawn(options.copilotBin ?? 'copilot', args, { cwd: workspace, env, stdio: ['ignore', 'pipe', 'pipe'] });

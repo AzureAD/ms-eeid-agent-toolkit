@@ -5,7 +5,9 @@ adopts at each step. The SDK delivers a state only through its delegate
 protocol; a state whose delegate the app doesn't adopt arrives as
 `onFlowError` with `isNotImplemented`. That is how the parity rule
 (`references/flows-and-scope.md`) is kept: adopt the delegates for the
-steps the V1 UI handled, and no others.
+steps the V1 UI handled, and no others. The one exception is in **Finish
+after sign-up or reset**: some delegates are adopted only to recognize that
+the account exists or the password is reset, with no screen for the step.
 
 The flow's **unhandled outcome** is: the app's V1 handling of
 `isBrowserRequired` if the error is browser-required, otherwise the app's
@@ -31,12 +33,17 @@ the signed-in `MSALNativeAuthUserAccountResult`.
   with `channelTargetType.isEmailType` and `.isSMSType`, in the order of the V1
   challenge types. Show `loginHint`, and pass the object from `authMethods` to
   `selectAuthMethod`. An existing account also has `scenario == .signIn`.
+- Adopt `AuthMethodSelectionRequired` for the first factor even if the V1 UI
+  had no method choice: without it, an account with more than one method gets
+  `isNotImplemented`. Later in a flow whose V1 UI had no MFA, the same callback
+  is MFA and goes to the unhandled outcome, except after a new password in a
+  reset (see **Finish after sign-up or reset**).
 
 ## Sign-in
 
 | Step | Call | Delegates adopted |
 | --- | --- | --- |
-| 1. Start | `signInV2(parameters: MSALNativeAuthSignInParametersV2(username:), delegate:)` with V1's scopes and claims | `PasswordRequired`; `CodeRequired` (code already sent, single email or SMS method); `AuthMethodSelectionRequired` (first factor, only if V1 offered a method choice) |
+| 1. Start | `signInV2(parameters: MSALNativeAuthSignInParametersV2(username:), delegate:)` with V1's scopes and claims | `PasswordRequired`; `CodeRequired` (code already sent, single email or SMS method); `AuthMethodSelectionRequired` (first factor; follow **Method selection** in the shared file) |
 | 2a. Password | `state.submitPassword(_:delegate:)` | → `onFlowCompleted`; `AuthMethodSelectionRequired` (MFA, only if V1 had MFA); `StrongAuthRegistrationRequired` (only if V1 had JIT) |
 | 2b. Method choice | `state.selectAuthMethod(_:delegate:)` | `CodeRequired`; `PasswordRequired` |
 | 2c. Code | `state.submitCode(_:delegate:)` | → `onFlowCompleted`; MFA; JIT, as in 2a |
@@ -53,7 +60,7 @@ start delivers `onCodeRequired` instead, the V1 behavior to keep is
 | Step | Call | Delegates adopted |
 | --- | --- | --- |
 | 1. Start | `signUpV2(parameters: MSALNativeAuthSignUpParametersV2(username:), delegate:)` with `attributes`, scopes, claims | `CodeRequired` (email code sent); existing account: `ExistingAccountCodeRequired`, `ExistingAccountPasswordRequired`, `AuthMethodSelectionRequired` |
-| 2. Verify email | `state.submitCode(_:delegate:)` | `AttributesRequired`; `PasswordRequired`; `SignInAfterSignUpRequired`; `StrongAuthRegistrationRequired` (only if V1's automatic sign-in handled JIT) |
+| 2. Verify email | `state.submitCode(_:delegate:)` | `AttributesRequired`; `PasswordRequired`; `SignInAfterSignUpRequired`; `StrongAuthRegistrationRequired` (always; see **Finish after sign-up or reset**) |
 | 3. Attributes (repeats) | `state.submitAttributes(_:delegate:)` | same as step 2 |
 | 3. Password | `state.submitPassword(_:delegate:)` | same as step 2 |
 | 4. Finish | see **Finish after sign-up or reset** | |
@@ -80,7 +87,7 @@ The sign-up flow must adopt these delegates: without them the SDK reports
 
 | Step | Call | Delegates adopted |
 | --- | --- | --- |
-| 1. Start | `resetPasswordV2(parameters: MSALNativeAuthResetPasswordParametersV2(username:), delegate:)` with scopes and claims | `CodeRequired` (code sent); `AuthMethodSelectionRequired` (first factor, only if V1 offered a method choice) |
+| 1. Start | `resetPasswordV2(parameters: MSALNativeAuthResetPasswordParametersV2(username:), delegate:)` with scopes and claims | `CodeRequired` (code sent); `AuthMethodSelectionRequired` (first factor; follow **Method selection** in the shared file) |
 | 2. Method choice | `state.selectAuthMethod(_:delegate:)` | `CodeRequired` |
 | 3. Code | `state.submitCode(_:delegate:)` | `NewPasswordRequired` |
 | 4. New password | `state.submitNewPassword(_:delegate:)` | `SignInAfterResetPasswordRequired`; `AuthMethodSelectionRequired` (MFA); `StrongAuthRegistrationRequired` (JIT), per **Finish** |
@@ -104,8 +111,14 @@ Which delegates to adopt depends on the row of the shared table:
 | V1 app after the flow | Delegates |
 | --- | --- |
 | Signs in automatically (`signIn` on the V1 after-sign-up or after-reset state), and handles MFA and registration there | Adopt the MFA (reset only) and JIT delegates, and the after-flow delegate |
-| Signs in automatically, but doesn't handle MFA or registration there | Don't adopt the MFA or JIT delegates; the step arrives as an error, which you handle as that row says |
-| Doesn't sign in automatically | Adopt the after-flow delegate (`…SignInAfterSignUpRequiredDelegate` / `…SignInAfterResetPasswordRequiredDelegate`) only to end the flow, and never call `signIn`. Don't adopt MFA or JIT; their error after the reset or sign-up ends the flow the same way. |
+| Signs in automatically, but doesn't handle MFA or registration there | Adopt the after-flow delegate, and the JIT delegate (plus MFA selection after a reset) **only to recognize the step**: show V1's confirmation, then V1's error for its failed automatic sign-in, and discard the state. Call nothing on that state and add no MFA or registration screen |
+| Doesn't sign in automatically | Adopt the after-flow delegate (`…SignInAfterSignUpRequiredDelegate` / `…SignInAfterResetPasswordRequiredDelegate`) only to end the flow, and never call `signIn`. Adopt the JIT delegate (plus MFA selection after a reset) only to recognize the step, and end the flow the same way |
+
+Why the JIT and MFA delegates are always adopted here: without them, the step
+arrives as `isNotImplemented`, which is also what a step before the account
+exists (for example an attribute the form doesn't collect) produces. The app
+then can't tell that the account was created or the password reset, and would
+show an error instead of V1's confirmation.
 
 ## MFA
 

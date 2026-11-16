@@ -31,7 +31,8 @@ object**; the SDK accepts a new attempt on it.
 
 ## Showing errors
 
-Follow **Errors** in the shared file. Never show `innerErrorCode`, and report
+Follow **Errors** in the shared file. The error's description is
+`error.errorData.errorDescription`. Never show `innerErrorCode`, and report
 existing disclosure rather than fixing it. Don't log the error object as a
 whole, and never log the state or result objects (SEC-01, SDKJS-02).
 

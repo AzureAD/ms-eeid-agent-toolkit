@@ -116,7 +116,7 @@ button that used the continuation token), show it as soon as the account
 exists: at `state: continue` or at `enroll`. Keep the flow state in memory.
 When the user continues, run the registration (for `enroll`) and finish
 with tokens. Don't run registration before the confirmation, and don't skip
-the confirmation. Record this order in the plan's sign-up scope row.
+the confirmation. Record this order in the plan's "Supported steps" row for sign-up.
 
 ## Behavior change to put in the plan
 

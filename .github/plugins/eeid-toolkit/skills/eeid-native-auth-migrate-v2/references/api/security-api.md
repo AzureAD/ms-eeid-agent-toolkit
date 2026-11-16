@@ -82,7 +82,7 @@ endpoints through a proxy because the endpoints don't support CORS.
   Don't add `Access-Control-Allow-Origin: *` to anything that isn't
   local-only.
 - A production proxy or gateway outside the repo can't be reviewed. List it
-  as manual follow-up with these same rules.
+  in the report's "Actions for you" with these same rules.
 
 Severity if broken: High for an open proxy or logged bodies; Medium for
 over-broad CORS on a local-only proxy.

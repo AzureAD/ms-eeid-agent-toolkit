@@ -14,6 +14,119 @@ Words used here:
   error is browser-required, otherwise the app's existing generic error.
   Discard the flow's state either way.
 
+## SDK version
+
+The V2 code needs the platform's minimum SDK version. Without it the app
+doesn't build, so **never change app code until the installed version is
+confirmed.** The platform's approach guide (**SDK version**) gives the
+minimum, the files that record the installed version, the lookup, and the
+install command. This section is the flow every platform follows.
+
+**Reading the installed version** always means reading the project's own
+files (a lockfile, a resolved-packages file, or a build file). It is local
+and can run at any step.
+
+**When the dependency file and the lockfile disagree** (the locked version
+doesn't satisfy the declared range or requirement, for example
+`package.json` `^5.11.0` with 4.26.0 locked, or a `Podfile` requirement
+`Podfile.lock` doesn't meet), the lockfile is stale. The declared range is
+what the app targets:
+
+- Choose the path below by the declared range's major version, never by
+  the stale locked version. Never stop for a major upgrade when only the
+  lockfile is behind.
+- Treat the installed version as below the minimum, so the plan has an SDK
+  step (or, if the lookup can't run, the "SDK install" decision). That step
+  installs the minimum and updates both files together.
+- Record the mismatch in plain words in "What we found" and in "Risks and
+  actions for you", for example: *"`package-lock.json` locks 4.26.0, which
+  doesn't match `^5.11.0` in `package.json`. The SDK step updates both;
+  check that your build and CI use the new lockfile."*
+
+**While planning (Step 3):**
+
+1. Read the installed version.
+2. **At or above the minimum** → no SDK step. If it is later than the
+   minimum, check that every V2 name the platform's files use still exists
+   in the installed SDK (the approach guide says where). A missing name →
+   **stop** and tell the customer this skill version doesn't cover that SDK
+   version.
+3. **Same major version as the minimum, but below it** → look up, once,
+   the latest version in that major from the project's own source (the
+   approach guide gives the command). Your client may ask the customer to
+   allow the command; that is the client's prompt, so don't ask separately.
+   - **A version at or above the minimum exists** → a shared implementation
+     step upgrades the SDK to it. Keep the version style the app already
+     uses (for example `^`, SPM `from:`, CocoaPods `~>`, a version catalog
+     entry); a range's lower bound must reach the minimum. The upgrade is a
+     dependency change (SEC-12): it is approved with the plan.
+   - **No such version, or the lookup can't run** (no network, the command
+     is denied, or it fails) → add a **"SDK install"** item under "Decisions
+     needed". Say which of the two happened; never assume the version
+     exists. Ask the customer to install it: give the exact dependency
+     change and command, and ask them to tell you when it's done. When they
+     answer, read the installed version again: at or above the minimum →
+     continue planning with no SDK step. If they'll install it later, move
+     the item to "Risks and actions for you" as "Install <SDK> <minimum> or later
+     before applying"; the plan can then be approved, and Step 5 checks it.
+   - A denied or failed lookup is final for this plan: never retry it
+     another way (another command, a download tool, or a web page).
+   - **Minimum OS:** when the plan upgrades the SDK, compare the oldest OS
+     version the target SDK version supports with the oldest one the app
+     supports (the approach guide says where each is recorded). The SDK's is
+     higher → add a **"Minimum OS"** item under "Decisions needed": raise the
+     app's minimum to the SDK's, or keep the flows on V1. Say which OS
+     versions the app would stop supporting. Raising it is a planned change
+     to the build settings, in the SDK step. If either value can't be read,
+     add it to "Risks and actions for you" as unconfirmed; the build in
+     validation shows a mismatch.
+4. **Older major version than the minimum** (in the declared range when the
+   lockfile is stale, see above) → **stop** before writing the
+   plan. A major upgrade changes code outside native auth (configuration,
+   other sign-in methods, supported OS versions), so it is never part of
+   this migration. Tell the customer:
+   - the installed version and the minimum V2 needs;
+   - that the SDK must first be upgraded to the latest version in the
+     minimum's major version, as its own change, following the SDK's own
+     migration guide for that major version and the app's tests;
+   - to ask again when that's done: the migration then starts at Step 1,
+     since the code will have changed.
+
+**The customer's install changes the dependency files** (for example
+`package.json` and its lockfile, `Podfile` and `Podfile.lock`, or the Gradle
+build file). Those changes are expected: they are not "changed since
+planning" in the pre-apply check, as long as the only change is the SDK
+version.
+
+Never point the app at a prerelease, snapshot, branch, commit, local SDK
+module, or a source the project doesn't already use.
+
+**Before applying (Step 5):** if "Risks and actions for you" has the SDK install
+item, read the installed version. Missing or below the minimum → **stop**:
+say what you found, ask the customer to install it and tell you when it's
+done, and keep `status: approved`. Change nothing.
+
+**While applying (Step 6):** the SDK step comes first.
+
+1. Install the approved version with the project's own package manager and
+   source (the platform's `-01` security rule). Success → read the installed
+   version, confirm it is at or above the minimum, and tick the step.
+2. **The install fails** (network, sign-in to the source, a dependency
+   conflict, or anything else) → **stop before any other change**. Don't
+   retry with another source, version, or option. Leave the step unticked
+   and note under it: "Waiting for the customer to install: <error>". Tell
+   the customer the error, the exact change and command, and ask them to
+   tell you when it's done. End your turn with that question. `status`
+   stays `applying`.
+3. **Resuming** (the customer says it's done, or a later run finds that
+   note): read the installed version; never run the install or the lookup
+   again. At or above the minimum → tick the step and continue. Otherwise
+   **stop** again: say what you found, give the exact change and command
+   again, and ask the customer to tell you when it's done.
+
+After approval, the install in step 1 is the only command that may use the
+network for the SDK. Report row: the SDK version installed.
+
 ## Flow rules
 
 - Call each state method once per user action. Never retry a state method or
@@ -23,7 +136,10 @@ Words used here:
 - Show `sentTo` and method hints as plain text (SEC-10).
 - Keep the V1 resend UI, including any timer.
 - **Method selection:** only method types the V1 UI handled are usable.
-  - One usable method → select it without asking.
+  - One usable method → do what the V1 UI did for that step: if it showed its
+    choice screen even for one method, show it with that one method; if it
+    went straight on, select it without asking. Never skip a screen the V1 UI
+    showed (**No improvements** in [../flows-and-scope.md](../flows-and-scope.md)).
   - More than one and the V1 UI offered a choice → show it with the hints.
   - More than one and the V1 UI had no choice → select the first usable type
     without asking, in the order of the V1 challenge types (password before a
@@ -141,7 +257,8 @@ Branch only on the SDK's error checks, never on message text.
 
 - Keep the V1 app's messages (the V1-conflict rule in
   [../security-guardrails.md](../security-guardrails.md)). Where the V1 UI showed the
-  SDK's text, show `errorDescription` in the same place, and nowhere else.
+  SDK's text, show the error's description in the same place, and nowhere
+  else. The platform's error reference names the property.
 - Keep `correlationId` (and `errorCodes` if the app already logs codes) for
   support (SEC-01).
 
@@ -164,10 +281,10 @@ V2 state objects hold the flow's continuation token.
 - **Scopes:** pass the scopes and claims the V1 code requested to each V2 start
   call. The V2 continuation sign-in takes no parameters, so scopes the V1 code
   passed to the continuation sign-in move to the V2 start call of that flow.
-  Record them in the profile.
+  Record them in `working-notes.md`.
 - **Supported steps per flow:** record, for each flow, whether it signs the user
   in after sign-up or reset, and what sign-up does when the account exists.
-- **Behavior changes users will see:**
+- **What users will notice (section 3):**
   - Sign-up sends the email first and collects the password and other attributes
     after the code is verified; screens can stay the same.
   - Sign-in sends the username first and the password when the SDK asks for it;
@@ -177,20 +294,24 @@ V2 state objects hold the flow's continuation token.
   - Steps the V1 UI never handled go to the unhandled outcome.
   - Registration the service asks for during sign-up, and MFA or registration
     during password reset, now happen inside that flow.
-- **Error handling map:** for each V1 error check the UI branches on, the V2
+- **Error mapping (`working-notes.md`):** for each V1 error check the UI branches on, the V2
   check from the platform's error reference and the UI message that should show.
   Keep V1's messages and each distinction the V1 UI made, including any service
   error text it showed (**When a rule conflicts with V1's behavior** in
-  [../security-guardrails.md](../security-guardrails.md)). List each conflict in
-  section 8 as a pre-existing finding (for example SEC-06).
+  [../security-guardrails.md](../security-guardrails.md)). Note each conflict under
+  "Security notes" in `working-notes.md` (for example SEC-06); the security review
+  reports it as a pre-existing finding.
 
 ## Checks for every SDK
 
 **A5 contract checks**, in addition to the platform's list:
 
 - Only public V2 API is used; no internals, no extra native auth HTTP calls.
-- Method selection: only V1-handled types; more than one with no V1 choice
-  screen selects the first usable type without asking; first factor, MFA, and
+- The tenant setting the platform's mapping file names (**Configuration**)
+  uses the tenant ID, unless the customer chose to keep the domain.
+- Method selection: only V1-handled types; one usable method shows the V1
+  choice screen where V1 showed one; more than one with no V1 choice screen
+  selects the first usable type without asking; first factor, MFA, and
   existing account are told apart by the step, not the type.
 - Existing account maps to the V1 "user already exists" handling; no method is
   called on those states.

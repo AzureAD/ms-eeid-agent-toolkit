@@ -29,8 +29,9 @@ retry or resend uses the state the app kept.
 
 ## Showing errors
 
-Follow **Errors** in the shared file. Never log states, parameters, passwords,
-codes, or the error's description together with user input (SEC-01).
+Follow **Errors** in the shared file. The error's description is
+`errorDescription`. Never log states, parameters, passwords, codes, or the
+error's description together with user input (SEC-01).
 
 ## V1 checks with no V2 equivalent
 

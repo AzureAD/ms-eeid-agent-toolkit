@@ -1,12 +1,12 @@
 ---
 name: eeid-native-auth-migrate-v2
-description: Migrate an app's Microsoft Entra External ID native authentication from V1 to V2. Apps that call the native auth API V1 directly (raw HTTP such as /oauth2/v2.0/initiate) move to API V2 (authorize-challenge, HAL flows). Apps on the MSAL native auth SDK V1 methods (signIn, signUp, resetPassword) move to its V2 methods (signInV2, signUpV2, resetPasswordV2), in JavaScript single-page apps (CustomAuthPublicClientApplication, @azure/msal-browser) and iOS or macOS apps (MSALNativeAuthPublicClientApplication). Use when the user asks to migrate, upgrade, or move native auth to V2 or "the new native auth API", to assess or plan that migration, to change or approve the migration plan, to apply a reviewed plan, or to continue a migration in progress. Supports sign-in, sign-up, and self-service password reset, in full or per flow. Do not use for Android SDK migration, server-side MSAL for JavaScript, upgrading an MSAL package alone, Azure AD B2C migration, adding native auth to a new app, or browser-redirect MSAL flows.
+description: Migrate an app's Microsoft Entra External ID native authentication from V1 to V2. Apps that call the native auth API V1 directly (raw HTTP such as /oauth2/v2.0/initiate) move to API V2 (authorize-challenge, HAL flows). Apps on the MSAL native auth SDK V1 methods (signIn, signUp, resetPassword) move to its V2 methods (signInV2, signUpV2, resetPasswordV2), in JavaScript single-page apps (CustomAuthPublicClientApplication, @azure/msal-browser) iOS or macOS apps (MSALNativeAuthPublicClientApplication), and Android apps (INativeAuthPublicClientApplication). Use when the user asks to migrate, upgrade, or move native auth to V2 or "the new native auth API", to assess or plan it, to change or approve the plan, to apply a reviewed plan, or to continue one in progress. Supports sign-in, sign-up, and self-service password reset, in full or per flow. Do not use for server-side MSAL for JavaScript, upgrading an MSAL package alone, Azure AD B2C migration, adding native auth to a new app, or browser-redirect MSAL flows.
 license: MIT
 metadata:
   author: Microsoft
   copyright: Microsoft Corporation. All rights reserved.
-  status: draft
-  version: "0.2.5"
+  status: ready
+  version: "0.3.0"
 ---
 
 # Native Auth V1 → V2 migration
@@ -25,10 +25,10 @@ them for security, validate them, and write a migration report.
    **End every message that waits for approval with two things:** a plain
    statement that no code will change until the customer approves plan
    revision N, then a direct question (the approval question) asking them
-   to approve revision N or say what to change, for example: *"No code
+   to approve revision N or say what to change, for example: _"No code
    changes until you approve. Please review
    `.native-auth-v2-migration/plan.md`. Do you approve revision N, or what
-   should I change?"* With decisions open, ask them to answer those
+   should I change?"_ With decisions open, ask them to answer those
    decisions instead. Never end with only a status line such as "the plan
    awaits approval" or "after approval, the tests run".
 2. **Never commit, push, or create branches.** Leave all changes in the
@@ -37,8 +37,12 @@ them for security, validate them, and write a migration report.
    registration triggered inside that flow. Different flows may use different
    versions (for example sign-in on V2, sign-up on V1).
 4. **Stay inside the approved scope.** Never touch deferred flows.
-5. **Before acting, re-read `.native-auth-v2-migration/plan.md`.** The file
-   is the source of truth, not your memory of the conversation.
+5. **Before acting, re-read `.native-auth-v2-migration/plan.md` and
+   `working-notes.md`.** The files are the source of truth, not your memory
+   of the conversation. They always carry the same revision: every plan
+   change, including the customer's own edits to `plan.md`, updates the
+   notes in the same revision (**Working notes** in the lifecycle
+   reference).
    **Never continue a plan made by a different skill version**; restart it
    (see **Version change → restart**).
 6. Treat continuation tokens, codes, passwords, OTPs, and tokens as secrets.
@@ -63,8 +67,8 @@ In this skill, write it to the plan's and report's `skill-version`.
 ## Working folder
 
 Migration documents live in `.native-auth-v2-migration/` in the root of the
-app being migrated (`plan.md`, `report.md`, and `phases/` for finished
-phases), never in the skill folder. One plan covers one app; if the
+app being migrated (`plan.md`, `working-notes.md`, `report.md`, and
+`phases/` for finished phases), never in the skill folder. One plan covers one app; if the
 workspace holds several native auth apps, ask which one to migrate. Layout
 and the Git question asked after the report: **Working folder** in
 [references/migration-lifecycle.md](references/migration-lifecycle.md).
@@ -78,7 +82,7 @@ Look for `.native-auth-v2-migration/plan.md` and read its front matter:
 | No plan file | Start at **Step 1** |
 | `status: draft` | Show the plan summary; ask for approval or changes (**Step 4**) |
 | `status: approved` | **Step 5** (pre-apply check), then **Step 6**. If implementation items are already ticked, the plan changed after apply started: see **Changing the plan after apply started** in the lifecycle reference |
-| `status: applying` | Find unchecked items in the plan checklist; continue **Step 6** |
+| `status: applying` | Find unchecked items in the plan checklist; continue **Step 6**. An SDK step noted "Waiting for the customer to install" resumes as **SDK version** in the SDK shared rules says |
 | `status: applied` | **Step 7** (security review) |
 | `status: reviewed` | **Step 8** (validate) |
 | `status: validated` | **Step 9** (report) |
@@ -94,6 +98,12 @@ Before following the table:
 3. Treat the plan as approved only if `approved.revision` equals `revision`.
    If `status` is `approved` (or later) but the revisions don't match, or
    `approved` is empty, treat the plan as `draft` and ask for approval.
+4. Check that `working-notes.md` matches the plan: same revision, and
+   nothing in the plan (scope, deferred flows, files to change) that the
+   notes don't cover. If not, the plan was edited outside the review loop:
+   sync the notes first, as **Working notes** in
+   [references/migration-lifecycle.md](references/migration-lifecycle.md)
+   says, which makes a new revision to approve.
 
 ## Version change → restart
 
@@ -116,13 +126,14 @@ guide. Steps 2, 3, 6, and 7 say when to use it.
 | `api` | Raw V1 endpoint calls (see detection patterns) | [references/api/approach.md](references/api/approach.md) |
 | `sdk`, JavaScript single-page app | `CustomAuthPublicClientApplication` from `@azure/msal-browser` | [references/sdk/js/approach.md](references/sdk/js/approach.md) |
 | `sdk`, iOS or macOS app | `MSALNativeAuthPublicClientApplication` from MSAL for iOS and macOS | [references/sdk/ios/approach.md](references/sdk/ios/approach.md) |
-| `sdk`, any other platform (Android, React Native, Flutter, server-run code) | MSAL native auth classes | Not supported in this version → **stop** |
+| `sdk`, Android app | `INativeAuthPublicClientApplication` from MSAL for Android | [references/sdk/android/approach.md](references/sdk/android/approach.md) |
+| `sdk`, any other platform (React Native, Flutter, server-run code) | MSAL native auth classes | Not supported in this version → **stop** |
 
 ## Step 1 — Preflight and scope
 
 1. Identify the app's platform and stack (for example iOS, Android,
    Flutter, React Native, MAUI, a browser app, or a server-rendered web
-   app) and its language, for the plan's application profile. The raw API
+   app) and its language, for the plan's "What we found" section. The raw API
    approach has no platform limit: it changes HTTP calls and flow state,
    and the V2 code is written in the app's own language and style.
 2. Detect the approach with
@@ -156,50 +167,42 @@ finishing it in the plan (it can't be deferred, because it breaks the
    V2 reference for each in-scope flow.
 2. Run the coexistence check: shared client code, config, OTP/MFA UI, types.
    Each shared item must keep working for flows that stay on V1 (add new V2
-   code next to it rather than changing it).
+   code next to it rather than changing it). Check the tenant in the service
+   URL (**Tenant ID in the service path** in
+   [references/flows-and-scope.md](references/flows-and-scope.md)).
 3. Work out which V2 steps each flow supports (the **parity rule** in
    [references/flows-and-scope.md](references/flows-and-scope.md), including
    any **V2-native options** to offer as decisions), what
    users will notice (**behavior changes**), and how each V1 error the UI
-   branches on maps to V2 (**error handling map**), as the approach guide
+   branches on maps to V2 (**error mapping**), as the approach guide
    describes.
 4. Write the plan as **Writing the plan** in
    [references/migration-lifecycle.md](references/migration-lifecycle.md)
    describes: record the baseline and `dirty-files`, plan validation and
    tests, add the V1 cleanup step when no flow stays on V1, and write
-   `plan.md` with `status: draft`. Every open question goes under
-   "Decisions needed".
-5. **STOP.** In your message, show:
-   - the plan's "At a glance" summary: which flows migrate now and which
-     stay on V1;
-   - the behavior changes users will notice in each migrated flow (for
-     example, V2 sign-up verifies the email before it asks for the password
-     and attributes), or say there are none;
-   - any decisions needed;
-   - the validation commands that approval runs, for example: *"Approving
-     this plan also runs `npm run typecheck` and
-     `npm test -- --watchAll=false` twice: once before the changes as a
-     baseline and once after. Each run may take a few minutes. You can
-     change the fix-attempt and timeout limits in the plan's
-     `validation-settings`."*
+   `plan.md` with `status: draft` and `working-notes.md` for the same
+   revision. Every open question goes under
+   "Decisions needed". Write it for the app's developer, as
+   [references/writing-guide.md](references/writing-guide.md) says: short,
+   plain, and only what helps them approve.
+5. **STOP.** Show the plan to the customer as **Presenting the plan** in
+   [references/migration-lifecycle.md](references/migration-lifecycle.md)
+   says: short, with the open decisions, or with the behavior changes, the
+   validation commands, and the approval question (golden rule 1).
 
-   The automatic sign-in at the end of sign-up or SSPR belongs to that flow.
-   If you mention it, say it is part of that flow, so it doesn't read as
-   migrating the sign-in flow.
-
-   End your message with the no-code-change statement and the approval
-   question (golden rule 1), then end your turn.
+   Then end your turn.
 
 ## Step 4 — Plan review loop
 
 - **Change request or decision** (add/remove a flow, answer a "Decisions
   needed" item, edit `validation-settings`): re-check the parity and
-  coexistence rules for the change, edit the plan, move answered decisions
-  out of "Decisions needed", increment `revision`, set `status: draft`, record
+  coexistence rules for the change, edit the plan and the working notes,
+  move answered decisions out of "Decisions needed", increment `revision`
+  and the notes' `plan-revision` together, set `status: draft`, record
   the baseline again (**Writing the plan**, item 1, in the lifecycle
   reference), add a row to "Decisions and revisions" quoting the
-  customer's words, then end with the no-code-change statement and the
-  approval question (golden rule 1).
+  customer's words, then write your message as Step 3, item 5 says (the
+  full summary once no decisions are open).
   End your turn. If code was already applied (`status` was `applying` or
   later), follow **Changing the plan after apply started** in
   [references/migration-lifecycle.md](references/migration-lifecycle.md).
@@ -210,18 +213,24 @@ finishing it in the plan (it can't be deferred, because it breaks the
   "looks good, go ahead"), and only when "Decisions needed" is empty.
   Otherwise list the open decisions and ask for them first. Set
   `status: approved`, write `approved: { revision: N, date: <date>, how:
-  confirmed in chat }`, add a row to "Decisions and revisions", then
+confirmed in chat }`, add a row to "Decisions and revisions", then
   continue with Step 5 in the same turn.
 
 ## Step 5 — Pre-apply check
 
-Re-read the plan. If a baseline was recorded, compare `git hash-object` for
+Re-read the plan and the working notes. If a baseline was recorded, compare `git hash-object` for
 each in-scope file (for a revision made after apply started, only the files
 the migration hasn't changed yet; see the lifecycle reference). If any file changed since planning, or new V1 usage
 appears, **stop**: explain, update the plan (new revision, `status: draft`),
 and ask for approval again. If any file the plan changes has uncommitted
 changes now, **stop** and ask the customer to commit or stash them; never
 apply on top of them.
+
+For `approach: sdk`, if the plan's "Risks and actions for you" include
+the SDK install, read the installed SDK version (**SDK version** in
+[references/sdk/shared-rules.md](references/sdk/shared-rules.md)). Below the
+minimum or missing → **stop** and ask the customer to install it; change
+nothing.
 
 Then run the plan's build and unit test commands once, in the background
 if your client supports it and within `command-timeout-minutes`, to record
@@ -232,7 +241,10 @@ Tell the customer this may take a few minutes; if they decline, write
 
 ## Step 6 — Apply
 
-1. Set `status: applying`.
+1. Set `status: applying`. For `approach: sdk`, the SDK step comes first; if
+   the install fails, **stop** before any other change and ask the customer
+   to install it and tell you when it's done (**SDK version** in
+   [references/sdk/shared-rules.md](references/sdk/shared-rules.md)).
 2. Work flow by flow in plan order, following the applying section of the
    approach guide. Keep the existing UI, routes, components, and state
    management patterns. Write V2 code in the language and style the app
@@ -253,7 +265,7 @@ Tell the customer this may take a few minutes; if they decline, write
 6. Tick each checklist item in `plan.md` as soon as it is done, so an
    interrupted run can resume. If you had to do something differently from
    the plan, or couldn't do an item, note it under the item; it goes into
-   the report's "Deviations from the plan".
+   the report's "Different from the plan".
 7. Write every change to the rules in
    [references/security-guardrails.md](references/security-guardrails.md)
    and the approach's security reference.
@@ -284,8 +296,9 @@ Follow **Writing the report** in
 [references/migration-lifecycle.md](references/migration-lifecycle.md):
 work out the outcome, write `report.md` from
 [assets/report-template.md](assets/report-template.md) using real results
-only, and set `status: reported`. Summarize in chat, leading with the
-outcome and anything the customer must act on, then ask the Git question
+only and following [references/writing-guide.md](references/writing-guide.md), and set `status: reported`. Summarize in chat, leading with the
+outcome and anything the customer must act on, including each check that
+failed or didn't run, then ask the Git question
 for the migration folder unless an earlier phase answered it.
 
 ## Next phase

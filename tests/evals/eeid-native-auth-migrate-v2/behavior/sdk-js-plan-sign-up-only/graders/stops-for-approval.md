@@ -4,7 +4,8 @@ weight: 2
 ---
 PASS if the final message summarizes a plan that migrates only sign-up, says
 sign-in and password reset stay on V1, mentions that V2 sends the email
-before the password and attributes (or another sign-up behavior change), and
+before the password and attributes (or another sign-up behavior change, or
+an open sign-up decision about when the password is collected), and
 stops for the user's approval of the plan (or for answers to open decisions)
 before any code is changed.
 

@@ -90,10 +90,10 @@ including VS Code's integrated terminal.
    npm run eval:agent -- --agent copilot --skill eeid-native-auth-migrate-v2
    ```
 
-   This takes much longer. For `eeid-native-auth-migrate-v2`, 30 cases run
-   3 times each (90 agent sessions, each plan case several minutes), and its
-   four full-migration cases (`*-migrate-*`, one run each) can take an hour
-   or more each. Every run uses your plan or API budget for that agent. To
+   This takes much longer. For `eeid-native-auth-migrate-v2`, 36 cases run
+   3 times each (108 agent sessions, each plan case several minutes), and its
+   12 migrate cases (`*-migrate-*`) run once each: the six full migrations
+   can take an hour or more each, and the six SDK version cases stop early. Every run uses your plan or API budget for that agent. To
    leave the long cases out, select cases by name instead (see
    [Selecting cases](#selecting-cases)).
 
@@ -148,8 +148,9 @@ For `eeid-native-auth-migrate-v2`:
 | One approach: raw API, JS SDK, or iOS SDK | `--case 'api-*'`, `--case 'sdk-js-*'`, `--case 'sdk-ios-*'` |
 | Should-trigger cases | `--case 'api-trigger-*'`, `--case 'sdk-js-trigger-*'`, `--case 'sdk-ios-trigger-*'` |
 | Should-not-trigger cases | `--case '*no-trigger-*'` |
-| Plan cases (stop at approval) | `--case '*-plan-*'` (or `'api-plan-*'`, `'sdk-js-plan-*'`, `'sdk-ios-plan-*'`) |
-| Full-migration cases (long) | `--case '*-migrate-*'` (or `'api-migrate-*'`, `'sdk-js-migrate-*'`) |
+| Plan cases (stop at approval) | `--case '*-plan-*'` (or `'api-plan-*'`, `'sdk-js-plan-*'`, `'sdk-ios-plan-*'`, `'sdk-android-plan-*'`) |
+| Migrate cases (some long) | `--case '*-migrate-*'` (or `'api-migrate-*'`, `'sdk-js-migrate-*'`, `'sdk-ios-migrate-*'`, `'sdk-android-migrate-*'`) |
+| SDK version cases | `--case '*-install-fails'`, `--case '*-resume-*'` |
 
 ### Results
 

@@ -37,7 +37,9 @@ V2 results never throw for flow errors: a failure comes back as
 - `SignUpInputsV2.attributes`: profile attributes the V1 form collected
   before the code. The SDK keeps them in memory and submits them when the
   service first asks for attributes. Never put `email` or `password` in
-  them; the SDK drops those names with a warning.
+  them; the SDK drops those names with a warning. The flat username (alias) attribute is
+  `flatusername` in V1 and `username` in V2: rename the key. It is a
+  profile attribute, not the sign-in identifier.
 
 ## States and getters
 
@@ -96,6 +98,15 @@ Detail and UI rules: [v2-errors.md](v2-errors.md).
 - `auth.authority`, `auth.clientId`, `customAuth.authApiProxyUrl`,
   `customAuth.requestInterceptor`, `customAuth.customAuthApiQueryParams`,
   `cache`, and `system` apply to V2 too.
+- **Tenant ID** (**Tenant ID in the service path** in
+  [../../flows-and-scope.md](../../flows-and-scope.md)): the SDK sends every
+  request to `authApiProxyUrl`, so the service sees the proxy's target, not
+  `auth.authority`. Check the target of the dev proxy in the repo; if it
+  isn't the tenant ID, change it there, set the way the proxy sets it today
+  (for example the tenant value in `proxy.config.js`, or the target path in
+  `cors.js`). Leave `auth.authority` as it is. The repo's proxy is usually
+  only for local testing, so always add the "Risks and actions for you"
+  item for the proxy or gateway the app uses outside local development.
 - `customAuth.challengeTypes` and `customAuth.capabilities` are V1 only. V2
   ignores them. Keep them while any flow stays on V1; when every flow is on
   V2, the plan may remove them (record it as a cleanup step, not required).

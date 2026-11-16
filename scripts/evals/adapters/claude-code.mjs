@@ -6,6 +6,7 @@
 import { spawn } from 'node:child_process';
 import { readFile } from 'node:fs/promises';
 import { join, relative, sep } from 'node:path';
+import { agentEnv } from '../lib/env.mjs';
 
 export function buildClaudeArgs(options, { evalDirRel, outDir }) {
   const args = [
@@ -102,7 +103,7 @@ export const claudeCodeAdapter = {
     const args = buildClaudeArgs(options, { evalDirRel, outDir });
     const claudeBin = options.claudeBin ?? process.env.CLAUDE_BIN ?? 'claude';
     await new Promise((resolve, reject) => {
-      const child = spawn(claudeBin, args, { cwd: root, stdio: 'inherit' });
+      const child = spawn(claudeBin, args, { cwd: root, stdio: 'inherit', env: agentEnv() });
       child.on('error', (error) => reject(new Error(`could not start ${claudeBin}: ${error.message}`)));
       // Exit 1 (a case below the threshold) and 2 (partial run) still write
       // results; the runner reads them below.

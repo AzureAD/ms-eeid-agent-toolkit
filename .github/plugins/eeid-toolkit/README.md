@@ -17,7 +17,7 @@ the [repository README](https://github.com/AzureAD/ms-eeid-agent-toolkit#install
 
 | Skill | What it does |
 | --- | --- |
-| [`eeid-native-auth-migrate-v2`](skills/eeid-native-auth-migrate-v2/SKILL.md) | Migrates an app from Native Auth V1 to V2, for apps that call the API directly or use the MSAL native auth SDK (JavaScript single-page apps, iOS and macOS apps). Covers sign-in, sign-up, and self-service password reset, in full or one flow at a time, with a reviewable plan before any code changes. |
+| [`eeid-native-auth-migrate-v2`](skills/eeid-native-auth-migrate-v2/SKILL.md) | Migrates an app from Native Auth V1 to V2, for apps that call the API directly or use the MSAL native auth SDK (JavaScript single-page apps, iOS, macOS, and Android apps). Covers sign-in, sign-up, and self-service password reset, in full or one flow at a time, with a reviewable plan before any code changes. |
 
 Each skill has its own skill version, in its `SKILL.md`. The
 [changelog](CHANGELOG.md) lists each plugin version and the skill versions it

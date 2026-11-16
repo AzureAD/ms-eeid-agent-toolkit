@@ -70,7 +70,7 @@ The native auth endpoints don't support CORS, so the SDK calls them through
   `references/security-guardrails.md`). Don't widen CORS on anything that
   isn't local-only.
 - A production proxy or gateway outside the repo can't be reviewed. List it
-  as manual follow-up with these same rules.
+  in the report's "Actions for you" with these same rules.
 
 Severity if broken: High for an open proxy or logged bodies; Medium for
 over-broad CORS on a local-only proxy.

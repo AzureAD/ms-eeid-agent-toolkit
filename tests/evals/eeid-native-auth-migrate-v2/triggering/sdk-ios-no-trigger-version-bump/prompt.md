@@ -8,5 +8,5 @@ allowed_tools: [Read, Glob, Grep, Skill]
 ---
 
 Our iOS app uses MSAL's native auth SDK
-(MSALNativeAuthPublicClientApplication). Update it to the latest MSAL version
-and fix whatever breaks.
+(MSALNativeAuthPublicClientApplication). Update it to the latest MSAL version and
+fix any build errors. Don't change how sign-in works.

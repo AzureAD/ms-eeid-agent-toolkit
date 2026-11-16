@@ -43,7 +43,7 @@ test('splits front matter from the body', () => {
 
 test('loads every case in the native auth suite with its settings and graders', async () => {
   const cases = await loadCases(evalDir);
-  assert.equal(cases.length, 34);
+  assert.equal(cases.length, 49);
   const plan = cases.find((testCase) => testCase.name === 'api-plan-sign-in-sspr');
   assert.equal(plan.path, 'behavior/api-plan-sign-in-sspr');
   assert.ok(plan.scaffoldScript.endsWith('scaffold.sh'));
@@ -55,22 +55,27 @@ test('loads every case in the native auth suite with its settings and graders', 
 
 test('selects cases by tag and by name glob', async () => {
   const cases = await loadCases(evalDir);
-  assert.equal(selectCases(cases, { tags: ['triggering'] }).length, 19);
-  assert.equal(selectCases(cases, { tags: ['behavior'] }).length, 15);
+  assert.equal(selectCases(cases, { tags: ['triggering'] }).length, 22);
+  assert.equal(selectCases(cases, { tags: ['behavior'] }).length, 27);
   for (const testCase of cases) assert.equal(testCase.tags.length, 1, `${testCase.name} has exactly one tag, its type`);
   // Approach prefixes: api-* (raw API), sdk-js-* (MSAL JS SDK), sdk-ios-* (MSAL iOS/macOS SDK); no-trigger-* are shared.
   assert.equal(selectCases(cases, { caseGlob: 'api-*' }).length, 13);
   assert.equal(selectCases(cases, { caseGlob: 'api-plan-*' }).length, 6);
-  assert.equal(selectCases(cases, { caseGlob: 'sdk-js-*' }).length, 9);
-  assert.equal(selectCases(cases, { caseGlob: 'no-trigger-*' }).length, 6);
-  assert.equal(selectCases(cases, { caseGlob: '*no-trigger-*' }).length, 10);
+  assert.equal(selectCases(cases, { caseGlob: 'sdk-js-*' }).length, 13);
+  assert.equal(selectCases(cases, { caseGlob: 'no-trigger-*' }).length, 5);
+  assert.equal(selectCases(cases, { caseGlob: '*no-trigger-*' }).length, 11);
   assert.equal(selectCases(cases, { caseGlob: 'api-trigger-*' }).length, 5);
   assert.equal(selectCases(cases, { caseGlob: 'sdk-js-trigger-*' }).length, 2);
-  assert.equal(selectCases(cases, { caseGlob: '*-migrate-*' }).length, 4);
-  assert.equal(selectCases(cases, { caseGlob: 'sdk-js-plan-*' }).length, 3);
-  assert.equal(selectCases(cases, { caseGlob: 'sdk-ios-*' }).length, 6);
+  assert.equal(selectCases(cases, { caseGlob: '*-migrate-*' }).length, 13);
+  assert.equal(selectCases(cases, { caseGlob: '*-install-fails' }).length, 3);
+  assert.equal(selectCases(cases, { caseGlob: '*-resume-*' }).length, 4);
+  assert.equal(selectCases(cases, { caseGlob: 'sdk-js-plan-*' }).length, 4);
+  assert.equal(selectCases(cases, { caseGlob: 'sdk-ios-*' }).length, 9);
   assert.equal(selectCases(cases, { caseGlob: 'sdk-ios-trigger-*' }).length, 2);
   assert.equal(selectCases(cases, { caseGlob: 'sdk-ios-plan-*' }).length, 2);
+  assert.equal(selectCases(cases, { caseGlob: 'sdk-android-*' }).length, 9);
+  assert.equal(selectCases(cases, { caseGlob: 'sdk-android-trigger-*' }).length, 2);
+  assert.equal(selectCases(cases, { caseGlob: 'sdk-android-plan-*' }).length, 2);
   assert.deepEqual(selectCases(cases, { caseGlob: 'api-plan-sign-*' }).map((testCase) => testCase.name).sort(),
     ['api-plan-sign-in-only', 'api-plan-sign-in-sspr', 'api-plan-sign-up-only']);
 });
@@ -225,6 +230,8 @@ test('runs a case end to end with a fake agent', async () => {
         .replaceAll('{{COMMIT}}', '0000000').replaceAll('{{HASH}}', '0000000');
       await mkdir(join(workspace, '.native-auth-v2-migration'), { recursive: true });
       await writeFile(join(workspace, PLAN), plan);
+      await writeFile(join(workspace, '.native-auth-v2-migration/working-notes.md'),
+        await readFile(join(evalDir, 'fixtures/plans/spa-js-v1-sign-in-sspr.working-notes.md'), 'utf8'));
       await writeFile(join(runDir, 'events.jsonl'), '');
       return {
         error: null,
@@ -405,4 +412,18 @@ test('retries a judge vote once when the call fails, and fails the check on a se
   const [failed] = (await gradeRun([grader], run, { judge: broken })).results;
   assert.equal(failed.passed, false);
   assert.match(failed.detail, /judge timed out after 120 s/);
+});
+
+test('agent environment drops the npm variables that npm run exports', async () => {
+  const { agentEnv } = await import('../../scripts/evals/lib/env.mjs');
+  const env = agentEnv({ NO_COLOR: '1' }, {
+    PATH: '/usr/bin',
+    HOME: '/home/u',
+    npm_config_registry: 'https://registry.example/',
+    npm_config_cache: '/home/u/.npm',
+    npm_package_name: 'repo',
+    npm_lifecycle_event: 'eval:agent',
+    INIT_CWD: '/repo',
+  });
+  assert.deepEqual(env, { PATH: '/usr/bin', HOME: '/home/u', NO_COLOR: '1' });
 });

@@ -3,9 +3,17 @@
 Changes to the eeid-toolkit plugin, newest first. Each entry is one plugin
 version and lists every skill that changed, with its skill version.
 
-## 0.1.1 - 2026-11-10
+## 0.2.0 - 2026-11-13
 
-Add catalogs for Claude Code, GitHub Copilot CLI, and Codex, and the Claude Code plugin manifest, so the plugin installs from this repository. Add install steps and a security note to the plugin README. Add `metadata.author` to the skill; no change to what it does. Clarify in the skill description that only server-side MSAL for JavaScript code is excluded, so server apps that call the Native Auth API directly can use the skill. Migration plans no longer ask customers to enroll their tenant. Migration plans for MSAL for iOS and macOS now require 2.18.1 or later, the first release with the full V2 methods, and stop for a decision when the app's package source doesn't have it yet.
+`eeid-native-auth-migrate-v2`: add MSAL for Android as a supported platform (MSAL for Android 8.7.0 or later, which brings the common library 25.1.0). Require MSAL.js 5.29.0 and MSAL for iOS and macOS 2.18.1 or later. Split each plan into `plan.md` for the developer and `working-notes.md` for the assistant, and add a writing guide for plans and reports. Simplify the report, and say in chat which checks failed or didn't run. Clarify that a Gradle app's root is the folder with `settings.gradle`, and that iOS apps adopt first-factor method selection.
+
+| Skill | Skill version |
+| --- | --- |
+| `eeid-native-auth-migrate-v2` | 0.3.0 |
+
+## 0.1.1 - 2026-11-09
+
+Add catalogs for Claude Code, GitHub Copilot CLI, and Codex, and the Claude Code plugin manifest, so the plugin installs from this repository. Add install steps and a security note to the plugin README. Add `metadata.author` to the skill; no change to what it does.
 
 | Skill | Skill version |
 | --- | --- |

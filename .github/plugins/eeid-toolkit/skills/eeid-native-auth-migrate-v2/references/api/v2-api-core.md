@@ -72,10 +72,11 @@ handler:
 
 ## Base URL and endpoints
 
-`https://{tenant_subdomain}.ciamlogin.com/{tenant}`, where `{tenant}` is
-either the tenant domain (`{tenant_subdomain}.onmicrosoft.com`, the form V1
-uses) or the tenant ID (GUID). Keep the form the app already uses. Don't
-ask for or switch to the GUID if the app uses the domain form.
+`https://{tenant_subdomain}.ciamlogin.com/{tenant-id}`, where `{tenant-id}`
+is the tenant ID (GUID). V1 apps often use the tenant domain
+(`{tenant_subdomain}.onmicrosoft.com`), which V2 steps reject; see **Tenant
+ID in the service path** in [../flows-and-scope.md](../flows-and-scope.md)
+and **Tenant ID** in [approach.md](approach.md).
 
 Only two endpoints are configured. Everything else comes from links:
 

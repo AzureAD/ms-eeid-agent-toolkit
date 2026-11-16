@@ -1,0 +1,4 @@
+schema_version: "1.1"
+name: sdk-ios-migrate-resume-still-old
+context:
+  scaffold_script: scaffold.sh

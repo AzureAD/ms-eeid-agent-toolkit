@@ -29,9 +29,13 @@ differs, and the table in group B/C gives examples.
 4. **Never make a check pass by weakening it.** Don't delete, skip, or loosen
    tests, add `@ts-ignore`/`eslint-disable`/`@Suppress`/`// swiftlint:disable`,
    change compiler or lint settings, or upgrade dependencies to get a pass.
-5. **Never call a real tenant.** Validation is offline. Don't run, add, or
-   change tests that need a real tenant (end-to-end, UI, device, or emulator
-   tests). List the existing ones in the report instead.
+5. **Never call a real tenant.** No check signs in or reaches the native
+   auth service. Don't run, add, or change tests that need a real tenant
+   (end-to-end, UI, device, or emulator tests). List the existing ones in the
+   report instead. Downloading dependencies is fine: build and test commands
+   may fetch from the repositories and registries the project already
+   declares, so run the app's own commands as they are, without offline flags
+   (for example Gradle's `--offline`).
 6. **Compare with the baseline.** A failure that also failed at baseline is
    pre-existing: report it, don't fix it. A new failure is caused by the
    migration: fix it.
@@ -113,7 +117,7 @@ Run the groups in this order. Group A needs no tools beyond search and git.
 | A3 | No V1 left in migrated flows | Search the migrated flows' files and call chains with [v1-detection-patterns.md](v1-detection-patterns.md), as the approach's validation reference describes. V1 usage reached from a migrated flow is a failure; V1 usage only deferred flows reach is expected. |
 | A4 | No version mixing inside a flow | Trace each migrated flow from its UI entry point to token handling. Every call must go through the V2 client, including MFA. No V1 continuation token or V1 response object may reach V2 code, and no V2 state may reach V1 code. |
 | A5 | V2 contract | For each migrated flow, confirm every item in the approach's contract checklist (raw API: [api/validation-api.md](api/validation-api.md)). |
-| A6 | Config | V2 calls use the app's existing base URL (tenant domain or GUID form) in every environment. V1 constants remain while any flow stays on V1; if no V1 flow remains, they are removed. |
+| A6 | Config | V2 calls use the app's existing base URL in every environment, with the tenant ID in the path where the repo sets it (**Tenant ID in the service path** in [flows-and-scope.md](flows-and-scope.md)), unless the customer chose to keep the domain. V1 constants remain while any flow stays on V1; if no V1 flow remains, they are removed. |
 | A7 | Tests updated and added as planned | Tests that asserted V1 behavior for migrated flows were updated to V2, not deleted or skipped. Every test the plan lists was added. Tests of deferred flows and tenant-dependent tests are untouched. |
 
 ### B. Build and static analysis, C. Unit tests
@@ -140,11 +144,13 @@ use the commands it already defines.
 ### D. Tests that need a real tenant (never run by you)
 
 1. **List existing tenant-dependent tests** for migrated flows (E2E, UI,
-   device, emulator) by file in the report. They likely still drive V1
-   behavior and need the customer's update.
-2. **Write a manual test script** into the report for the customer to run
-   against a **test tenant**. For each migrated
-   flow, include steps and expected results for:
+   device, emulator) by file. They likely still drive V1 behavior: the
+   report's testing action asks the customer to update and run them.
+2. **If there are none, pick the scenarios** the customer tests by hand
+   against a **test tenant**: 5–8 in all, written in the app's own screens
+   and messages. Choose each changed behavior from plan section 3, MFA and
+   method registration where the app has them, and one success path per
+   flow, from this list:
 
 | Flow | Scenarios |
 | --- | --- |
@@ -165,8 +171,8 @@ use the commands it already defines.
    re-run only the checks those changes affect. Repeat while a round changes
    code, at most `max-fix-attempts` rounds; anything still open is reported
    as a failed check or an unresolved introduced finding.
-5. Group D: list the existing tenant-dependent tests for migrated flows and
-   write the manual test script for each migrated flow.
+5. Group D: list the existing tenant-dependent tests for migrated flows, or
+   pick the manual test scenarios.
 6. Keep every result for the report (see **Recording results**).
 7. Set `status: validated`, even if some checks failed. Failures are
    reported, not hidden.
@@ -181,13 +187,31 @@ validation failure is reported as "cause not confirmed" instead of being
 labeled pre-existing or new. Tests added by the migration have no baseline;
 their failures are always caused by the migration.
 
+**Dependencies not installed.** Check this while planning: for example no
+`node_modules`, no `Pods`, or a Gradle project never synced. The commands
+can't run, so a baseline would only show failures that say nothing about
+the app. Then:
+
+- Never install the dependencies yourself to get a baseline; only the
+  approved SDK step may use the network.
+- In the plan's "Risks and actions for you", say so and give the project's
+  own install command (for example `npm install`), so the customer can
+  install them before approving.
+- If they're still missing at the pre-apply check, record each command as
+  `not-run: dependencies not installed` instead of running it. A command
+  that runs after an SDK step installed the dependencies has no baseline:
+  report its failures as "cause not confirmed".
+
 ## Recording results
 
-Add each result to the report's validation table:
+Keep each result with its check, command, exit code, and cause. The check
+IDs (A1, B1, …) are for you; the report uses plain names
+([writing-guide.md](writing-guide.md), "The report"):
 
-| ID | Check | Command | Result | Notes |
-| --- | --- | --- | --- | --- |
-| A3 | No V1 left in migrated flows | search | Passed | 0 hits in sign-in, sspr |
-| B1 | Type-check | `npm run typecheck` (exit 0) | Passed after 1 fix | Missing `codeLength` type |
-| C1 | Unit tests | `npm test -- --watchAll=false` (exit 1) | Failed | 1 failure, also failing at baseline (pre-existing); 12 new tests passed |
-| D | Tenant-dependent tests | — | Not run | 2 existing E2E specs listed; manual script in section 5 |
+| Result | In the report |
+| --- | --- |
+| A1–A7 all passed | "Code checks: passed" |
+| B1 `npm run typecheck` passed after 1 fix | "Type-check: passed after 1 fix" |
+| C1 `npm test` failed: 1 failure also failing at baseline; 12 new tests passed | "Unit tests: 12 new tests passed; 1 test failed, as it did before the migration" |
+| C1 failed: a new test fails | "Unit tests: failed — section 3", and a row in "Failures" with the cause and what was tried |
+| D: 2 existing E2E specs | The testing action names both specs |

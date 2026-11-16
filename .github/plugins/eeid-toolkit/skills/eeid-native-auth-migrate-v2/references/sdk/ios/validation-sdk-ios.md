@@ -15,8 +15,6 @@ MSAL iOS and macOS migrations.
   the repo has no project or package to build, record B and C as not run
   with the reason; never install Xcode, runtimes, or certificates, and never
   run `sudo`.
-- A failure caused only by an unresolved package (the version couldn't be
-  resolved here) is recorded as failed for that reason, not fixed.
 
 ## A3: V1 left in migrated flows
 
@@ -45,6 +43,9 @@ Check **Checks for every SDK** in [../shared-rules.md](../shared-rules.md), and:
   [v2-flows.md](v2-flows.md) lists; `isNotImplemented` and other unhandled
   errors lead to the generic error, and `isBrowserRequired` to the V1
   browser handling.
+- After sign-up or reset, a registration step (or MFA after a reset) the V1 UI
+  didn't handle shows V1's confirmation first, then V1's error; it never
+  reaches `isNotImplemented`.
 - The existing-account callbacks are the two existing-account callbacks, or
   method selection with `scenario == .signIn` after `signUpV2`; the V1 handling
   is `isUserAlreadyExists`.
@@ -70,5 +71,5 @@ the shared rules.
 | Flow | Tests |
 | --- | --- |
 | `sign-in` | Error map: unknown user gets the V1 message; wrong code; browser required → V1 browser handling; `isNotImplemented` → generic error; the held password is submitted on the password step and cleared |
-| `sign-up` | Error map: password policy error, invalid attributes, wrong code; existing account (each of the three callbacks) → V1 `isUserAlreadyExists` handling; sign in after sign-up only where V1 did |
+| `sign-up` | Error map: password policy error, invalid attributes, wrong code; existing account (each of the three callbacks) → V1 `isUserAlreadyExists` handling; sign in after sign-up only where V1 did; registration after sign-up → V1 confirmation, then V1 error |
 | `sspr` | Error map: unknown user gets the V1 message, wrong code, password policy error; MFA or JIT after the new password → V1 behavior per the **Finish** table |

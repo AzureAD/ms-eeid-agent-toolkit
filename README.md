@@ -1,71 +1,81 @@
-# Microsoft Entra External ID Agent Toolkit
+# Microsoft Entra External ID agent toolkit
 
-Microsoft-authored skills that help AI coding assistants work on Microsoft
-Entra External ID integrations. The skills ship together as one plugin,
-`eeid-toolkit`. We recommend installing the whole plugin: some skills depend
-on others (see [Install](#install)).
+The Microsoft Entra External ID agent toolkit is a set of skills that help AI
+coding agents, such as GitHub Copilot, Claude Code, Codex, and Cursor, work on
+Microsoft Entra External ID in your own codebase. The skills ship together as
+one plugin, `eeid-toolkit`.
 
-## Skills
+## Choose a skill
 
-| Skill | What it does | Status |
-| --- | --- | --- |
-| [`eeid-onboarding`](.github/plugins/eeid-toolkit/skills/eeid-onboarding/SKILL.md) | Choose Web or Native authentication and hand off to the selected implementation skill. | Ready |
-| [`eeid-implement-hosted-auth`](.github/plugins/eeid-toolkit/skills/eeid-implement-hosted-auth/SKILL.md) | Implement Microsoft-hosted Web authentication with optional standard branding. | Ready |
-| [`eeid-implement-native-auth`](.github/plugins/eeid-toolkit/skills/eeid-implement-native-auth/SKILL.md) | Implement in-app Native V2 authentication using the server-driven API. | Ready |
-| [`eeid-native-auth-migrate-v2`](.github/plugins/eeid-toolkit/skills/eeid-native-auth-migrate-v2/SKILL.md) | Migrates an app that calls the Native Auth API V1 directly, or an app on the MSAL native auth SDK V1 methods (JavaScript single-page apps, iOS, macOS, and Android apps), to Native Auth V2: sign-in, sign-up, and self-service password reset, in full or one flow at a time, with a reviewable plan before any code changes | Ready |
+`eeid-onboarding` is the starting point for adding sign-in to an app. It
+helps you choose an approach, then hands off to one of its two implementation
+skills, `eeid-implement-hosted-auth` or `eeid-implement-native-auth`. If you've
+already chosen, you can ask for an implementation skill directly.
+
+| Skill | Use it when |
+| --- | --- |
+| [`eeid-onboarding`](.github/plugins/eeid-toolkit/skills/eeid-onboarding/SKILL.md) | You're adding sign-in to an app and want help choosing between Microsoft-hosted pages (Web) and in-app native authentication (Native). |
+| ↳ [`eeid-implement-hosted-auth`](.github/plugins/eeid-toolkit/skills/eeid-implement-hosted-auth/SKILL.md) | Web is chosen: sign-in on Microsoft-hosted pages with redirects, with optional standard branding. |
+| ↳ [`eeid-implement-native-auth`](.github/plugins/eeid-toolkit/skills/eeid-implement-native-auth/SKILL.md) | Native is chosen: in-app sign-in forms that use native authentication V2. |
+| [`eeid-native-auth-migrate-v2`](.github/plugins/eeid-toolkit/skills/eeid-native-auth-migrate-v2/SKILL.md) | Your app already uses native authentication V1, through the API directly or through MSAL for JavaScript (single-page apps), iOS and macOS, or Android, and you want to move sign-in, sign-up, and password reset to V2, all at once or one flow at a time. |
 
 ## Install
 
-We recommend installing the whole plugin where your assistant supports
-plugins. Some skills depend on others: `eeid-onboarding` hands off to
-`eeid-implement-hosted-auth` and `eeid-implement-native-auth` and reads their
-shared references, so those three only work when installed together.
+### Prerequisites
 
-### Claude Code
+- An AI coding agent, such as GitHub Copilot CLI, Claude Code, Codex, GitHub
+  Copilot in Visual Studio Code, or Cursor.
+- [Node.js](https://nodejs.org/en/download) 22.20 or later, only if you
+  install with the Skills CLI.
+
+### Install the toolkit
+
+We recommend installing the whole plugin, `eeid-toolkit`. Some skills depend
+on others: `eeid-onboarding` hands off to the two implementation skills and
+reads their shared references, so those three work only when installed
+together.
+
+#### GitHub Copilot CLI
+
+Run these commands in your terminal:
+
+```bash
+copilot plugin marketplace add AzureAD/ms-eeid-agent-toolkit
+copilot plugin install eeid-toolkit@ms-eeid-agent-toolkit
+```
+
+#### Claude Code
+
+Run these commands in a Claude Code session:
 
 ```text
 /plugin marketplace add AzureAD/ms-eeid-agent-toolkit
 /plugin install eeid-toolkit@ms-eeid-agent-toolkit
 ```
 
-Update with `/plugin marketplace update ms-eeid-agent-toolkit`; Claude Code
-picks up a new plugin version when one is released. Uninstall with
-`/plugin uninstall eeid-toolkit@ms-eeid-agent-toolkit`.
+#### Codex
 
-### GitHub Copilot CLI
+1. Run this command in your terminal:
 
-```bash
-copilot plugin marketplace add AzureAD/ms-eeid-agent-toolkit
-```
+   ```bash
+   codex plugin marketplace add AzureAD/ms-eeid-agent-toolkit
+   ```
 
-```bash
-copilot plugin install eeid-toolkit@ms-eeid-agent-toolkit
-```
+1. Start Codex, enter `/plugins`, and install `eeid-toolkit` from the plugin
+   list.
 
-Update with `copilot plugin update eeid-toolkit`, and uninstall with
-`copilot plugin uninstall eeid-toolkit`. To stay on one release, add the
-catalog at its tag instead: `AzureAD/ms-eeid-agent-toolkit#v<version>`.
+#### Other agents
 
-### Codex
-
-```bash
-codex plugin marketplace add AzureAD/ms-eeid-agent-toolkit
-```
-
-Then install `eeid-toolkit` from the plugin list in Codex.
-
-### Other assistants (Skills CLI)
-
-The [Skills CLI](https://github.com/vercel-labs/skills) installs skills for
-Cursor, GitHub Copilot in VS Code, and many other assistants. It copies only
-the skill folders, not the plugin's MCP configuration. We recommend
-installing all the skills, because some depend on others:
+Use the [Skills CLI](https://github.com/vercel-labs/skills) to install all the
+toolkit's skills for Cursor, GitHub Copilot in Visual Studio Code, and other
+agents. It copies the skill folders only, not the plugin's configuration.
 
 ```bash
 npx skills add AzureAD/ms-eeid-agent-toolkit --all
 ```
 
-To install all the skills for one assistant only, name it with `--agent`:
+To install all the skills for one agent only, name it with `--agent`. For
+example, for Cursor:
 
 ```bash
 npx skills add AzureAD/ms-eeid-agent-toolkit --skill '*' --agent cursor
@@ -80,34 +90,77 @@ own:
 npx skills add AzureAD/ms-eeid-agent-toolkit --skill eeid-native-auth-migrate-v2
 ```
 
-Update with `npx skills update`, and remove a skill with
-`npx skills remove <skill>`. To stay on one release, install from its tag:
-`npx skills add https://github.com/AzureAD/ms-eeid-agent-toolkit/tree/v<version>`.
+## Use a skill
 
-### If a skill doesn't start
+Open your app's folder in your agent and describe the task. The agent picks the
+matching skill. For example:
 
-Assistants choose a skill from your request. If it doesn't start, name it: in
-assistants that support it, type the skill's name, such as `/eeid-onboarding`
-or `/eeid-native-auth-migrate-v2`, or ask "use the eeid-onboarding skill".
+| Task | Ask your agent |
+| --- | --- |
+| Choose how to add sign-in | `I'm adding Microsoft Entra External ID sign-in to my app. Help me choose between Web and Native authentication.` |
+| Migrate all flows to V2 | `Migrate my app's native auth from V1 to V2` |
+| Migrate one flow | `Migrate only sign-in to native auth V2 and keep the other flows on V1` |
+| Continue a migration | `Continue my native auth migration` |
+
+If a skill doesn't start, name it. In agents that support it, enter the
+skill's name, such as `/eeid-onboarding`, or ask "use the eeid-onboarding
+skill".
+
+## Update, pin, or uninstall
+
+| Agent | Update | Uninstall |
+| --- | --- | --- |
+| GitHub Copilot CLI | `copilot plugin update eeid-toolkit` | `copilot plugin uninstall eeid-toolkit` |
+| Claude Code | `/plugin marketplace update ms-eeid-agent-toolkit` (Claude Code picks up a new plugin version when one is released) | `/plugin uninstall eeid-toolkit@ms-eeid-agent-toolkit` |
+| Skills CLI | `npx skills update` | `npx skills remove <skill>` |
+
+In Codex, manage the plugin from the `/plugins` list.
+
+To stay on one release, install from its tag:
+
+- GitHub Copilot CLI: add the catalog as
+  `AzureAD/ms-eeid-agent-toolkit#v<version>`.
+- Skills CLI:
+  `npx skills add https://github.com/AzureAD/ms-eeid-agent-toolkit/tree/v<version>`.
 
 ## Versions
 
-The plugin has a version, and each skill has its own. What changed in each
-plugin version, and the skill versions it contains, is in the
-[changelog](.github/plugins/eeid-toolkit/CHANGELOG.md). Each plugin version is
+The plugin has a version, and each skill has its own. The
+[changelog](.github/plugins/eeid-toolkit/CHANGELOG.md) lists what changed in
+each plugin version and the skill versions it contains. Each plugin version is
 also a [release](https://github.com/AzureAD/ms-eeid-agent-toolkit/releases)
 tagged `v<version>`.
 
-## Support and security
+## Security and data
 
-Questions and bugs: [SUPPORT.md](SUPPORT.md). Security issues:
-[SECURITY.md](SECURITY.md); please don't report them in public issues.
+The skills give guidance and propose code changes in your workspace. They ask
+before changing code, don't ask for secrets, and don't log tokens, passwords,
+or one-time codes. They declare no MCP servers and send nothing anywhere on
+their own. Review every change before you use it.
+
+To report a security issue, see [SECURITY.md](SECURITY.md). Please don't
+report security issues in public GitHub issues.
+
+## Support
+
+For questions and bugs, see [SUPPORT.md](SUPPORT.md). For Microsoft Entra
+External ID itself, see the
+[Microsoft Entra External ID documentation](https://learn.microsoft.com/entra/external-id/customers/).
 
 ## Contributing
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for how the repository is organized, how
-to add a skill, and how releases work.
+We don't accept pull requests from outside the maintaining team yet. To report
+a problem or suggest an idea, open an issue (see [SUPPORT.md](SUPPORT.md)).
+[CONTRIBUTING.md](CONTRIBUTING.md) explains how the repository is organized,
+how to add a skill, and how releases work.
+
+This project has adopted the
+[Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/).
+For more information, see the
+[Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or
+contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any
+additional questions or comments.
 
 ## License
 
-This repository is licensed under the [MIT License](LICENSE).
+This project is licensed under the [MIT License](LICENSE).

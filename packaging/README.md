@@ -1,9 +1,8 @@
 # Packaging schemas
 
-The toolkit ships as one plugin, `eeid-toolkit`, in
-`.github/plugins/eeid-toolkit/`: its `plugin.json`, `mcp.json`, and
-`skills/`. Agents install that folder straight from the repository, so there
-is no build step and no generated package.
+`npm run validate` checks the plugin's `plugin.json` and `mcp.json` (in
+`.github/plugins/eeid-toolkit/`) against these schemas. For how the plugin is
+put together, see [docs/architecture.md](../docs/architecture.md).
 
 `schemas/` stores copies of the canonical Agent Plugins 1.0 JSON schemas:
 

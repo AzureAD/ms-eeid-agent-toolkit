@@ -3,13 +3,14 @@
 Model-based evals for the skills in `.github/plugins/eeid-toolkit/skills/`. Each eval case is a folder of
 plain files (a prompt, a scaffold that seeds a fixture app, and graders) that
 any supported agent can run. A run starts a fresh, isolated session of the
-agent with only the skill under test installed (or the launch bundle described
-below), seeds an empty workspace, sends the prompt, and grades what the agent
+agent with only the skill under test installed (or the onboarding skill group
+described below), seeds an empty workspace, sends the prompt, and grades what the agent
 did.
 
 Evals call a model with your own sign-in for that agent, so they run
-**locally, not in CI**. CI runs the deterministic checks instead:
-`npm run validate` (manifests, skill rules, and the routing check) and
+**locally, not in CI**. CI runs the deterministic checks instead (see
+[CONTRIBUTING.md](../../CONTRIBUTING.md#pull-requests)), including
+`npm run validate:release` (manifests, skill rules, and the routing check) and
 `npm test` (`tests/tooling/`, `tests/skills/`).
 
 ## Test types
@@ -28,8 +29,8 @@ Every skill needs triggering and behavior cases before it's marked `ready`;
 ```text
 tests/evals/
 ├── README.md                  # this file
-├── fixtures/<app>/            # shared launch-bundle fixtures
-├── scripts/                   # shared launch-bundle scaffold helpers
+├── fixtures/<app>/            # fixtures shared by the onboarding skill group
+├── scripts/                   # scaffold helpers shared by the onboarding skill group
 └── <skill-name>/              # same name as the skill's folder
     ├── README.md              # this skill's cases and fixtures
     ├── triggering/<case>/     # should-trigger and should-not-trigger cases
@@ -104,12 +105,14 @@ including VS Code's integrated terminal.
 The runner sets up each run, gives the agent only the permissions the case
 needs, and grades the result; you only choose the agent.
 
-### Onboarding launch bundle
+### Onboarding skill group
 
-The onboarding, hosted, and native skills share runtime references and must
-be installed together. For these three suites, the Copilot adapter installs
-only `eeid-onboarding`, `eeid-implement-hosted-auth`, and
-`eeid-implement-native-auth`; baseline runs install none. BYOUX is excluded.
+`eeid-onboarding`, `eeid-implement-hosted-auth`, and
+`eeid-implement-native-auth` share references and must be installed together
+(see **Skills that work together** in
+[docs/architecture.md](../../docs/architecture.md)). For these three suites,
+the Copilot adapter installs all three; baseline runs install none. Bring your
+own UX (BYOUX) isn't part of the group.
 
 Run each suite with the existing command:
 
@@ -119,15 +122,15 @@ npm run eval:agent -- --agent copilot --skill eeid-implement-hosted-auth
 npm run eval:agent -- --agent copilot --skill eeid-implement-native-auth
 ```
 
-Their 22 cases cover launch choices, exclusions, implementation handoffs,
+Their 22 cases cover approach choices, exclusions, implementation handoffs,
 approval gates, and Web/Native V2 implementation. The two approved
 implementation cases ask the agent to run the fixture build and mocked
 acceptance tests without changing tests or package scripts. Standard tool-use
 and transcript graders check command execution, successful output, and approved
 implementation scope; the runner does not rerun checks or generate a separate
 verification file. These do not verify live tenant sign-in.
-Use Copilot for this bundle; the Claude Code adapter's single-skill
-installation does not satisfy its shared-reference contract.
+Use Copilot for this group: the Claude Code adapter installs one skill at a
+time, so the shared references are missing.
 
 ### Options
 
@@ -264,7 +267,8 @@ Each run is isolated and limited:
 - A fresh temporary workspace per run, seeded by the case's scaffold.
 - No web access. File writes only when the case allows them, and only inside
   the workspace. Shell commands only when the case allows them, and then only
-  `git`, `node`, `npm`, and read-only commands such as `ls` and `cat`.
+  the commands in `SAFE_COMMANDS` (`git`, `node`, `npm`, `mkdir`, and
+  read-only ones such as `ls`, `cat`, and `grep`).
 
 **Detail files, per run:** `events.jsonl` (Copilot's raw output),
 `transcript.json` (what the checks saw), and `transcript.md`.
@@ -313,9 +317,10 @@ models, and how runs work.
 
 - **Tags and names:** tag each case with its type only (`triggering` or
   `behavior`). Give cases name prefixes that group them, such as the
-  approach (`api-`, `sdk-js-`, `sdk-ios-`) followed by the kind (`trigger-`,
-  `no-trigger-`, `plan-`, `migrate-`), so `--case` patterns can select a
-  group.
+  approach or skill (`api-`, `sdk-js-`, `sdk-ios-`, `sdk-android-`,
+  `onboard-`, `hosted-`, `native-`) followed by the kind (`trigger-`,
+  `no-trigger-`, `plan-`, `migrate-`, `behavior-`), so `--case` patterns can
+  select a group.
 - **Prompts:** write what a user would type, not the skill's description.
   Give each should-trigger prompt a near-miss should-not-trigger twin that
   uses similar words.
@@ -327,7 +332,8 @@ models, and how runs work.
   with `regex` on their contents.
 - Pair every "must not" check with a positive check in the same case, so an
   empty run can't pass.
-- Prefer regexes over plain substrings, and don't pin versions.
+- Prefer regexes over plain substrings. Don't pin exact versions; check a
+  minimum instead.
 - Name tools the way the graders expect (`Read`, `Write`, `Edit`, `Bash`,
   `Skill`); adapters map other agents' names to these.
 - Triggering checks use `tool_used` on `Skill`. A should-not-trigger check

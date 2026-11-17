@@ -80,8 +80,10 @@ Most skills are self-contained. `eeid-onboarding`,
   references of its own.
 
 So these three work only when installed together, which is why the README
-recommends installing the whole plugin. `eeid-native-auth-migrate-v2` depends
-on no other skill.
+recommends installing the whole plugin. `eeid-native-auth-migrate-v2` and
+`eeid-implement-byoux` depend on no other skill. BYOUX is invoked directly
+and bundles its own discovery, tenant, journey, and page-generation guidance;
+it does not extend the onboarding group's routing or shared-reference exception.
 
 The paths between these skills are written as code (`` `../<skill>/…` ``), not
 Markdown links, so the routing check doesn't follow or verify them. Check them

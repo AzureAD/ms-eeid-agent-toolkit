@@ -112,7 +112,8 @@ needs, and grades the result; you only choose the agent.
 (see **Skills that work together** in
 [docs/architecture.md](../../docs/architecture.md)). For these three suites,
 the Copilot adapter installs all three; baseline runs install none. Bring your
-own UX (BYOUX) isn't part of the group.
+own UX (BYOUX) isn't part of the group. Its independent suite installs only
+`eeid-implement-byoux`; it needs no onboarding-group references.
 
 Run each suite with the existing command:
 

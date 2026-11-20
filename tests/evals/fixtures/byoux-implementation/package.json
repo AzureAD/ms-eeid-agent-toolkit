@@ -1,0 +1,14 @@
+{
+  "name": "eeid-byoux-implementation-eval",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test tests/handoff.test.mjs",
+    "test:browser": "node --test tests/journeys.browser.test.mjs"
+  },
+  "devDependencies": {
+    "playwright-core": "1.56.0"
+  }
+}

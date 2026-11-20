@@ -4,8 +4,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const [fixture, ...extra] = process.argv.slice(2);
-if (!['server', 'react', 'web-implementation', 'native-implementation'].includes(fixture) || extra.length) {
-  throw new Error('Usage: node seed-fixture.mjs <server|react|web-implementation|native-implementation>');
+if (!['server', 'react', 'web-implementation', 'native-implementation', 'byoux-implementation'].includes(fixture) || extra.length) {
+  throw new Error('Usage: node seed-fixture.mjs <server|react|web-implementation|native-implementation|byoux-implementation>');
 }
 const workspace = process.cwd();
 if ((await readdir(workspace)).length) {

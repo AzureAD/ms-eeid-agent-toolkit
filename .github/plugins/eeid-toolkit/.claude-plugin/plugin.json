@@ -1,6 +1,6 @@
 {
   "name": "eeid-toolkit",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "description": "Microsoft Entra External ID implementation and migration guidance for AI coding assistants.",
   "author": {
     "name": "Microsoft Corporation"

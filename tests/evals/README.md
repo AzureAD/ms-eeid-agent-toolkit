@@ -29,8 +29,8 @@ Every skill needs triggering and behavior cases before it's marked `ready`;
 ```text
 tests/evals/
 ├── README.md                  # this file
-├── fixtures/<app>/            # fixtures shared by the onboarding skill group
-├── scripts/                   # scaffold helpers shared by the onboarding skill group
+├── fixtures/<app>/            # shared implementation fixtures, including standalone BYOUX
+├── scripts/                   # shared scaffold helpers
 └── <skill-name>/              # same name as the skill's folder
     ├── README.md              # this skill's cases and fixtures
     ├── triggering/<case>/     # should-trigger and should-not-trigger cases
@@ -112,7 +112,8 @@ needs, and grades the result; you only choose the agent.
 (see **Skills that work together** in
 [docs/architecture.md](../../docs/architecture.md)). For these three suites,
 the Copilot adapter installs all three; baseline runs install none. Bring your
-own UX (BYOUX) isn't part of the group.
+own UX (BYOUX) isn't part of the group. Its independent suite installs only
+`eeid-implement-byoux`; it needs no onboarding-group references.
 
 Run each suite with the existing command:
 
@@ -131,6 +132,19 @@ implementation scope; the runner does not rerun checks or generate a separate
 verification file. These do not verify live tenant sign-in.
 Use Copilot for this group: the Claude Code adapter installs one skill at a
 time, so the shared references are missing.
+
+### Standalone BYOUX implementation case
+
+The independent BYOUX suite includes `byoux-behavior-implement`, which seeds
+a Node/HTML/JS app with unimplemented source and immutable acceptance tests.
+It requires build and Node results plus real Chromium form interactions,
+with Native requests and browser finish intercepted. An existing Edge or
+approved Chromium executable is required; unavailable browser checks cannot
+be replaced by fake DOM tests. Tenant provisioning and live RP validation
+remain unverified. See its [case and fixture guide](eeid-implement-byoux/README.md)
+for prerequisites and approved scope. Like the onboarding cases, successful
+command output and unchanged harness are transcript-graded, not independently
+rerun by the runner. Adding this case does not mean a model run has passed.
 
 ### Options
 

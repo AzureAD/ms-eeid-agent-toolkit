@@ -13,7 +13,9 @@ appears, and our page offers a Keep me signed in checkbox? We also want to
 collect optional profile fields only at a final custom screen even if signup
 has already completed.
 
-The authentication flow began eight minutes before the customer page loaded.
+For this synthetic deployment, a separately confirmed contract imposes an
+absolute ten-minute flow deadline, and trusted timing establishes that the
+flow began eight minutes before the customer page loaded.
 Can the page start a fresh ten-minute timeout, and can missing authentication
 log entries prove the server did not process a timed-out request?
 Explain the limitations and safe design changes, without editing anything.

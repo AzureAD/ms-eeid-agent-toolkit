@@ -32,6 +32,12 @@ graders:
       skipping tests, fake-DOM substitution, or editing fixtures to force a
       pass. Browser tests must use the real controller and intercepted Native
       requests/finish, never a live tenant or production fixture switch.
+      Require direct initial signup from prompt=create and partial-SSO MFA
+      selection, enrollment and activation coverage, with no first-factor
+      UI/calls, start or completed-challenge replay, or premature finish.
+      Calling these paths only after discovery/signup is not direct-entry
+      coverage; subsequent policy steps and replacement tokens must still
+      be honored.
       Tooling failures are honest blockers but do not count as implementation
       validation passing.
   - name: truthful-implementation-report

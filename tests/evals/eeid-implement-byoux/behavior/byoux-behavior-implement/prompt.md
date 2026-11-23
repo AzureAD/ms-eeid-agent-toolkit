@@ -33,7 +33,7 @@ Read the immutable tests for the exact synthetic V2 links, fields and form
 contract. Use accessible labels: Email or username, Password, Code, Email,
 Display name, City, Phone number, New password, Confirm new password.
 Use buttons Sign in, Create account, Forgot password?, Verify, Continue,
-Send code, Use password and Update password as applicable. One shared discovery identifier
+Send code, Use password, Use SMS and Update password as applicable. One shared discovery identifier
 serves sign-in and recovery; Create account works without that identifier and
 sits beside Sign in, with Forgot password? below. Enter submits sign-in.
 Do not show a restart action during active authentication.
@@ -56,6 +56,17 @@ password PUT update, polling and further interactions before finish. Unknown
 required actions and unsafe links stop visibly with an accessible alert and
 instructions to return to the application. Do not invent an authorize-challenge
 or token exchange, store secrets, or ship fixture switches.
+
+The initial POST may already contain the signup/start response from
+`prompt=create`, or remaining MFA method selection, enrollment, activation,
+or verification after first-factor SSO. Dispatch it immediately through the
+same controller: no discovery, signin/start, signup/start or completed
+enrollment/challenge replay. Direct signup must render its requested fields
+without a Create account click. Partial SSO must not show identifier/password
+controls or offer another first-factor journey. MFA method selection waits
+for the user's explicit choice; an already-issued challenge shows code entry
+without sending another code. Registration success can still return further
+MFA; do not enable finish until the actual response permits it.
 
 Tenant reads/writes are not authorized. No user-flow inventory was read and no
 flow creation, association or read-back happened. Update the plan to the manual,

@@ -3,7 +3,7 @@ import { before, after, test } from 'node:test';
 import { chromium } from 'playwright-core';
 import { startHost } from './host.mjs';
 import {
-  config, api, discovery, challenge, verification, attributes, profile, enrollment, activation,
+  config, api, link, discovery, challenge, verification, attributes, profile, enrollment, activation,
   update, poll, continued, envelope,
 } from './responses.mjs';
 
@@ -112,6 +112,14 @@ async function finish(page) {
   await click(page, 'Continue');
   await page.waitForURL(finishStep.url);
 }
+async function assertNoFirstFactor(page) {
+  for (const label of ['Email or username', 'Password']) {
+    assert.equal(await page.getByLabel(label, { exact: true }).count(), 0, `Unexpected first-factor field: ${label}`);
+  }
+  for (const name of ['Sign in', 'Create account', 'Forgot password?', 'Use password']) {
+    assert.equal(await page.getByRole('button', { name, exact: true }).count(), 0, `Unexpected first-factor action: ${name}`);
+  }
+}
 
 test('direct GET and invalid POST never show login controls or a journey script', async () => {
   const page = await browser.newPage();
@@ -186,6 +194,100 @@ test('signup does not require the discovery identifier and collects required att
     await run.check();
   } finally { await run.close(); }
 });
+
+test('prompt=create initial signup response collects attributes without replaying signin or signup start', async () => {
+  const initial = attributes([
+    { attributeId: 'email', label: 'Email', inputType: 'email', required: true },
+  ], 'synthetic-initial-signup');
+  const run = await session(initial, [
+    step('signup/attributes', { ...token('synthetic-initial-signup'), attributes: { email: 'new@example.invalid' } }, verification('email', 'synthetic-signup-otp')),
+    step('methods/email/verify', { ...token('synthetic-signup-otp'), otp: '012345' }, attributes(profile, 'synthetic-signup-profile')),
+    step('signup/attributes', { ...token('synthetic-signup-profile'), attributes: { displayName: 'Example', city: 'Test City' } }, continued),
+    finishStep,
+  ]);
+  try {
+    const { page } = run;
+    await page.getByLabel('Email', { exact: true }).waitFor();
+    await assertNoFirstFactor(page);
+    assert.equal(run.calls.length, 0, 'Initial signup response must render without another start request');
+    await fill(page, 'Email', 'new@example.invalid');
+    await click(page, 'Continue');
+    await page.getByLabel('Code', { exact: true }).waitFor();
+    await assertNoFirstFactor(page);
+    await verifyCode(page);
+    await fill(page, 'Display name', 'Example');
+    await fill(page, 'City', 'Test City');
+    await click(page, 'Continue');
+    await finish(page);
+    await run.check();
+  } finally { await run.close(); }
+});
+
+test('partial SSO initial MFA challenge selects only the remaining factor without first-factor replay', async () => {
+  const initial = {
+    state: 'interactionRequired', action: 'challenge', continuationToken: 'synthetic-initial-mfa',
+    _embedded: { methods: [{ type: 'sms', _links: { challenge: link('methods/sms/challenge') } }] },
+  };
+  const run = await session(initial, [
+    step('methods/sms/challenge', token('synthetic-initial-mfa'), verification('sms', 'synthetic-issued-mfa')),
+    step('methods/sms/verify', { ...token('synthetic-issued-mfa'), otp: '012345' }, continued),
+    finishStep,
+  ]);
+  try {
+    const { page } = run;
+    await page.getByRole('button', { name: 'Use SMS', exact: true }).waitFor();
+    await assertNoFirstFactor(page);
+    assert.equal(run.calls.length, 0, 'MFA method selection must await an explicit user action');
+    assert.equal(await page.getByRole('button', { name: 'Continue', exact: true }).count(), 0);
+    await click(page, 'Use SMS');
+    await page.getByLabel('Code', { exact: true }).waitFor();
+    await assertNoFirstFactor(page);
+    assert.equal(run.calls.length, 1, 'An already issued MFA challenge must not be issued again');
+    assert.equal(await page.getByRole('button', { name: 'Continue', exact: true }).count(), 0);
+    await verifyCode(page);
+    await finish(page);
+    await run.check();
+  } finally { await run.close(); }
+});
+
+for (const initial of [enrollment, activation]) {
+  test(`partial SSO initial MFA ${initial.action} resumes registration and further policy without first-factor replay`, async () => {
+    const afterRegistration = verification('sms', 'synthetic-after-registration');
+    const expected = [
+      ...(initial.action === 'enroll' ? [
+        step('methods/phone', { ...token('synthetic-enroll'), phoneNumber: '+12025550123', channel: 'sms' }, activation),
+      ] : []),
+      step('methods/phone/activate', { ...token('synthetic-activate'), otp: '012345' }, afterRegistration),
+      step('methods/sms/verify', { ...token('synthetic-after-registration'), otp: '012345' }, continued),
+      finishStep,
+    ];
+    const run = await session(initial, expected);
+    try {
+      const { page } = run;
+      await page.getByLabel(initial.action === 'enroll' ? 'Phone number' : 'Code', { exact: true }).waitFor();
+      await assertNoFirstFactor(page);
+      assert.equal(run.calls.length, 0, 'Registration handoff must not replay discovery, enrollment or challenge');
+      assert.equal(await page.getByRole('button', { name: 'Continue', exact: true }).count(), 0);
+      if (initial.action === 'enroll') {
+        await fill(page, 'Phone number', '+12025550123');
+        await click(page, 'Send code');
+      }
+      await page.getByLabel('Code', { exact: true }).waitFor();
+      await assertNoFirstFactor(page);
+      const activated = page.waitForResponse(`${config.authorityOrigin}${api}/methods/phone/activate`);
+      await verifyCode(page);
+      await activated;
+      await page.getByRole('button', { name: 'Verify', exact: true }).click({ trial: true });
+      await page.getByLabel('Code', { exact: true }).waitFor();
+      await assertNoFirstFactor(page);
+      assert.equal(await page.getByRole('button', { name: 'Continue', exact: true }).count(), 0,
+        'Registration success must not bypass a further required MFA step');
+      await verifyCode(page);
+      await finish(page);
+      await run.check();
+    } finally { await run.close(); }
+  });
+}
 
 test('direct challenge selects the advertised method without replaying discovery or optional links', async () => {
   const password = verification('password', 'synthetic-selected-password');

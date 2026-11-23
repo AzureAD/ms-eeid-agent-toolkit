@@ -24,7 +24,7 @@ and representative implementation coverage are complete.
 
 | Case | Request | Checks |
 | --- | --- | --- |
-| byoux-behavior-implement | Implement all four journeys in a seeded HTML/JS host; source edits approved, tenant access forbidden | Validated POST/direct GET, real forms, shared discovery layout, attributes after OTP, MFA/enrollment, recovery PUT/poll, current-token transport, single-flight, terminal failures, mobile layout, honest manual setup, successful build/Node/browser output and immutable harness |
+| byoux-behavior-implement | Implement all four journeys in a seeded HTML/JS host; source edits approved, tenant access forbidden | Validated POST/direct GET, real forms, shared discovery layout, direct prompt=create signup and partial-SSO MFA selection/enrollment/activation without first-factor or start replay, attributes after OTP, recovery PUT/poll, current-token transport, single-flight, terminal failures, mobile layout, honest manual setup, successful build/Node/browser output and immutable harness |
 | discovery-default-plan | Start a simple HTML/JS BYOUX page without tenant details or approval paperwork | Tenant/domain first, default confirmed/pending setup checklist, POST-capable host, supported journeys, policy-first MFA, no invented discovery |
 | defaults-without-extra-gates | All four core inputs supplied, no access/catalog/schema, use all remaining defaults | No fifth required input or mode gate; explicit defaults; early BYOUX-settings diff and later manual application; safe pending work |
 | login-host-verification | Verified parent covers the login subdomain; separate authority/settings already match; uncovered and deceptive-host variants | Accept exact/child/deeper normalized domain coverage in the same tenant without extra child verification; enforce all other URL restrictions; distinguish domain eligibility from deployment/live success |
@@ -60,6 +60,15 @@ paths test returned-link dispatch rather than discovering service routes.
 No live tenant, credentials, provisioning, RP callback or final OAuth
 validation is exercised. Browser availability failures must remain explicit
 failures/blockers, not skips or fake-DOM replacements.
+
+Direct-entry browser cases POST an already-produced signup attribute response
+(the `prompt=create` handoff), or an MFA selection/enrollment/activation response
+after first-factor SSO, through the same ingress and renderer as other cases.
+They assert no automatic protocol calls before user input, no first-factor
+controls, exact returned-link/current-token operations without start or
+challenge replay, and further policy interaction before finish. They test
+handling of those initial responses, not whether a live `/authorize` request
+with that prompt/session produces them.
 
 Deterministic repository tests check case parsing, scaffolding, command graders
 and the expected unimplemented-fixture failure. They do not run a model or

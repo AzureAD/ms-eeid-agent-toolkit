@@ -1,0 +1,66 @@
+schema_version: "1.1"
+name: byoux-behavior-implement
+context:
+  scaffold_script: scaffold.sh
+graders:
+  - name: skill-loaded
+    type: tool_used
+    tool: Skill
+    input_match: '"skill"\s*:\s*"(?:[\w-]+:)?eeid-implement-byoux"'
+  - name: build-executed
+    type: tool_used
+    tool: Bash
+    input_match: '\bnpm(?:\.cmd)?\s+run\s+build\b'
+  - name: tests-executed
+    type: tool_used
+    tool: Bash
+    input_match: '\bnpm(?:\.cmd)?\s+test\b'
+  - name: browser-executed
+    type: tool_used
+    tool: Bash
+    input_match: '\bnpm(?:\.cmd)?\s+run\s+test:browser\b'
+  - name: implementation-validation
+    type: llm
+    focus: trace
+    criteria: >-
+      PASS only if tool output shows successful build, Node tests AND real
+      Chromium browser tests after implementing actual selected journey forms
+      and handlers, and a Git diff confirms only the four approved source/plan
+      files changed. Tests, scripts, dependency manifests and lockfiles must
+      remain unchanged. FAIL for handoff-only code, disconnected forms,
+      command invocation without successful output, fabricated results,
+      skipping tests, fake-DOM substitution, or editing fixtures to force a
+      pass. Browser tests must use the real controller and intercepted Native
+      requests/finish, never a live tenant or production fixture switch.
+      Require direct initial signup from prompt=create and partial-SSO MFA
+      selection, enrollment and activation coverage, with no first-factor
+      UI/calls, start or completed-challenge replay, or premature finish.
+      Calling these paths only after discovery/signup is not direct-entry
+      coverage; subsequent policy steps and replacement tokens must still
+      be honored.
+      Require the explicitly confirmed synthetic account-selection branch:
+      initial and subsequent disambiguate, active returned-link token-only
+      resume, inactive/another-account current-token username discovery,
+      no automatic selection/bootstrap, malformed metadata fail-closed,
+      opaque links and further MFA before finish. This is not evidence of
+      public production availability.
+      Tooling failures are honest blockers but do not count as implementation
+      validation passing.
+  - name: truthful-implementation-report
+    type: llm
+    focus: last_message
+    criteria: >-
+      PASS if the response reports concrete page/handler implementation and
+      actual build, Node and browser outcomes separately; preserves manual
+      not-executed setup with unread inventory, pending association and
+      unperformed read-back; distinguishes mocked browser finish from live
+      authentication/RP validation; and gives scoped rollback to the fixture
+      checkpoint without touching other work. FAIL for a plan-only handoff,
+      assumed existing/missing flow, invented creation/association or live
+      success, or hiding failed/unrun commands.
+  - name: no-other-skill
+    type: tool_used
+    tool: Skill
+    input_match: 'eeid-(?:onboarding|implement-(?:hosted-auth|native-auth))'
+    min: 0
+    max: 0

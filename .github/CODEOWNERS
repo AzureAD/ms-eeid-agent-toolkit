@@ -17,3 +17,6 @@
 /tests/evals/eeid-implement-hosted-auth/ @cangokdere @AzureAD/devex-ciam
 /.github/plugins/eeid-toolkit/skills/eeid-implement-native-auth/ @cangokdere @AzureAD/devex-ciam
 /tests/evals/eeid-implement-native-auth/ @cangokdere @AzureAD/devex-ciam
+
+/.github/plugins/eeid-toolkit/skills/eeid-implement-byoux/ @relakhani @AzureAD/devex-ciam
+/tests/evals/eeid-implement-byoux/ @relakhani @AzureAD/devex-ciam

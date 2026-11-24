@@ -8,8 +8,8 @@ The suite installs this skill alone; no onboarding sibling is required.
 These cases cover discovery, readiness, design, dry-run guidance, and a
 scaffolded implementation with immutable Node and real-browser acceptance
 checks. Adding a case does not prove the model can pass it or establish live
-tenant behavior. Keep the skill draft until owner review, model-based runs,
-and representative implementation coverage are complete.
+tenant behavior. Readiness is the skill owner's decision; neither that status
+nor fixture coverage establishes model-run or live execution evidence.
 
 ## Triggering (`triggering/`)
 

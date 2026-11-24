@@ -5,7 +5,7 @@ license: MIT
 metadata:
   author: Microsoft
   copyright: Microsoft Corporation. All rights reserved.
-  status: draft
+  status: ready
   version: "0.1.0"
 ---
 
@@ -15,8 +15,6 @@ Onboard a relying-party application and its customer-hosted login page to
 Microsoft Entra External ID BYOUX. Entra still verifies credentials, evaluates
 policy, and completes the original OAuth/OIDC request. This is not a standalone
 Native Auth SDK flow.
-
-**Draft for owner review and evaluation; not a supported customer release.**
 
 ## Version
 

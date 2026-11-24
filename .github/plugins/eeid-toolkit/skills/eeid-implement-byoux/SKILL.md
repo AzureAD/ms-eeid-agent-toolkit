@@ -110,7 +110,7 @@ explicit requirement silently.
 | Customer CSS? | Keep existing/default styling (recommended); optionally accept an attached `.css` file or a workspace file path. Skip if unanswered |
 | Output claims? | Keep existing claims; do not add claims automatically |
 | MFA and session persistence? | Honor current tenant policy and service responses; propose no policy change or KMSI opt-in |
-| OAuth settings and callback? | Preserve existing registration/library configuration; otherwise plan library-supported authorization code with appropriate PKCE and a conventional callback route marked proposed until registered |
+| OAuth settings and callback? | Preserve existing registration/library configuration; otherwise recommend an applicable MSAL integration, authorization code with appropriate PKCE, and a conventional callback route marked proposed until registered. Do not add an auth-parameter questionnaire |
 | Extra read access or tenant mutation? | Use already-authorized reads; otherwise continue with unread checks pending. Manual tenant setup by default; only explicitly requested, separately approved user-flow automation is eligible |
 | Application BYOUX settings? | Inspect early; plan `web.customAuthenticationUx.isEnabled: true` and the supplied `loginPageUrl`, preserving unrelated settings |
 | Deployment and live tests? | Prepare manual deployment steps and run authorized local checks; leave unapproved/unavailable live checks Not run |
@@ -216,8 +216,11 @@ permission to omit all journey UI or describe a handoff shell as the full page.
    controls or journey bootstrap until a validated POST handoff arrives.
    Share discovery's identifier between sign-in and recovery; place advertised
    Create account beside Sign in and Forgot password underneath. Hide restart
-   during an active attempt. Wire the relying
-   party's library-managed authorize/callback/session/logout path as well. Pseudocode,
+   during an active attempt. Apply the application-side checklist in
+   `references/byo-ux.md` to wire the supplied, approved relying-party
+   authorize/callback/session/logout path as well. If that application is not
+   supplied or approved, provide concrete pending integration steps rather
+   than create another app or silently widen scope. Pseudocode,
    a static mockup, or ordinary callback wiring alone is not completion.
 8. **Guide setup and rollback.** Default to manual creation/reuse, attribute
    configuration, and application association under `references/user-flow-setup.md`.
@@ -235,6 +238,7 @@ permission to omit all journey UI or describe a handoff shell as the full page.
    surfaces. Live checks require an authorized test tenant/app/account; never
    exercise production or request credentials to simulate evidence. Report
    requested/supported/blocked journeys, attribute timing, exact changed files,
+   separate hosted-page, relying-party, and live end-to-end evidence,
    completed checks versus pending tenant work, user-flow reuse/create/update
    and association status, preview behavior, and rollback.
    Distinguish generated page journeys from tenant user-flow provisioning.

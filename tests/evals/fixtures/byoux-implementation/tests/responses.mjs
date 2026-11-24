@@ -14,6 +14,20 @@ export const challenge = {
   state: 'interactionRequired', action: 'challenge', continuationToken: 'synthetic-challenge',
   _embedded: { methods: [{ type: 'password', _links: { challenge: link('methods/password/challenge') } }] },
 };
+// Explicit synthetic selection contract, not evidence of production availability.
+export function accountSelection(continuationToken = 'synthetic-picker') {
+  return {
+    state: 'interactionRequired', action: 'disambiguate', continuationToken,
+    _embedded: {
+      user: [
+        { label: 'Saved test account', username: 'saved@example.invalid',
+          _links: { resume: link('selection/account-a/resume?ticket=opaque%2Bvalue') } },
+        { label: 'Inactive test account', username: 'inactive@example.invalid' },
+      ],
+    },
+    _links: { discover: link('signin/start') },
+  };
+}
 export function verification(type, token) {
   return {
     state: 'interactionRequired', action: 'verify', type, continuationToken: token,

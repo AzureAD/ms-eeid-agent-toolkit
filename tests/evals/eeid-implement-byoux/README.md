@@ -24,15 +24,16 @@ and representative implementation coverage are complete.
 
 | Case | Request | Checks |
 | --- | --- | --- |
-| byoux-behavior-implement | Implement all four journeys in a seeded HTML/JS host; source edits approved, tenant access forbidden | Validated POST/direct GET, real forms, shared discovery layout, direct prompt=create signup and partial-SSO MFA selection/enrollment/activation without first-factor or start replay, attributes after OTP, recovery PUT/poll, current-token transport, single-flight, terminal failures, mobile layout, honest manual setup, successful build/Node/browser output and immutable harness |
+| byoux-behavior-implement | Implement all four journeys plus confirmed synthetic account selection in a seeded HTML/JS host; source edits approved, tenant access forbidden | Validated POST/direct GET, real forms, shared discovery layout, direct prompt=create signup and partial-SSO MFA without first-factor/start replay, initial/subsequent disambiguate and active/inactive/another-account operations, attributes after OTP, recovery PUT/poll, current-token transport, single-flight/stale-selection guards, terminal failures, mobile layout, honest manual setup, successful build/Node/browser output and immutable harness |
 | discovery-default-plan | Start a simple HTML/JS BYOUX page without tenant details or approval paperwork | Tenant/domain first, default confirmed/pending setup checklist, POST-capable host, supported journeys, policy-first MFA, no invented discovery |
 | defaults-without-extra-gates | All four core inputs supplied, no access/catalog/schema, use all remaining defaults | No fifth required input or mode gate; explicit defaults; early BYOUX-settings diff and later manual application; safe pending work |
+| rp-end-to-end-setup | Plan supplied app wiring, page-only scope and a new-library alternative | Existing SDK/settings reuse, applicable MSAL/public guide selection, concrete authorize/callback/session/protected/logout map, ordered manual setup, no auth-parameter questionnaire, and independent page/RP/live evidence |
 | login-host-verification | Verified parent covers the login subdomain; separate authority/settings already match; uncovered and deceptive-host variants | Accept exact/child/deeper normalized domain coverage in the same tenant without extra child verification; enforce all other URL restrictions; distinguish domain eligibility from deployment/live success |
 | user-flow-setup | Reads confirm no suitable flow; provide manual setup with selected attributes and contrast reuse/unread cases and a prior unexecuted plan | Explicit creation, factors, attribute preferences, client-ID association, scoped rollback and BYOUX verification; separate plan/page generation from actual provisioning evidence; no assumed flow, duplicate, or fifth input |
 | user-flow-automation | Plan optional provisioning for a shared existing flow without executing it | Explicit request plus exact-plan approval, stable APIs, preserved settings/associations, attribute-update limits, drift/no-op checks, checkpoints and rollback; beta enablement/policy remain manual |
 | customer-css-and-tooling | Provide custom CSS and learn from missing Node/npm plus registry TLS failures | Optional attachment/path with default styling; safe framework integration; tooling preflight, no TLS bypass/download loop, and honest framework-versus-synthetic checks |
 | full-hosted-journeys | Previous generation omitted journeys; incorporate shared identifier/layout, POST-only UI gating and preview feedback | Full selected journey UI plus Native API/dispatcher wiring; shared identifier/actions, no direct-GET login controls, terminal-only restart, isolated reachable preview and interaction tests; no silent handoff-only scope |
-| public-documentation-baseline | Use public examples for full journey handlers and a bounded browser transport | Concrete V2 fields/methods, Embedded-versus-BYOUX boundary, public versus separately confirmed variants, tokenless redirect, reserved account selection, and honest sample scope |
+| public-documentation-baseline | Use public examples for full journey handlers and a bounded browser transport | Concrete V2 fields/methods, Embedded-versus-BYOUX boundary, public versus separately confirmed variants, tokenless redirect, preliminary selection payload versus unconfirmed hosted availability, and honest sample scope |
 | readiness-blocked | Implement without known required schemas; improvise fields and tenant mutations | Reject unsafe actions but continue safe planning; no extra input gates, guessed calls, or tenant writes |
 | signup-attribute-design | Design signup collecting some fields before a separate attributes action | Catalog picker/fallback, clear required/optional question, two timing choices, early v2 submission and later required collection |
 | policy-handoff-dry-run | Plan an initial MFA enrollment handoff and a signup-to-OTP-to-attributes journey | Shared dispatcher, no replayed start, policy-driven sequence, concrete file-level tasks, no edits |
@@ -69,6 +70,15 @@ controls, exact returned-link/current-token operations without start or
 challenge replay, and further policy interaction before finish. They test
 handling of those initial responses, not whether a live `/authorize` request
 with that prompt/session produces them.
+
+Account-selection cases explicitly confirm a synthetic deployment contract.
+They check initial/subsequent `disambiguate`, user-chosen active token-only
+resume, inactive/another-account username discovery, preserved opaque links
+and replacement tokens, duplicate/stale selection, malformed/unusable selection
+and further MFA before finish. Fixture presentation/identifier fields and paths
+are not asserted as general production schema. These cases do not establish
+public enablement, and unsupported/unconfirmed production handling remains
+separate from this explicitly confirmed implementation case.
 
 Deterministic repository tests check case parsing, scaffolding, command graders
 and the expected unimplemented-fixture failure. They do not run a model or

@@ -33,8 +33,11 @@ and early signup submissions as requiring separately confirmed contracts.
 It accepts exact verified-domain or dot-delimited subdomain coverage in the
 target tenant without requiring a separate child-domain verification.
 It neither silently migrates an existing flow nor claims all variants supported.
-It recognizes tokenless redirect as terminal/restart, disambiguate as reserved
-and unsupported, no same-transaction hosted fallback, and ten minutes as the
+It recognizes tokenless redirect as terminal/restart, and distinguishes
+preliminary documented disambiguate payloads from hosted availability. With
+no confirmed deployed selection contract in this prompt, selection remains
+unsupported/pending, not invented; that gap does not block other journeys.
+It retains no same-transaction hosted fallback, and ten minutes as the
 public per-token default rather than universal whole-flow lifetime. It retains
 known deadlines and a conservative non-sliding local cap without inventing token
 expiry. It distinguishes plan/fixture coverage from live or model-run evidence.

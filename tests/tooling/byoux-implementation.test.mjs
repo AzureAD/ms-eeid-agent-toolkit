@@ -13,7 +13,7 @@ const suite = join(root, 'tests', 'evals', 'eeid-implement-byoux');
 
 test('BYOUX implementation case loads with scaffold and required command graders', async () => {
   const cases = await loadCases(suite);
-  assert.equal(cases.length, 18);
+  assert.equal(cases.length, 19);
   const entry = cases.find((candidate) => candidate.name === 'byoux-behavior-implement');
   assert(entry);
   assert.equal(entry.scaffoldScript, join(entry.directory, 'scaffold.sh'));

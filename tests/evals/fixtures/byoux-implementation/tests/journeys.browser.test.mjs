@@ -3,7 +3,7 @@ import { before, after, test } from 'node:test';
 import { chromium } from 'playwright-core';
 import { startHost } from './host.mjs';
 import {
-  config, api, link, discovery, challenge, verification, attributes, profile, enrollment, activation,
+  config, api, link, discovery, challenge, accountSelection, verification, attributes, profile, enrollment, activation,
   update, poll, continued, envelope,
 } from './responses.mjs';
 
@@ -361,11 +361,15 @@ test('direct MFA single-flight clears credentials before awaiting transport', as
   } finally { release(); await run.close(); }
 });
 
-test('unknown required action, tokenless redirect and foreign required links stop without network or finish', async () => {
+test('unknown action, tokenless redirect, malformed selection and foreign required links stop without network or finish', async () => {
   for (const initial of [
     { state: 'redirect' },
     { state: 'interactionRequired', action: 'unknownRequired', continuationToken: 'synthetic-unknown' },
     { state: 'interactionRequired', action: 'disambiguate', continuationToken: 'synthetic-reserved' },
+    { ...accountSelection(), _embedded: { user: 'invalid-array' } },
+    { ...accountSelection(), _embedded: { user: [
+      { _links: { resume: { href: 'https://other.example/resume' } } },
+    ] }, _links: {} },
     { ...verification('sms', 'synthetic-foreign'), _links: { verify: { href: 'https://other.example/verify' } } },
     { ...verification('sms', 'synthetic-tenant'), _links: { verify: { href: '/33333333-3333-4333-8333-333333333333/api/v2.0/verify' } } },
     { ...verification('sms', 'synthetic-path'), _links: { verify: { href: `/${config.tenantId}/api/v2.0-other/verify` } } },
@@ -379,6 +383,103 @@ test('unknown required action, tokenless redirect and foreign required links sto
       await run.check();
     } finally { await run.close(); }
   }
+});
+
+test('confirmed initial account selection resumes only the chosen saved session and follows MFA', async () => {
+  let release;
+  const pending = new Promise((resolve) => { release = resolve; });
+  const resumeStep = step('selection/account-a/resume?ticket=opaque%2Bvalue',
+    token('synthetic-picker'), verification('sms', 'synthetic-selected-mfa'));
+  resumeStep.release = pending;
+  const run = await session(accountSelection(), [
+    resumeStep,
+    step('methods/sms/verify', { ...token('synthetic-selected-mfa'), otp: '012345' }, continued),
+    finishStep,
+  ]);
+  try {
+    const { page } = run;
+    await page.getByRole('button', { name: 'Use account 1', exact: true }).waitFor();
+    assert.equal(run.calls.length, 0, 'Saved-session selection must await the user');
+    assert.equal(await page.getByLabel('Password', { exact: true }).count(), 0);
+    assert.equal(await page.getByRole('button', { name: 'Continue', exact: true }).count(), 0);
+    const oldChoice = await page.getByRole('button', { name: 'Use account 1', exact: true }).elementHandle();
+    const submitted = page.waitForRequest(resumeStep.url);
+    await click(page, 'Use account 1');
+    await submitted;
+    await oldChoice.evaluate((button) => {
+      button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    assert.equal(run.calls.length, 1, 'Duplicate selection must be single-flight');
+    release();
+    await page.getByLabel('Code', { exact: true }).waitFor();
+    await assertNoFirstFactor(page);
+    await oldChoice.evaluate((button) => {
+      button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+    assert.equal(await page.getByRole('button', { name: 'Continue', exact: true }).count(), 0,
+      'Saved-session selection must not bypass pending MFA');
+    await verifyCode(page);
+    await finish(page);
+    await run.check();
+  } finally { release(); await run.close(); }
+});
+
+test('confirmed inactive account selection uses current picker token and username discovery', async () => {
+  const run = await session(accountSelection(), [
+    step('signin/start', { ...token('synthetic-picker'), username: 'inactive@example.invalid' }, verification('email', 'synthetic-inactive-otp')),
+    step('methods/email/verify', { ...token('synthetic-inactive-otp'), otp: '012345' }, continued),
+    finishStep,
+  ]);
+  try {
+    const { page } = run;
+    await page.getByRole('button', { name: 'Use account 2', exact: true }).waitFor();
+    assert.equal(run.calls.length, 0);
+    await click(page, 'Use account 2');
+    await verifyCode(page);
+    await finish(page);
+    await run.check();
+  } finally { await run.close(); }
+});
+
+test('confirmed Use another account waits for an identifier without inventing picker journeys', async () => {
+  const run = await session(accountSelection(), [
+    step('signin/start', { ...token('synthetic-picker'), username: 'another@example.invalid' }, verification('email', 'synthetic-another-otp')),
+    step('methods/email/verify', { ...token('synthetic-another-otp'), otp: '012345' }, continued),
+    finishStep,
+  ]);
+  try {
+    const { page } = run;
+    await click(page, 'Use another account');
+    await page.getByLabel('Email or username', { exact: true }).waitFor();
+    assert.equal(run.calls.length, 0, 'Another-account discovery requires an entered identifier');
+    for (const name of ['Create account', 'Forgot password?']) {
+      assert.equal(await page.getByRole('button', { name, exact: true }).count(), 0);
+    }
+    await fill(page, 'Email or username', 'another@example.invalid');
+    await click(page, 'Sign in');
+    await verifyCode(page);
+    await finish(page);
+    await run.check();
+  } finally { await run.close(); }
+});
+
+test('confirmed account selection returned after discovery uses replacement token and the same dispatcher', async () => {
+  const run = await session(discovery, [
+    step('signin/start', { ...token('synthetic-discovery'), username: 'initial@example.invalid' }, accountSelection('synthetic-replacement-picker')),
+    step('selection/account-a/resume?ticket=opaque%2Bvalue', token('synthetic-replacement-picker'), continued),
+    finishStep,
+  ]);
+  try {
+    const { page } = run;
+    await fill(page, 'Email or username', 'initial@example.invalid');
+    await click(page, 'Sign in');
+    await page.getByRole('button', { name: 'Use account 1', exact: true }).waitFor();
+    assert.equal(run.calls.length, 1, 'A returned picker must not automatically resume or restart');
+    await click(page, 'Use account 1');
+    await finish(page);
+    await run.check();
+  } finally { await run.close(); }
 });
 
 test('mobile discovery fits without duplicate identifiers or clipped actions', async () => {

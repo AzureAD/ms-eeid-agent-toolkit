@@ -13,6 +13,7 @@ Apply this reference only to BYOUX, together with `references/byo-ux.md`. Genera
 - Local tooling and failed setup
 - Preview handoff
 - Transaction and response dispatch
+- Account selection for a confirmed deployment
 - Transport and request coordination
 - Browser history and token lifecycle
 - Link validation and routing
@@ -157,7 +158,7 @@ Derive synthetic interaction fixtures from these references: discovery to
 password or email OTP; signup collection to already-issued verification and
 more attributes; direct MFA and phone enrollment/activation; recovery through
 PUT update, polling, further policy checks, and BYOUX finish. Also cover
-`{ "state": "redirect" }` without a token/link and reserved
+`{ "state": "redirect" }` without a token/link and unconfirmed
 `interactionRequired` / `disambiguate`. Neither is an invented login screen
 or a successful/resumable continuation.
 
@@ -251,13 +252,65 @@ Validate the fields needed by the current action, not every optional field from 
 Recognize `state: redirect` before requiring interaction-token fields: it can
 contain only the state. Invalidate the transaction and offer a new relying-party
 authorization attempt, not a guessed redirect URL or same-transaction fallback.
-Keep `interactionRequired` / `disambiguate` as a distinct unsupported
-account-selection case; do not implement its reserved future payload.
+Keep `interactionRequired` / `disambiguate` distinctly unsupported unless
+the deployed account-selection contract is confirmed. Then apply the
+account-selection section below, including to an initial handoff; public
+payload documentation alone does not establish deployment availability.
 An operation's `completed` state alone does not establish authentication.
 
 Apply this version tolerance to both decoded handoff envelopes, `context` and `initialResponse`, as well as subsequent API responses. Keep required tenant/client matching and action validation; unknown optional envelope members are not errors.
 
 Render only journeys and authentication methods represented by the current response's usable returned links, not by a local default or a previous response. Enter sign-in-only, sign-up-only, recovery-only, direct attributes, verification, enrollment, MFA, and completion handoffs through the same dispatcher; discovery is not mandatory. An already-produced signup/challenge response must not trigger a replayed start/challenge call. Never call `/authorize-challenge` within BYOUX. Rebuild forms from the latest response without retaining earlier credentials. Finish uses the top-level form POST in `byo-ux.md`; it is not proof of final OAuth completion or permission to ignore subsequent supported interaction.
+
+## Account selection for a confirmed deployment
+
+The [shared public response reference](https://learn.microsoft.com/entra/identity-platform/reference-native-authentication#account-selection-action)
+describes preliminary `disambiguate` payloads while still stating that hosted
+BYOUX account selection is not currently supported. Do not present this as
+generally enabled, automatically change a customer's prompt/hints, or guess
+missing operation schemas. Implement only for a supplied, explicitly confirmed
+deployment contract; otherwise retain safe unsupported-action handling and
+report that capability pending without blocking other journeys.
+
+For that contract, handle initial and subsequent `interactionRequired` /
+`disambiguate` responses through the common dispatcher:
+
+- Validate the current token, `_embedded.user` account array, and applicable
+  operation schemas. Present only returned accounts and usable actions, with
+  accessible labels from confirmed presentation fields or neutral numbered
+  labels. Do not require optional names/hints or treat them as authenticated
+  identity. Do not infer an identifier from a display label.
+- An account with a validated account-specific `_links.resume` offers explicit
+  saved-session selection. POST to that exact returned link with only the
+  current `continuationToken` for the confirmed token-only resume contract.
+  Do not extract an ID to build another URL, send a separate session ID,
+  reuse `signin/start` for active resume, or inject presentation/query options.
+  Do not call resume automatically, even for a single offered account.
+- An inactive account without resume uses the response-level `_links.discover`
+  and the confirmed username-discovery body: current `continuationToken` plus
+  its supported identifier, or an explicit identifier field if absent.
+  **Use another account** collects an identifier before that same discovery
+  operation. Keep the picker token, not a new native bootstrap or stale token.
+  Offer signup/recovery only when the current response separately advertises
+  those journeys; selecting another account does not invent them.
+- Validate links against the trusted authority and tenant path before exposing
+  or submitting actions. Preserve their versions/path/query rather than
+  deriving resume routes from labels, IDs or another API version. A malformed
+  optional tile action can be omitted with the standard fixed warning if a
+  usable alternative remains; no usable required action stops visibly.
+- Retain snapshot ownership, immediate input clearing and single-flight
+  guards. Invalidate old tiles/handlers when responses change. A failed,
+  expired, unoffered or inactive saved-session selection never silently
+  falls back to a different account, replays selection, or authenticates.
+- Dispatch the actual resume/discovery result with its replacement token.
+  Selecting a saved session is not proof that authentication/policy completed:
+  follow further verification, MFA, enrollment or attributes, and finish only
+  when the service permits it. Do not add tile logout/forget endpoints;
+  ordinary relying-party logout remains a separate application operation.
+
+Use synthetic, explicitly enabled selection fixtures to check this branch.
+Their labels/identifier fields and endpoint paths are test contracts, not
+universal production schema or live rollout evidence.
 
 ## Transport and request coordination
 
@@ -473,7 +526,8 @@ Add focused tests using the application's existing runner and approved schemas. 
 | Journey completeness | Render and interact with actual selected sign-in/signup/SSPR/MFA/enrollment/attribute views; assert field validation, supported Native request mapping, and next-response dispatch through real handlers with mocked transport. Parser/lifecycle tests and a generic status shell do not satisfy this coverage |
 | Ingress/UI gating | Direct GET has only start-from-application instructions and no authentication controls/bootstrap/journey script; missing, duplicate, malformed, mismatched or invalid POST envelopes never activate a default login form; valid initial responses enter the dispatcher without replay |
 | Discovery layout | One identifier shared by Sign in and advertised recovery; Enter chooses sign-in; Create account beside Sign in, Forgot password underneath; signup start does not require an unrelated identifier; no active-state restart link; terminal restart does not replay a handoff; keyboard and mobile layout preserved |
-| Public contract boundaries | Documented V2 bodies/methods, username-capable configured sign-in, descriptor-driven public signup plus separately confirmed early-submission variants, tokenless redirect, unsupported disambiguate, and no same-transaction hosted fallback; test tenant-bound absolute/relative proxy routing and POST/PUT preflight |
+| Public contract boundaries | Documented V2 bodies/methods, username-capable configured sign-in, descriptor-driven public signup plus separately confirmed early-submission variants, tokenless redirect, unconfirmed/unsupported disambiguate, and no same-transaction hosted fallback; test tenant-bound absolute/relative proxy routing and POST/PUT preflight |
+| Confirmed account selection | Initial/subsequent disambiguate, offered-account rendering, explicit active token-only resume, inactive/another-account username discovery, no automatic replay or constructed routes, unsafe/unusable links, malformed or stale selection, current-token/single-flight guards, and further policy before finish; no tile logout/forget or inferred deployment enablement |
 | Dispatch | Initial discovery/signup/attributes/verification/recovery/MFA/enrollment/completion; alternative responses from each operation; skipped/repeated/reordered steps; only linked journeys/methods; no automatic start/challenge replay or `/authorize-challenge` call; unknown optional JSON properties/HAL relations in both handoff envelopes and API responses ignored while unknown required actions fail |
 | Cross-journey transitions | Signup -> OTP -> further attributes -> MFA/enrollment; initial SSO -> MFA/enrollment without identifier lookup or first-factor replay; password update -> MFA/enrollment directly and through polling -> final continuation. Follow actual links/new tokens, clear and hide obsolete forms, stop old polling, and keep finish unavailable until the service allows it; do not make these example sequences mandatory policy |
 | Request coordination | Rapid double-submit, resend versus verify, recovery versus submit, poll versus user action, and duplicate finish produce at most one active operation; guard releases on failure; cancellation/late completion cannot revive invalidated state |

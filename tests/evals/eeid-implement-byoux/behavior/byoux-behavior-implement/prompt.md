@@ -29,6 +29,22 @@ with `dispose()`. `request` is the injected fetch transport; `finish(url, token)
 performs the top-level POST, not a JSON request. Do not bypass these seams.
 The fixture is not an RP OIDC client or deployable server.
 
+For this synthetic deployment only, I explicitly confirm account-selection
+support and the supplied `accountSelection()` contract in `tests/responses.mjs`.
+Its `_embedded.user` array uses fixture-only `label` and `username` fields;
+an account's returned resume link accepts POST with only continuationToken.
+Inactive/another-account discovery uses the returned response discover link
+and current continuationToken plus username. Implement this confirmed branch,
+not a general public-availability claim, hardcoded fixture route or test switch.
+Render buttons Use account 1, Use account 2 and Use another account. The latter
+collects Email or username with a Sign in submit. Keep labels meaningful without
+assuming these presentation fields are a universal production schema.
+Selection may be the initial response or a later response. Wait for an explicit
+choice, follow active resume versus inactive discovery, preserve opaque
+returned URLs and replacement tokens, and follow further MFA before finish.
+Missing/malformed required selection metadata must stop, not invent accounts,
+new bootstrap, tile logout or fallback.
+
 Read the immutable tests for the exact synthetic V2 links, fields and form
 contract. Use accessible labels: Email or username, Password, Code, Email,
 Display name, City, Phone number, New password, Confirm new password.

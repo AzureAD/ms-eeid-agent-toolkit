@@ -38,6 +38,12 @@ graders:
       Calling these paths only after discovery/signup is not direct-entry
       coverage; subsequent policy steps and replacement tokens must still
       be honored.
+      Require the explicitly confirmed synthetic account-selection branch:
+      initial and subsequent disambiguate, active returned-link token-only
+      resume, inactive/another-account current-token username discovery,
+      no automatic selection/bootstrap, malformed metadata fail-closed,
+      opaque links and further MFA before finish. This is not evidence of
+      public production availability.
       Tooling failures are honest blockers but do not count as implementation
       validation passing.
   - name: truthful-implementation-report

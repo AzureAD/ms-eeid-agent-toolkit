@@ -22,7 +22,7 @@ Disclose these supplied preview limitations in the running summary without a new
 | Supported protocols | Roadmap feature | Public BYOUX guidance documents OAuth 2.0/OIDC authorization-code flow. Preserve supplied implicit/hybrid requirements, including `response_type=id_token`, only against a separately confirmed deployed contract, registration, and library; do not present them as publicly documented support or silently migrate an existing application. SAML and WS-Federation remain unsupported. |
 | Public client redirect URI | Service constraint | Public applications must use a registered Web-type redirect URI; they remain public clients and must not receive confidential credentials. |
 | Customer-page invocation during SSO | Roadmap feature | A session satisfying authentication skips the customer page. Invoking that page during satisfied SSO is not currently supported. |
-| Multiple browser sessions | Work in progress | Multiple user sessions can show a Microsoft-hosted account picker. Include `login_hint` in the authorization request to bypass account selection as described below. |
+| Multiple browser sessions | Work in progress | Multiple user sessions can show a Microsoft-hosted account picker. Preserve supported `login_hint` behavior. Generate hosted `disambiguate` handling only for a confirmed deployed account-selection contract; preliminary public payload documentation is not availability evidence. |
 | Application consent | Roadmap feature | Users may see Microsoft-hosted consent after BYOUX if consent has not been granted for the application. |
 | Sign-out account picker | Work in progress | Logout can show a Microsoft-hosted account picker. Supply `logout_hint` using the ID token's `login_hint` claim as described below. |
 | Admin surfaces for BYOUX configuration | Work in progress | Microsoft Graph beta self-service configuration is available; Microsoft Entra admin center configuration is still being developed. Keep the supplied Graph procedure manual. |
@@ -292,6 +292,7 @@ Read `references/byo-ux-login-page.md` before planning, generating, or verifying
 
 | Generated surface | Required implementation |
 |---|---|
+| Relying application, when supplied and approved | Library-managed authorize/callback, applicable code redemption, application session or account handling, protected routes, and logout; otherwise explicit pending integration tasks, not a newly invented application |
 | Hosted login page | HTML/CSS and JavaScript/TypeScript, or equivalent framework components, with usable forms, validation, status/error display, and actions wired to the protocol client |
 | POST ingress and configuration | Receive the browser handoff, validate/decode the bootstrap, supply it safely to the UI, and wire the approved tenant, tenant-verified custom-domain authority/login-page origins, and browser-only in-memory transaction state |
 | API client and common dispatcher | Send contract-correct requests and route the initial response and every API result through the same contract validation and state/action handling; do not choose the next screen from the endpoint called |
@@ -327,6 +328,58 @@ For sign-out, use the library's supported logout-request options to send `logout
 The hosted login page drives authentication and returned continuations; Entra owns code/token issuance, consent, and session decisions. Do not mint codes/tokens in the page, assume an ID token without OIDC, or use an access token as an ID token. Do not claim that noninteractive OAuth grants require or support a BYOUX page.
 
 Keep protocol validation, the registered callback, client authentication, and confidential credentials in their normal relying-party boundary. Start sign-in through Entra's authorize endpoint using the identity library; do not navigate directly to the hosted login page to manufacture a bootstrap.
+
+#### Application-side implementation checklist
+
+Use this checklist for both implementation and dry-run output. Reuse existing
+configuration before proposing changes; it is not another required-input form.
+
+1. **Inspect the supplied application.** Identify its framework, public or
+   confidential client type, identity library/package, sign-in and callback
+   routes, account/session handling, protected routes, and logout. Keep a
+   supported existing OAuth/OIDC integration. If none exists, recommend an
+   applicable MSAL SDK/framework integration from the public guidance below.
+   Confirm custom-authority and Web-type reply-URI compatibility; an ordinary
+   SPA sample is not evidence of that compatibility.
+2. **Map configuration to real files.** Reuse tenant/client IDs, the approved
+   custom authority, callback and logout URLs, scopes, and supported response
+   type/mode. If a callback is absent, propose a framework-appropriate route,
+   marked unregistered until confirmed. Keep it separate from `loginPageUrl`.
+   Preserve scope requirements; add API permissions only for explicitly
+   requested functionality. For a new OIDC sign-in, use the library's
+   supported OIDC defaults and no unrequested resource permissions.
+   `response_type`, not an OAuth token response's `token_type`, selects the
+   authorization response. Leave correlation, nonce and PKCE generation and
+   validation to the supported library/framework as applicable. Preserve
+   optional prompt/hint behavior unless specifically requested and supported.
+3. **Order setup dependencies.** Map registration, user-flow association and
+   manual BYOUX configuration from `user-flow-setup.md` and the tenant reference
+   to application/library configuration, HTTPS POST hosting, returned-link
+   interactions/finish, and callback/session validation. Show Action, Why,
+   Expected result and Verify for remaining administrator steps. Proposed
+   values or local SDK configuration do not prove registration or enablement.
+4. **Wire approved surfaces.** Identify actual files/routes/configuration keys
+   for application-initiated authorize, callback validation and applicable code
+   redemption, application session/account establishment, protected-route
+   checks, and logout/session cleanup. Follow the selected library's framework
+   guide rather than hand-crafting OAuth URLs or token validation. The BYOUX
+   page must not redeem the application's code or establish its app session.
+   If only the page workspace is supplied, retain these as concrete pending
+   relying-party tasks with proposed routes clearly labeled; do not claim
+   those files exist, create another app, or widen approved edits.
+5. **Check each boundary independently.** Add application-side checks using
+   existing library/framework test seams for authorize configuration, callback
+   correlation/errors, applicable redemption, unauthenticated protected access,
+   session establishment only after successful validation, and logout. Invalid
+   state, denied consent or failed redemption must not authenticate. Keep
+   these separate from hosted-page interaction fixtures. An authorized live
+   test traces the actual browser flow through a validated callback and
+   protected-route access; mocked issuer/transport results are not live proof.
+6. **Report evidence, not one success flag.** Separately label hosted-page
+   implementation/checks, relying-party implementation/checks, and live
+   authorize-to-session verification as implemented, proposed, blocked or
+   Not run, with exact files, command outcomes and pending setup as applicable.
+   Neither a documentation link nor intercepted finish proves completion.
 
 ### 2. Accept the initial browser handoff
 
@@ -378,7 +431,7 @@ Apply the following handling whenever these responses occur, including after an 
 | Additional supported interaction | Render the requested step and follow its returned actions; do not assign it a fixed position before or after finish or invent a currently unsupported KMSI step |
 | `continue` | Follow the validated returned continuation with the contract's transport and method; a continuation to finish does not itself mean OAuth is complete |
 | `redirect` | May contain only `state`, without token or URL. Stop the transaction and offer a new relying-party authorization attempt, never an invented fallback URL |
-| `interactionRequired` / `disambiguate` | Reserved account selection is not currently supported on the hosted page; stop this required interaction distinctly without implementing future selection payloads |
+| `interactionRequired` / `disambiguate` | Default to distinct unsupported handling while public guidance excludes hosted selection. For an explicitly confirmed deployed contract, use the account-selection rules in the page reference and keep initial/subsequent responses in the common dispatcher; never infer rollout from a payload example |
 | Unsupported state, policy block, or API error | Show a safe failure/recovery action and preserve only approved diagnostic IDs; never declare sign-in successful or bypass the unmet step |
 
 Render only journeys and authentication methods represented by the current response's usable returned links. Ignore unknown optional JSON properties and HAL relations; do not treat them as required actions or execute their links. Required unknown actions still fail visibly.
@@ -466,7 +519,7 @@ Include the detailed page-generation fixtures in `references/byo-ux-login-page.m
 13. Verify Hosted page URL requirements and finish Host/Origin enforcement using approved test deployments or contract fixtures: accept a verified custom domain itself, its child and deeper subdomains without separate entries, and equivalent normalized/case-varied names; reject unrelated hosts, unverified covering domains, deceptive prefix/suffix matches, and coverage only in another tenant. Cover HTTP/relative URLs, IPv4/IPv6 literals, user information, fragments, localhost, loopback and Microsoft-owned hosts, plus invalid Host and missing/malformed Origin independently. Confirm rejected cases cannot complete the journey, leak tokens, spoof headers, or fall back to default/localhost hosts.
 14. Verify application/user-flow associations and the Web-type reply URI for both public and confidential relying parties as applicable. Confirm public-client output contains no confidential credential, and missing Global Administrator authorization blocks the BYOUX PATCH step without role assignment or tenant mutation by the agent.
 15. When signup is selected, reconcile selected/defaulted attributes, timing/conditions, and submission mappings from `ciam-user-flows.md` with tenant configuration and operation-specific schemas. Cover upfront all/partial attributes, supported later submission, optional-only early completion, validation failures, supported types, and separately requested claims using synthetic fixtures. Verify earlier submission is not restricted to a separate submit-attributes call, no such call is made unconditionally, and any initial/later `collectAttributes` response renders its required fields without hard-coding the questionnaire or assuming earlier values were accepted. Report unresolved configuration/schema/timing differences as pending work without pausing the skill; fixtures alone do not prove tenant configuration.
-16. Cover tokenless `redirect`, unsupported `disambiguate`, and consent granted/not granted. A restart invalidates the old transaction; no same-transaction hosted fallback, invented URL, or reused continuation is permitted. Preserve OAuth correlation and never authenticate consent denial/error.
+16. Cover tokenless `redirect`, unsupported/unconfirmed `disambiguate`, and consent granted/not granted. For a confirmed account-selection contract, cover active resume, inactive/another-account discovery, stale/invalid selection, unsafe links, current-token/single-flight guards, and further policy before finish. A restart invalidates the old transaction; no same-transaction hosted fallback, invented URL, or reused continuation is permitted. Preserve OAuth correlation and never authenticate consent denial/error.
 17. Verify confirmed service deadlines, the conservative non-sliding local page cap, expired service state despite a recently loaded page, and restart on expiration. Distinguish the public per-token ten-minute default from a confirmed whole-flow deadline. Apply the page reference's lifetime rules; handoff, retries, polling, and replacement tokens do not prove renewed journey validity.
 
 Include this integration summary in the existing implementation handoff or dry-run output; do not create an extra report unless asked:
@@ -478,6 +531,8 @@ Readiness: baseline/schema reference, advertised Native API versions, Graph beta
 Application BYOUX settings: early read status, current versus desired isEnabled/loginPageUrl, manual settings diff or no update needed, pending read-back/live test
 Preview limitations: disclosed applicable status categories, expected hosted screens/fallback, log limitations, and incompatible requirements
 Relying party: tenant/client IDs and type, authority, Web-type reply URI, logout URI, requested response type/mode and required issuance settings, scopes, credential-provider reference if confidential; hint availability/handling without actual hint values
+Application integration: selected existing library or recommended MSAL/framework guide; actual/proposed authorize, callback/redemption, session/account, protected-route and logout files/routes/configuration keys; approved scope and pending work
+Account selection: unconfirmed/unsupported or confirmed deployed contract; presentation/identifier and operation schema provenance, supported picker branches and pending checks without account values
 Hosted UX: HTTPS origin, POST ingress, browser-only in-memory transaction boundary, authority origin, hosting/proxy/referrer-policy configuration
 Domains: authentication host verification, loginPageUrl validation and matched tenant-owned DNS-verified custom domain, finish Host/Origin check results
 Journeys: requested, supported, blocked; first/second factors and signup attributes
@@ -488,6 +543,7 @@ Changes: exact files/packages/configuration keys and dependency-ordered implemen
 Tenant steps: application object ID, manual Graph PATCH and prior-settings checkpoint, owner, expected result, read-back evidence
 User flow: inventory read status, chosen flow or proposed creation, factors/attributes, application association, manual or separately approved automation, pending checks and rollback
 Verification: completed local/live checks, pending checks, blockers, rollback
+Completion evidence: hosted-page implementation/checks; relying-party implementation/checks; live authorize-to-session verification, each with independent status and no synthetic-to-live success inference
 ```
 
 ## Supporting documentation
@@ -499,6 +555,14 @@ has run for the customer's tenant:
 - [BYOUX overview and supported journeys](https://learn.microsoft.com/entra/external-id/customers/concept-bring-your-own-ux).
 - [Configure BYOUX](https://learn.microsoft.com/entra/external-id/customers/how-to-configure-bring-your-own-ux).
 - [BYOUX API and protocol](https://learn.microsoft.com/entra/external-id/customers/reference-bring-your-own-ux).
+
+For the relying application, select the guide matching its framework and client
+type from [MSAL guidance](https://learn.microsoft.com/entra/identity-platform/msal-overview)
+and [External ID app samples](https://learn.microsoft.com/entra/external-id/customers/samples-ciam-all).
+The samples index lists Microsoft-hosted and Embedded native examples, not a
+complete BYOUX sample. Use applicable OAuth/MSAL examples for the application
+boundary, then apply BYOUX's custom authority, Web-type callback and separate
+hosted-page requirements. Sample presence alone does not establish compatibility.
 
 Use **Public implementation examples** and **Documented V2 request mapping**
 in `byo-ux-login-page.md` for the shared Native API examples and browser-proxy
